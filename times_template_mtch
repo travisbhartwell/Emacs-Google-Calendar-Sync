@@ -1,0 +1,18 @@
+TITLE (\w[\w ]+)
+TITLEII (\w[\w ]+(?=\n))
+STTIME (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))
+TAB (?:\s+?)?
+ENDTIME (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))
+HYPHEN (\s{0,8}-\s{0,8})
+STHOUR ([012]?\d)
+STMINUTE ([0-5]\d)
+STAMPM (am|pm|AM|PM)
+STAMPMHYPHEN (am|pm|AM|PM)[\s\t]{0,8}-[\s\t]{0,8}
+STAMPMNOHYPHEN (am|pm|AM|PM)(?![\s\t]{0,8}-[\s\t]{0,8})
+ENDHOUR ([012]?\d)
+ENDMINUTE ([0-5]\d)
+ENDAMPM (am|pm|AM|PM)
+ENDAMPMANOTHER ([ampAPM]{2})
+STDAYNOTFOLLOWEDBYCOMMA ([0-3]?\d)(?!,)
+DETAIL (.*?)(?=^[\w%&\d*])
+
