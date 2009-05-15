@@ -761,18 +761,83 @@ def CloseShelveandMarkSyncTimes(gmailuser,gmailpasswd,shelve,gcal):
   del gcal
   shelve.close()
   
+
+class _Getch:
+    """Gets a single character from standard input.  Does not echo to the
+screen."""
+    def __init__(self):
+        try:
+            self.impl = _GetchWindows()
+        except ImportError:
+            self.impl = _GetchUnix()
+
+    def __call__(self): return self.impl()
+
+class _GetchUnix:
+    def __init__(self):
+        import tty, sys
+    def __call__(self):
+        import sys, tty, termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+class _GetchWindows:
+    def __init__(self):
+        import msvcrt
+    def __call__(self):
+        import msvcrt
+        return msvcrt.getch()
+getch = _Getch()
+
+def getpasswd():
+  "Uses the _Getch class to input a string from the keyboard, masking the characters with '*', returning the string without the newline char"
+  a = 'q'
+  passwd = ''
+  while a != chr(13):
+    a = getch() 
+    passwd = passwd + a
+    print '*',
+  return passwd[0:len(passwd) - 1]
+
 def main(argv=None):
+  "Using this script without any options or arguments will syncronizes the emacs\
+ and google calendars.  Optionally, the gmail user name and password may be specified as a\
+rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
+e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"
+
   
   if argv==None:
     argv=sys.argv
-  opts, args = getopt.getopt(argv[1:], "h", ["help"])
-  if len(args) > 1:
+  opts, args = getopt.getopt(argv[1:], "hi", ["help","init"])
+  if len(opts) > 0:
+    option = opts[0][0]
+    if option == "--init" or option == "-i":
+      if os.path.exists("shelve.dat"):
+        os.remove('shelve.dat')
+    elif option == "--help" or option == "-h":
+      print "Using this script without any options or arguments will syncronizes the emacs\
+ and google calendars.  Optionally, the gmail user name and password may be specified as a\
+rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
+e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"
+
+
+  if len(args) == 2:
     gmailuser = args[0]
     gmailpasswd = args[1]
-
+  elif len(args) == 1:
+    gmailuser = args[0]
+    print('enter gmail passwd:'),
+    gmailpasswd = getpasswd()
   else:
     gmailuser = raw_input('enter gmail username:')
-    gmailpasswd = raw_input('enter gmail passwd:')
+    print('enter gmail passwd:'),
+    gmailpasswd = getpasswd()
+ 
   shelve, lastsyncG, lastsyncE = getShelveandLastSyncTimes()
   lastmodifiedE = time.gmtime(os.stat(globalvar_DIARYFILE).st_mtime)
   dbe, ap = getEmacsDiary()
