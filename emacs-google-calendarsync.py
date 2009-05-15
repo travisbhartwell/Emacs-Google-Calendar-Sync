@@ -698,11 +698,11 @@ def InsertEntriesIntoGcal(addG,dbe,gcal,shelve):
     dbe[key]['eventid'] = eventid
     dbe[key]['editlink'] = editlink 
     shelve[key] = dbe[key].copy()
-    print "inserted from Diary to Gcal: " + shelve[key]['fullentry'] + '\n'
+    print "-- inserted from Diary to Gcal: " + shelve[key]['fullentry'] 
 
 def DeleteEntriesFromE(shelve,delfromE):
   for key in delfromE:
-    print "deleted from Diary: " + shelve[key]['fullentry'] + '\n'
+    print "-- deleted from Diary: " + shelve[key]['fullentry'] 
     del shelve[key]
 
 def DeleteEntriesFromGcal(delG,dbg,gcal,shelve):
@@ -712,14 +712,14 @@ def DeleteEntriesFromGcal(delG,dbg,gcal,shelve):
     gcal.DeleteEvent(editlink)
 
   for key in delG:
-    print "deleted from Gcal and Diary: " + shelve[key]['fullentry']+'\n'
+    print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
     del shelve[key]
 
 
 def InsertEntriesEditedbyDiarytoE(addE,dbe,shelve):
   for key in addE:
     shelve[key] = dbe[key].copy()
-    print "insert edit into Diary: " + shelve[key]['fullentry'] + '\n'
+    print "-- insert edit into Diary: " + shelve[key]['fullentry']
     
 
 def InsertEntriesIntoE(addGkeystoE, shelve,dbg):
@@ -727,7 +727,7 @@ def InsertEntriesIntoE(addGkeystoE, shelve,dbg):
     entrypid = str(hash(dbg[gkey]['fullentry']))
     dbg['entrypid'] = entrypid
     shelve[entrypid] = dbg[gkey].copy()
-    print "inserted to Diary: " + dbg[gkey]['fullentry'] +'\n'
+    print "-- inserted to Diary: " + dbg[gkey]['fullentry']
 
 
 def WriteEmacsDiary(shelve):
@@ -824,6 +824,7 @@ e must be one directory above the directory of this script.  Use option -i to de
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
 rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
 e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"
+      return
 
 
   if len(args) == 2:
@@ -867,7 +868,7 @@ e must be one directory above the directory of this script.  Use option -i to de
       InsertEntriesIntoE(alsoaddtheseGkeystoE,shelve,dbg)  
     WriteEmacsDiary(shelve)
   else:  
-   print "No Changes"
+   print "-- No Changes"
   CloseShelveandMarkSyncTimes(gmailuser,gmailpasswd,shelve,gcal)
 if __name__ == '__main__':
   main()
