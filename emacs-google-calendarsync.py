@@ -21,6 +21,7 @@ import fileinput
 import re
 import os
 import shelve
+#import pdb
 from pprint import pprint
 
 globalvar_DIARYFILE = './../diary'            # Location of emacs diary 
@@ -544,6 +545,7 @@ def getGoogleCalendar(username,passwd,time_min):
         entry['DETAIL'] = entry['TITLE'] + ' ' + entry['CONTENT']
       entry['fullentry'] =  StripExtraNewLines(entry['STMONTH'] + '/' + entry['STDAY'] + '/' + entry['ENDYEAR'] + ' ' + entry['DETAIL'] + '\n' )
     db[entrypid] = entry
+
                                                  #### now parse recurrences
   for i, recurrence in enumerate(recurrences):
     casefrequency = ''
@@ -673,7 +675,9 @@ def InsertEntryIntoGcal(entry, gcal):
   ## all non-recurring events must be entered in terms of GMT
   event = gdata.calendar.CalendarEventEntry()
   event.title = atom.Title(text=entry.get('TITLE'))
+  event.title.text = entry.get('TITLE')
   event.content = atom.Content(text=entry.get('CONTENT'))
+  event.content.text = entry.get('CONTENT') 
 #    event.where.append(gdata.calendar.Where(value_string=event['WHERE']))
 
   if 'recurrencestring' in entry:
@@ -684,9 +688,13 @@ def InsertEntryIntoGcal(entry, gcal):
     timetuple_dtstart = convertTimetuple2GMT(timetuple_dtstart)
     timetuple_dtend = entry['timetuple_dtend']
     timetuple_dtend = convertTimetuple2GMT(timetuple_dtend)
-       
-    start_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtstart)
-    end_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtend)
+    if entry['alldayevent'] == True:
+      print entry.get('TITLE')
+      start_time = time.strftime('%Y-%m-%d', timetuple_dtstart)
+      end_time = time.strftime('%Y-%m-%d', timetuple_dtend)
+    else:
+      start_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtstart)
+      end_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtend)
     event.when.append(gdata.calendar.When(start_time=start_time, end_time=end_time))
     
   new_event = gcal.InsertEvent(event, '/calendar/feeds/default/private/full')
