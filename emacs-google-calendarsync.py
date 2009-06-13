@@ -689,7 +689,6 @@ def InsertEntryIntoGcal(entry, gcal):
     timetuple_dtend = entry['timetuple_dtend']
     timetuple_dtend = convertTimetuple2GMT(timetuple_dtend)
     if entry['alldayevent'] == True:
-      print entry.get('TITLE')
       start_time = time.strftime('%Y-%m-%d', timetuple_dtstart)
       end_time = time.strftime('%Y-%m-%d', timetuple_dtend)
     else:
