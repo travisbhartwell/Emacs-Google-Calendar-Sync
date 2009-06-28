@@ -21,15 +21,15 @@ import fileinput
 import re
 import os
 import shelve
-import pdb
+#import pdb
 from pprint import pprint
 
 globalvar_DIARYFILE = './../diary'            # Location of emacs diary 
 globalvar_DEFAULTEVENTDURATION = 60           # If no end time default to 60 min
 globalvar_TZID = 'America/Chicago'            # Time zone
-globalvar_GMTOFFSET = 6                       
 globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days from current date before entries get deleted
-
+globalvar_GMTOFFSET = 6                       # 6=central timezone
+globalvar_GMTOFFSET -= 1                      # for some reason need to subtract 1 to get it to work
 def stripallarray(aTarget):
   for i in range(len(aTarget)):
     aTarget[i] = aTarget[i].strip()
