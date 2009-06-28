@@ -1,4 +1,4 @@
-TITLE (\w[\w ]+)
+TITLE (\w[\w \?\.\(\)'"\[\]]+)
 TITLEII (\w[\w ]+(?=\n[\s\t]))
 CONTENT (.+)
 TAB (?:\s+?)?
@@ -8,4 +8,5 @@ ENTRY (.+?)
 WHITESPACE (\s+)
 INTERVAL (\d+)
 DETAIL (.*?)(?=^[\w%&\d*])
-newlinespace \n[\s\t](?=\d)
+newlinespace \n[\s\t](?=^[ \d\w])
+newline .*?(?=^)

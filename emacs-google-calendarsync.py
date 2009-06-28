@@ -21,13 +21,14 @@ import fileinput
 import re
 import os
 import shelve
-#import pdb
+import pdb
 from pprint import pprint
 
 globalvar_DIARYFILE = './../diary'            # Location of emacs diary 
 globalvar_DEFAULTEVENTDURATION = 60           # If no end time default to 60 min
 globalvar_TZID = 'America/Chicago'            # Time zone
 globalvar_GMTOFFSET = 6                       
+globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days from current date before entries get deleted
 
 def stripallarray(aTarget):
   for i in range(len(aTarget)):
@@ -53,10 +54,14 @@ def StripExtraNewLines(string):
   while  pos != -1:
     string = string.replace('\n\n','\n')
     pos = string.find('\n\n')
+  if string == '\n':
+    string = " "
+  elif len(string) > 1 and string[-1] == '\n':
+    string = string[0:-1]
   return string
 
 def escstring(string):   
-  """ Use this function in place of re.escape(); re.escape() does not seem to work right..."""
+  """ Use this function in place of re.escape(); re.escape() does not seem to work right...it is only used in the loadTemplate() function"""
   str=[]
   target=''
   for i in range(len(string)):
@@ -290,7 +295,8 @@ def sCurrentDatetime():
   nowstr = striptime(nowstr)
   return nowstr
 
-
+def sdeltaDatetime(offsetdays):
+  return datetime.datetime.now() + datetime.timedelta(offsetdays)
 
 def HandleLooseEmacsEnds(db):
   """ this function should probably be rewritten """
@@ -308,6 +314,8 @@ def HandleLooseEmacsEnds(db):
     db[dbkey]['TZID'] = globalvar_TZID 
     db[dbkey]['TZID2'] = globalvar_TZID
     db[dbkey]['newline']='\r\n'
+    db[dbkey]['STMONTH'] = db[dbkey].setdefault('STMONTH',str(nowmonth)).zfill(2)
+    db[dbkey]['STDAY']= db[dbkey].setdefault('STDAY',str(nowday)).zfill(2)
     if 'BYDAY' in reckeys:
       db[dbkey]['BYDAYG'] = e2gbyday(db[dbkey]['BYDAY'])
     if 'WHICHWEEK' in reckeys:
@@ -327,9 +335,8 @@ def HandleLooseEmacsEnds(db):
       db[dbkey]['STDAY'] = db[dbkey]['STDAYNOTFOLLOWEDBYCOMMA']
       reckeys.append('STDAY')
 
-    
-    db[dbkey]['STMONTH'] = db[dbkey].setdefault('STMONTH',str(nowmonth)).zfill(2)
-    db[dbkey]['STDAY']= db[dbkey].setdefault('STDAY',str(nowday)).zfill(2)
+  
+
     if 'STYEAR' not in reckeys:
       db[dbkey]['STYEAR'] = str(nowyear)
     elif len(db[dbkey]['STYEAR']) < 4:
@@ -353,7 +360,6 @@ def HandleLooseEmacsEnds(db):
     if db[dbkey]['STAMPM'].upper()[0] == 'P' and sthour != 12:
         sthour += 12
     stdatetime = datetime.datetime(styear,stmonth,stday,sthour,stminute)
-
     stdatetimestr = stdatetime.isoformat()
     stdatetimestr = stdatetimestr.replace(':','')
     stdatetimestr = stdatetimestr.replace('-','')
@@ -411,6 +417,12 @@ def HandleLooseEmacsEnds(db):
       recurrencestring = gcases_template[gcase] % db[dbkey]
       db[dbkey]['recurrencestring'] = recurrencestring
     
+def printcontents(db):
+  """ used for debugging purposes """
+  for keys in db.keys():
+    print db[keys].get('TITLE')
+    print db[keys].get('CONTENT')
+    print " "
 
 def getEmacsDiary():
   db={}
@@ -428,9 +440,8 @@ def getEmacsDiary():
     while mo != None:
       entry = {}
       entry = mo.groupdict()
-      fullentry = StripExtraNewLines(file[mo.start(0):mo.end(0)] + '\n')
-      entry['fullentry'] = fullentry
-      #entrypid = str(mo.start(0)).zfill(8)
+      fullentry = StripExtraNewLines(file[mo.start(0):mo.end(0)]  )
+      entry['fullentry'] = fullentry    
       entrypid = str(hash(fullentry))
       keys.append(entrypid)
       details.append(entry['DETAIL'])
@@ -441,6 +452,7 @@ def getEmacsDiary():
       mo= pat[idxCase].search(file,mo.end(0))
   updateDetails(db, details, keys)
   HandleLooseEmacsEnds(db)
+  #printcontents(db)
   return db, ap
    
 
@@ -491,7 +503,9 @@ def getGoogleCalendar(username,passwd,time_min):
 
   query = gdata.calendar.service.CalendarEventQuery('default', 'private', 
         'full')
-  query.start_min = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time_min)
+  #query.start_min = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time_min)
+  start_min = sdeltaDatetime(-globalvar_DELETE_OLD_ENTRIES_OFFSET)
+  query.start_min= start_min.strftime('%Y-%m-%dT%H:%M:%S.00Z')
   query.start_max = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime(time.time() + 28800000))
   #query.updated_min = start_date
   query.ctz = globalvar_TZID
@@ -543,7 +557,7 @@ def getGoogleCalendar(username,passwd,time_min):
         entry['DETAIL'] = entry['TITLE'] + ' ' + at['caseTimeARange'] % entry + ' ' + entry['CONTENT']
       else:
         entry['DETAIL'] = entry['TITLE'] + ' ' + entry['CONTENT']
-      entry['fullentry'] =  StripExtraNewLines(entry['STMONTH'] + '/' + entry['STDAY'] + '/' + entry['ENDYEAR'] + ' ' + entry['DETAIL'] + '\n' )
+      entry['fullentry'] =  StripExtraNewLines(entry['STMONTH'] + '/' + entry['STDAY'] + '/' + entry['ENDYEAR'] + ' ' + entry['DETAIL']  )
     db[entrypid] = entry
 
                                                  #### now parse recurrences
@@ -623,7 +637,7 @@ def getGoogleCalendar(username,passwd,time_min):
       recurrencestring = '%' + recurrencestring
     if recurrencestring[:1] == '&%':
       recurrencesstring = '&%' + recurrencestring[1:]
-    db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring + '\n') 
+    db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring ) 
   return db, gcal
 
 def getKeystomodifyfromE(db1,db2):
@@ -677,7 +691,8 @@ def InsertEntryIntoGcal(entry, gcal):
   event.title = atom.Title(text=entry.get('TITLE'))
   event.title.text = entry.get('TITLE')
   event.content = atom.Content(text=entry.get('CONTENT'))
-  event.content.text = entry.get('CONTENT') 
+  event.content.text = entry.get('CONTENT')
+ 
 #    event.where.append(gdata.calendar.Where(value_string=event['WHERE']))
 
   if 'recurrencestring' in entry:
@@ -695,8 +710,8 @@ def InsertEntryIntoGcal(entry, gcal):
       start_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtstart)
       end_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtend)
     event.when.append(gdata.calendar.When(start_time=start_time, end_time=end_time))
-    
-  new_event = gcal.InsertEvent(event, '/calendar/feeds/default/private/full')
+
+    new_event = gcal.InsertEvent(event, '/calendar/feeds/default/private/full')
   return new_event.id.text, new_event.GetEditLink().href
 
 def InsertEntriesIntoGcal(addG,dbe,gcal,shelve):
@@ -802,7 +817,7 @@ class _GetchWindows:
 getch = _Getch()
 
 def getpasswd():
-  "Uses the _Getch class to input a string from the keyboard, masking the characters with '*', returning the string without the newline char"
+  """Uses the _Getch class to input a string from the keyboard, masking the characters with '*', returning the string without the newline char"""
   a = 'q'
   passwd = ''
   while a != chr(13):
@@ -812,10 +827,10 @@ def getpasswd():
   return passwd[0:len(passwd) - 1]
 
 def main(argv=None):
-  "Using this script without any options or arguments will syncronizes the emacs\
+  """Using this script without any options or arguments will syncronizes the emacs\
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
 rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
-e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"
+e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"""
 
   
   if argv==None:

@@ -1,5 +1,6 @@
 caseMonthdayyear	caseMDY
 caseMonthABBRdayyear	caseMDY
+caseMonthABBRdayyearwspace	caseMDY
 caseRecDailyAsterix	caseRecDaily
 caseRecDaily	caseRecDaily
 caseRecDailyBlock	caseRecDailyBlock

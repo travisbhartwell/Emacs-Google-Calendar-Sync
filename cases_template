@@ -81,9 +81,12 @@
 </caseMonthdayyear>
 
 <caseMonthABBRdayyear>
-<STMONTHABBR> <STDAY>, <STYEAR> <DETAIL>
+<MONTHABBR> <STDAY>, <STYEAR> <DETAIL>
 </caseMonthABBRdayyear>
 
+<caseMonthABBRdayyearwspace>
+<MONTHABBR>  <STDAY>, <STYEAR> <DETAIL>
+</caseMonthABBRdayyearwspace>
 
 <caseRecYearly>
 %%(diary-anniversary <STMONTH> <STDAY> <STYEAR>) <DETAIL>
