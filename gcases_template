@@ -43,7 +43,7 @@ RRULE:FREQ=MONTHLY;BYDAY=<WHICHWEEKG>;UNTIL=<UNTILDATETIME>;WKST=SU<newline>
 <caseRecMonthlybydayofweekInterval>
 DTSTART;TZID=<TZID>:<STDATETIME><newline>
 DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
-RRULE:FREQ=MONTHLY;INTERVAL=<INTERVAL>;BYDAY=<BYDAYG>;WKST=SU<newline>
+RRULE:FREQ=MONTHLY;INTERVAL=<INTERVAL>;BYDAY=<WHICHWEEKG>;WKST=SU<newline>
 </caseRecMonthlybydayofweekInterval>
 
 <caseRecMonthlybydayofweekIntervalBlock>

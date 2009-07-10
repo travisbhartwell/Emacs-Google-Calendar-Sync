@@ -21,7 +21,7 @@ import fileinput
 import re
 import os
 import shelve
-#import pdb
+import pdb
 from pprint import pprint
 
 globalvar_DIARYFILE = './../diary'            # Location of emacs diary 
@@ -324,7 +324,7 @@ def HandleLooseEmacsEnds(db):
         whichweekg = '4'
       else:
         whichweekg = db[dbkey]['WHICHWEEK'].strip()
-      db[dbkey]['WHICHWEEKG'] = whichweekg + daysofweek[int(db[dbkey]['DAYOFWEEK'])]
+      db[dbkey]['WHICHWEEKG'] = whichweekg + daysofweek[int(db[dbkey]['WHICHWEEK'])]
     if 'DAYOFWEEK' in reckeys:
       db[dbkey]['BYDAYG'] = db[dbkey]['DAYOFWEEK'].upper()[:2]
     if 'DAYOFWEEKABBR' in reckeys:
@@ -334,9 +334,6 @@ def HandleLooseEmacsEnds(db):
     if 'STDAYNOTFOLLOWEDBYCOMMA' in reckeys:
       db[dbkey]['STDAY'] = db[dbkey]['STDAYNOTFOLLOWEDBYCOMMA']
       reckeys.append('STDAY')
-
-  
-
     if 'STYEAR' not in reckeys:
       db[dbkey]['STYEAR'] = str(nowyear)
     elif len(db[dbkey]['STYEAR']) < 4:
@@ -400,7 +397,6 @@ def HandleLooseEmacsEnds(db):
       db[dbkey]['alldayevent'] = False
       db[dbkey]['timetuple_dtstart'] = stdatetime.timetuple()
       db[dbkey]['timetuple_dtend'] = enddatetime.timetuple()
-
     db[dbkey]['STDATETIME'] = stdatetimestr
     db[dbkey]['ENDDATETIME'] = enddatetimestr
     if 'UNTILYEAR' in reckeys:
@@ -413,6 +409,7 @@ def HandleLooseEmacsEnds(db):
       untildatetimestr = untildatetimestr.replace('-','')
       db[dbkey]['UNTILDATETIME']= untildatetimestr[:8]
     gcase = db[dbkey]['gcase']
+                                                  ## write recurrence string from gcases_template 
     if len(gcase) > 7 and gcase[:7] == 'caseRec':
       recurrencestring = gcases_template[gcase] % db[dbkey]
       db[dbkey]['recurrencestring'] = recurrencestring
@@ -710,8 +707,8 @@ def InsertEntryIntoGcal(entry, gcal):
       start_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtstart)
       end_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtend)
     event.when.append(gdata.calendar.When(start_time=start_time, end_time=end_time))
-
-    new_event = gcal.InsertEvent(event, '/calendar/feeds/default/private/full')
+    
+  new_event = gcal.InsertEvent(event, '/calendar/feeds/default/private/full')
   return new_event.id.text, new_event.GetEditLink().href
 
 def InsertEntriesIntoGcal(addG,dbe,gcal,shelve):
@@ -792,7 +789,6 @@ screen."""
             self.impl = _GetchWindows()
         except ImportError:
             self.impl = _GetchUnix()
-
     def __call__(self): return self.impl()
 
 class _GetchUnix:
@@ -831,7 +827,6 @@ def main(argv=None):
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
 rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
 e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"""
-
   
   if argv==None:
     argv=sys.argv

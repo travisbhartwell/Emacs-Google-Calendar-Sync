@@ -97,7 +97,7 @@
 <MONTHABBR> <STDAYNOTFOLLOWEDBYCOMMA> <DETAIL>
 </caseRecYearlyABBRB>
 
-<caseRecYearyModern>
+<caseRecYearlyModern>
 <STMONTH>/<STDAY>/* <DETAIL>
 </caseRecYearlyModern>
 
