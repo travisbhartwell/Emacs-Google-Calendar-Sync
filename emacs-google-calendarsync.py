@@ -21,7 +21,7 @@ import fileinput
 import re
 import os
 import shelve
-#import pdb
+import pdb
 from pprint import pprint
 
 globalvar_DIARYFILE = './../diary'            # Location of emacs diary 
@@ -488,11 +488,16 @@ def blankforNoneType(string):
 
 def Convertdtstart2timetuple(datestring):
   """ used in getGoggleCalendar() to convert dtstart from gcal to a time tuple """
+  #pdb.set_trace()
   year = int(datestring[0:4])
   month = int(datestring[4:6])
   day = int(datestring[6:8])
-  hour = int(datestring[9:11])
-  minute = int(datestring[11:13])
+  if len(datestring) > 8:
+    hour = int(datestring[9:11])
+    minute = int(datestring[11:13])
+  else:
+    hour = 0
+    minute = 0
   x = datetime.datetime(year,month,day,hour,minute)
   return x.timetuple()  
   
