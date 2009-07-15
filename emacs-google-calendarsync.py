@@ -21,7 +21,7 @@ import fileinput
 import re
 import os
 import shelve
-import pdb
+#import pdb
 from pprint import pprint
 
 globalvar_DIARYFILE = './../diary'            # Location of emacs diary 
@@ -414,6 +414,8 @@ def HandleLooseEmacsEnds(db):
       recurrencestring = gcases_template[gcase] % db[dbkey]
       db[dbkey]['recurrencestring'] = recurrencestring
     
+
+    
 def printcontents(db):
   """ used for debugging purposes """
   for keys in db.keys():
@@ -484,6 +486,16 @@ def blankforNoneType(string):
     return string
 
 
+def Convertdtstart2timetuple(datestring):
+  """ used in getGoggleCalendar() to convert dtstart from gcal to a time tuple """
+  year = int(datestring[0:4])
+  month = int(datestring[4:6])
+  day = int(datestring[6:8])
+  hour = int(datestring[9:11])
+  minute = int(datestring[11:13])
+  x = datetime.datetime(year,month,day,hour,minute)
+  return x.timetuple()  
+  
 def getGoogleCalendar(username,passwd,time_min):
   at = loadTemplate('times_template', Escape = False)
   ap = loadTemplate('cases_template', Escape = False)
@@ -527,7 +539,7 @@ def getGoogleCalendar(username,passwd,time_min):
       entry['recurrence_raw']= an_event.recurrence.text
       recurrences.append(an_event.recurrence.text)
       recurrencekeys.append(entrypid)
-    else:
+    else:                                                     #parse non-recurring entries
       stdatetime = striptime(an_event.when[0].start_time)
       enddatetime = striptime(an_event.when[0].end_time)
       entry['STYEAR'] = stdatetime[0:4]
@@ -536,6 +548,7 @@ def getGoogleCalendar(username,passwd,time_min):
       entry['ENDYEAR'] = enddatetime[0:4]
       entry['ENDMONTH'] = enddatetime[4:6]
       entry['ENDDAY'] = enddatetime[6:8]
+      entry['timetuple_dtstart'] = Convertdtstart2timetuple(stdatetime)
       if len(stdatetime) > 8:
         if int(stdatetime[9:11]) > 12:
           entry['STAMPM'] = 'pm'
@@ -634,7 +647,9 @@ def getGoogleCalendar(username,passwd,time_min):
       recurrencestring = '%' + recurrencestring
     if recurrencestring[:1] == '&%':
       recurrencesstring = '&%' + recurrencestring[1:]
-    db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring ) 
+    db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring )   
+    db[recurrencekeys[i]]['timetuple_dtstart'] = Convertdtstart2timetuple(dtstart)
+
   return db, gcal
 
 def getKeystomodifyfromE(db1,db2):
@@ -725,8 +740,10 @@ def DeleteEntriesFromE(shelve,delfromE):
     del shelve[key]
 
 def DeleteEntriesFromGcal(delG,dbg,gcal,shelve):
-  eventids = [shelve[ekey]['eventid'] for ekey in delG]
-  editlinks = [dbg[gkey]['editlink'] for gkey in eventids]
+  #eventids = [shelve[ekey]['eventid'] for ekey in delG]
+  #pdb.set_trace() #debug
+  #editlinks = [shelve[gkey]['editlink'] for gkey in eventids]
+  editlinks = [shelve[ekey]['editlink'] for ekey in delG]
   for editlink in editlinks:
     gcal.DeleteEvent(editlink)
 
@@ -748,24 +765,36 @@ def InsertEntriesIntoE(addGkeystoE, shelve,dbg):
     shelve[entrypid] = dbg[gkey].copy()
     print "-- inserted to Diary: " + dbg[gkey]['fullentry']
 
+def createIndexFromShelve(db):
+  """ function called from WriteEmacsDiary() used to sort the diary entries for the emacs calendar
+        it returns a 2xn matrix of timestamps associated with entry starting dates and hash keys, primary keys of the shelve"""
+  dict = {}
+  dictype = type(dict)
+  dbkeys = db.keys()
+  index = []
+  for key in dbkeys:
+    if type(db[key]) == dictype:
+      dttimestamp= time.mktime(db[key]['timetuple_dtstart'])   ## start date converted to timestamp for indexing
+      row = []
+      row.append(dttimestamp)
+      row.append(key)
+      index.append(row)
+  index.sort(key=lambda x:x[1] )
+  return index
 
 def WriteEmacsDiary(shelve):
   dict = {}
   dictype = type(dict) 
-  keys = [key for key in shelve.keys() if type(shelve[key])==dictype]
+  #keys = [key for key in shelve.keys() if type(shelve[key])==dictype]
+  index = createIndexFromShelve(shelve)
+  
   f = open(globalvar_DIARYFILE,'w')
   f.seek(0)
-  for key in keys: 
-    f.write(shelve[key].get('fullentry') + '\n')  
+  for row in index: 
+    f.write(shelve[row[1]].get('fullentry') + '\n')  
   f.close()
 
 def CloseShelveandMarkSyncTimes(gmailuser,gmailpasswd,shelve,gcal):
-  #del gcal
-  #gcal = gdata.calendar.service.CalendarService()
-  #gcal.email = gmailuser
-  #gcal.password = gmailpasswd
-  #gcal.source = 'Google-Emacs-Calendar-Sync-1.0'
-  #gcal.ProgrammaticLogin()
 
   query = gdata.calendar.service.CalendarEventQuery('default', 'private', 
         'full')
@@ -822,6 +851,7 @@ def getpasswd():
     print '*',
   return passwd[0:len(passwd) - 1]
 
+
 def main(argv=None):
   """Using this script without any options or arguments will syncronizes the emacs\
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
@@ -873,7 +903,7 @@ e must be one directory above the directory of this script.  Use option -i to de
   identicalkeys, delfromG, addG = getKeystomodifyfromE(dbe,shelve)
 
   delfromE, addE, addEinTermsofG, alsoaddtheseGkeystoE = getKeystomodifyfromG(dbg,shelve,identicalkeys, lastsyncG)
-
+  
   if len(delfromE) > 0 or len(addG) > 0 or len(addE) > 0 or len(alsoaddtheseGkeystoE) > 0 or len(delfromG) > 0:
     DeleteEntriesFromE(shelve,delfromE)
     DeleteEntriesFromGcal(delfromG,dbg,gcal,shelve)
