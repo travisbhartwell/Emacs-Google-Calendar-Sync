@@ -27,9 +27,9 @@ from pprint import pprint
 globalvar_DIARYFILE = './../diary'            # Location of emacs diary 
 globalvar_DEFAULTEVENTDURATION = 60           # If no end time default to 60 min
 globalvar_TZID = 'America/Chicago'            # Time zone
-globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days from current date before entries get deleted
+globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days prior to the current date before which entries get deleted; they wont be deleted from the google calendar, just from the emacs diary
 globalvar_GMTOFFSET = 6                       # 6=central timezone
-globalvar_GMTOFFSET -= 1                      # for some reason need to subtract 1 to get it to work
+globalvar_GMTOFFSET -= 1                      # for some reason need to subtract 1 to get it to work.  daylight savings time?
 def stripallarray(aTarget):
   for i in range(len(aTarget)):
     aTarget[i] = aTarget[i].strip()
@@ -110,7 +110,7 @@ def loadMtchvars(filename):
   return dicDatatypes
 
 def loadreftable(filename):
-  """ loads simple one level dictionary from a file. The file must be tab separated and end in a new line"""
+  """ loads simple one level dictionary from a file. The file must be tab separated and end in a new line.  There cannot be more than 1 newline at the end of the file or an error will result"""
   f = open(filename)
   ff=f.readlines()
   f.close()
@@ -448,10 +448,15 @@ def getEmacsDiary():
       entry['entrycase'] = idxCase
       entry['gcase'] = e2gcase_table[idxCase]
       db[entrypid] = entry
+      file = file[0:mo.start(0)] + file[mo.end(0):]
       mo= pat[idxCase].search(file,mo.end(0))
   updateDetails(db, details, keys)
   HandleLooseEmacsEnds(db)
-  #printcontents(db)
+  if (len(file)>3):
+    print "-- UNRECOGNIZED ENTRIES:"
+    print file[:-3]
+#  printcontents(db)
+
   return db, ap
    
 
@@ -518,12 +523,12 @@ def getGoogleCalendar(username,passwd,time_min):
   query = gdata.calendar.service.CalendarEventQuery('default', 'private', 
         'full')
   #query.start_min = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time_min)
-  start_min = sdeltaDatetime(-globalvar_DELETE_OLD_ENTRIES_OFFSET)
-  query.start_min= start_min.strftime('%Y-%m-%dT%H:%M:%S.00Z')
+  #start_min = sdeltaDatetime(-globalvar_DELETE_OLD_ENTRIES_OFFSET)
+  #query.start_min= start_min.strftime('%Y-%m-%dT%H:%M:%S.00Z')
   query.start_max = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime(time.time() + 28800000))
   #query.updated_min = start_date
   query.ctz = globalvar_TZID
-  query.max_results = 200
+  query.max_results = 400
   feed = gcal.CalendarQuery(query)
   db['updated-g']=  time.strptime(feed.updated.text,'%Y-%m-%dT%H:%M:%S.000Z')
   for i, an_event in zip(xrange(len(feed.entry)), feed.entry):
@@ -628,7 +633,6 @@ def getGoogleCalendar(username,passwd,time_min):
       db[recurrencekeys[i]]['BYDAY'] = g2ebyday(bydayg)
     casename = 'caseRec' + casefrequency + casegeneral + caseinterval + caseblock
     db[recurrencekeys[i]]['caseRec'] = casename
-
     if len(dtstart) > 8:
       if int(dtstart[9:11]) > 12:
         db[recurrencekeys[i]]['STAMPM'] = 'pm'
@@ -652,7 +656,7 @@ def getGoogleCalendar(username,passwd,time_min):
       recurrencestring = '%' + recurrencestring
     if recurrencestring[:1] == '&%':
       recurrencesstring = '&%' + recurrencestring[1:]
-    db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring )   
+    db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring ) 
     db[recurrencekeys[i]]['timetuple_dtstart'] = Convertdtstart2timetuple(dtstart)
 
   return db, gcal
@@ -680,6 +684,7 @@ def getKeystomodifyfromG(dbg,dbshelf,identicalkeys, glastsynctime):
   skeyeventids = [dbshelf[key].get('eventid') for key in skeys]
   delfromE = [key for key in identicalkeys if dbshelf[key].get('eventid') not in gkeys]
   addE = [key for key in identicalkeys if key not in delfromE and dbg[dbshelf[key]['eventid']].get('modified') > glastsynctime]
+ 
 
   addEinTermsofGkeys = [dbshelf[key]['eventid'] for key in identicalkeys if key not in delfromE and dbg[dbshelf[key]['eventid']].get('modified') > glastsynctime]
    
@@ -900,15 +905,18 @@ e must be one directory above the directory of this script.  Use option -i to de
     DiaryWasModified = True
   else:
     DiaryWasModified = False   
-  if lastmodifiedG > lastsyncG:
+  if lastmodifiedG > lastsyncG:    
     GcalWasModified = True
   else:
     GcalWasModified = False
 
+#  if DiaryWasModified == False and GcalWasModified == False:
+ #   print "-- No changes"
+  #  return
   identicalkeys, delfromG, addG = getKeystomodifyfromE(dbe,shelve)
 
   delfromE, addE, addEinTermsofG, alsoaddtheseGkeystoE = getKeystomodifyfromG(dbg,shelve,identicalkeys, lastsyncG)
-  
+
   if len(delfromE) > 0 or len(addG) > 0 or len(addE) > 0 or len(alsoaddtheseGkeystoE) > 0 or len(delfromG) > 0:
     DeleteEntriesFromE(shelve,delfromE)
     DeleteEntriesFromGcal(delfromG,dbg,gcal,shelve)

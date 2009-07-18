@@ -1,7 +1,7 @@
 BYDAY ([0-6 ]{1,13})
 STDAY ([0-3]?\d)
 WHICHWEEK (-?[0-3])
-STYEAR ((?:20)?[012]\d)
+STYEAR (\d?\d?\d\d)
 STMONTH ([01]?\d)
 STMONTHABBR (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec)
 ENDDAY ([0-3]?\d)
