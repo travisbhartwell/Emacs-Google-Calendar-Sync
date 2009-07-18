@@ -448,11 +448,11 @@ def getEmacsDiary():
       entry['entrycase'] = idxCase
       entry['gcase'] = e2gcase_table[idxCase]
       db[entrypid] = entry
-      file = file[0:mo.start(0)] + file[mo.end(0):]
-      mo= pat[idxCase].search(file,mo.end(0))
+      file = file[:mo.start(0)] + file[mo.end(0):]
+      mo= pat[idxCase].search(file)
   updateDetails(db, details, keys)
   HandleLooseEmacsEnds(db)
-  if (len(file)>3):
+  if (len(file)>5):
     print "-- UNRECOGNIZED ENTRIES:"
     print file[:-3]
 #  printcontents(db)
