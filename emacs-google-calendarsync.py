@@ -957,8 +957,9 @@ def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschan
   addEdit2E = []
   i = -1
   answer = '0'
-  breaktoNextContendingE = False
+  
   for key in contendingE:                  ###  nest 2 loops for contendingE (from gcal) and contendingdbe (from the diary)
+    breaktoNextContendingE = False 
     i += 1
     print "!! CONTENTION #", i, "!!!!!!!!! this entry has been modified in both the emacs diary as well as the google calendar" 
     print ">> gcal:",  dbg[shelve[key]['eventid']]['fullentry']
@@ -979,9 +980,12 @@ def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschan
               breaktoNextContendingE = True
             if answer[0] >= '0' and answer[0] <= '9' and int(answer) < len(contendingdbe):
               answervalidated = True
+      elif len(contendingdbe) == 1:
+        answer = '0'
+      else:
+        breaktoNextContendingE = True
     elif ENTRY_CONTENTION == 1:     # automatic best guess
       answer = '0'
-      pdb.set_trace()
     elif ENTRY_CONTENTION == 2:     # do nothing, allowing for contending entries to be added to both the diary and gcal
       break
     if breaktoNextContendingE == True:
