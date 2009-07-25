@@ -515,7 +515,7 @@ def blankforNoneType(string):
 
 def Convertdtstart2timetuple(datestring):
   """ used in getGoggleCalendar() to convert dtstart from gcal to a time tuple """
-  #pdb.set_trace()
+
   year = int(datestring[0:4])
   month = int(datestring[4:6])
   day = int(datestring[6:8])
@@ -534,7 +534,6 @@ def getGoogleCalendar(username,passwd,time_min):
   nowdatetime = sCurrentDatetime()
   recurrences = []
   recurrencekeys = []
-  #gcal = CalendarExample(username, passwd)
   db={}
   gcal = gdata.calendar.service.CalendarService()
   gcal.email = username
@@ -824,13 +823,7 @@ def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeyma
           gcal.DeleteEvent(editlink)
           print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
           del shelve[key]
-  #editlinks = [shelve[ekey]['editlink'] for ekey in delG]
-  #for editlink in editlinks:
-  #  gcal.DeleteEvent(editlink)
 
-  #for key in delG:
-  #  print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
-  #  del shelve[key]
 
 
 def InsertEntriesEditedbyDiarytoE(addE,dbe,shelve):
@@ -1005,12 +998,10 @@ def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschan
         eventid = record.get('eventid')
         addEdit2E = appendkey(addEdit2E, eventid) 
         addG = removekey(addG, contendingdbe[match])
-        #delfromG = removekey(delfromG, 
         delfromdbe = appendkey(delfromdbe, contendingdbe[match])  ### delete from the diary 
         delfromdbe = appendkey(delfromdbe, contendingE[i])        ### delete from the shelve
 
         del dbe[contendingdbe[match]]
-        #del dbe[contendingE[i]]
         del contendingdbe[match]
         
         answervalidated = True
@@ -1025,7 +1016,6 @@ def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschan
         ekeyschangedinG = removekey(ekeyschangedinG, contendingE[i])  ## delete from list of edited gcal entries
         gkeyschangedinG = removekey(gkeyschangedinG, eventid)
         delfromdbg = appendkey(delfromdbg, eventid)
-        #del dbg[eventid]
         del contendingdbe[match]
         answervalidated = True
       elif answer == 'b' or answer == 'n':
