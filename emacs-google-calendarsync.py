@@ -30,16 +30,17 @@ globalvar_TZID = 'America/Chicago'            # Time zone
 globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days prior to the current date before which entries get deleted; they wont be deleted from the google calendar, just from the emacs diary
 globalvar_GMTOFFSET = 6                       # 6=central timezone
 globalvar_GMTOFFSET -= 1                      # for some reason need to subtract 1 to get it to work.  daylight savings time?
+globalvar_ENTRY_CONTENTION = 2                # entry contention happens when the same diary and its respective google calendar entries are both modified before a sync. 0=prompt from list of contenders 1=automatic best guess, 0=prompt from list of contenders, 2=do nothing; allowing for both entries to exist in both gcal and diary
 def stripallarray(aTarget):
   for i in range(len(aTarget)):
     aTarget[i] = aTarget[i].strip()
   return aTarget
 
-def PadNewlinesWithSpace(string):
+def PadNewlinesWithSpace(source):
   """ This function is used on the CONTENT field so that when written to the emacs diary, multiple lines of description can be recognized as pertaining to a single respective event.  """
-  lines = string.split('\n')
+  lines = source.split('\n')
   if len(lines) < 2:
-    return string
+    return source
   alllinesbutfirst = lines[1:]
   target = []
   target.append(lines[0] + '\n')
@@ -47,6 +48,26 @@ def PadNewlinesWithSpace(string):
     if len(line) > 0 and line[0] != ' ':
       target.append(' ' + line + '\n')
   return ''.join(target)
+
+def PadAllNewlinesWithSpace(source):
+  """ This function is used on CONTENT of parsed gcal entry.  """
+  lines = source.split('\n')
+  target = []
+  for line in lines:
+    if len(line) > 0:
+      target.append(' ' + line.strip() + '\n')
+  return ''.join(target)
+
+def RemoveNewlinesSpacePadding(source):
+  """ This function is used on the CONTENT field of an entry being sent to gcal.  """
+  lines = source.split('\n')
+  if len(source) == 0:
+    return ""
+  target = []
+  for line in lines:
+    target.append(line.strip() + '\n')
+  return ''.join(target)
+
 
 def StripExtraNewLines(string):
   """ Use this function on the 'fullentry' field before hashing to get a key, as sometimes new lines can get into the diary and mess up the hash""" 
@@ -59,6 +80,7 @@ def StripExtraNewLines(string):
   elif len(string) > 1 and string[-1] == '\n':
     string = string[0:-1]
   return string
+
 
 def escstring(string):   
   """ Use this function in place of re.escape(); re.escape() does not seem to work right...it is only used in the loadTemplate() function"""
@@ -540,7 +562,8 @@ def getGoogleCalendar(username,passwd,time_min):
     entry['TITLE'] = blankforNoneType(an_event.title.text)
     content = blankforNoneType(an_event.content.text)
     content = StripExtraNewLines(content)
-    content = PadNewlinesWithSpace(content)
+    content = RemoveNewlinesSpacePadding(content)  #debug
+    content = PadAllNewlinesWithSpace(content)
     entry['CONTENT'] = content
 
     entry['modified'] = time.strptime(an_event.updated.text[:19],'%Y-%m-%dT%H:%M:%S')
@@ -574,9 +597,9 @@ def getGoogleCalendar(username,passwd,time_min):
           entry['ENDAMPM'] = 'am'
           entry['ENDHOUR'] = enddatetime[9:11]
         entry['ENDMINUTE'] = enddatetime[11:13]
-        entry['DETAIL'] = entry['TITLE'] + ' ' + at['caseTimeARange'] % entry + ' ' + entry['CONTENT']
-      else:
-        entry['DETAIL'] = entry['TITLE'] + ' ' + entry['CONTENT']
+        entry['DETAIL'] = entry['TITLE'] + ' ' + at['caseTimeARange'] % entry + entry['CONTENT']
+      else:                                      #### all day event
+        entry['DETAIL'] = entry['TITLE'] + '\n' + entry['CONTENT']
       entry['fullentry'] =  StripExtraNewLines(entry['STMONTH'] + '/' + entry['STDAY'] + '/' + entry['ENDYEAR'] + ' ' + entry['DETAIL']  )
     db[entrypid] = entry
 
@@ -668,15 +691,16 @@ def getKeystomodifyfromE(db1,db2):
   keys1 = [key for key in db1.keys() if type(db1[key])==dictype]
   keys2 = [key for key in db2.keys() if type(db2[key])==dictype]
 
-  identicalkeys = [key for key in keys1 if key in keys2]  
+  identicalkeys = [key for key in keys1 if key in keys2]          # identicalkeys are hashkeys that are the same in both the shelve and dbe, meaning the entries are unchanged 
   
   delfromG = [key for key in keys2 if key not in identicalkeys]
   addtoG = [key for key in keys1 if key not in identicalkeys]
   return identicalkeys, delfromG, addtoG
 
-def getKeystomodifyfromG(dbg,dbshelf,identicalkeys, glastsynctime):
+def getKeystomodifyfromGREDACTED(dbg,dbshelf,identicalkeys, glastsynctime):
   """ Returns some arrays of keys that are to be inserted into or deleted from the emacs Diary.  Any edited entries are deleted and reinserted """
-  
+  ### REDACTED
+                                                                  # identicalkeys are hashkeys that exist in both the shelve and dbe
   dict = {}
   dictype = type(dict) 
   gkeys = [key for key in dbg.keys() if type(dbg[key])==dictype]
@@ -684,14 +708,40 @@ def getKeystomodifyfromG(dbg,dbshelf,identicalkeys, glastsynctime):
   skeyeventids = [dbshelf[key].get('eventid') for key in skeys]
   delfromE = [key for key in identicalkeys if dbshelf[key].get('eventid') not in gkeys]
   addE = [key for key in identicalkeys if key not in delfromE and dbg[dbshelf[key]['eventid']].get('modified') > glastsynctime]
+  #addE = [key for key in identicalkeys if key not in delfromE]
  
 
   addEinTermsofGkeys = [dbshelf[key]['eventid'] for key in identicalkeys if key not in delfromE and dbg[dbshelf[key]['eventid']].get('modified') > glastsynctime]
+  #addEinTermsofGkeys = [dbshelf[key]['eventid'] for key in identicalkeys if key not in delfromE]
    
   delfromE += addE                    #instead of editing simply delete and create a new entry
   alsoaddtheseGkeystoE = [key for key in gkeys if key not in skeyeventids]
   return delfromE, addE, addEinTermsofGkeys, alsoaddtheseGkeystoE
   
+def getKeystomodifyfromG(dbg,delfromEalso,shelve,identicalkeys, glastsynctime):
+  """ Returns some arrays of keys that are to be inserted into or deleted from the emacs Diary.  Any edited entries are deleted and reinserted """
+                                                                  # identicalkeys are hashkeys that are the same in both the shelve and dbe
+  dict = {}
+  dictype = type(dict) 
+  gkeys = [key for key in dbg.keys() if type(dbg[key])==dictype]
+  skeys = [key for key in shelve.keys() if type(shelve[key])==dictype]
+  skeyeventids = [shelve[key].get('eventid') for key in skeys]
+  delfromE = [key for key in identicalkeys if shelve[key].get('eventid') not in gkeys]
+
+  addE = [key for key in identicalkeys if key not in delfromE and dbg[shelve[key]['eventid']].get('modified') > glastsynctime]
+  #addE = [key for key in identicalkeys if key not in delfromE]
+ 
+
+  addEinTermsofGkeys = [shelve[key]['eventid'] for key in identicalkeys if key not in delfromE and dbg[shelve[key]['eventid']].get('modified') > glastsynctime]
+  #addEinTermsofGkeys = [dbshelf[key]['eventid'] for key in identicalkeys if key not in delfromE]
+   
+  #delfromE += addE                    #instead of editing simply delete and create a new entry
+  alsoaddtheseNewlyAddedGkeystoE = [key for key in gkeys if key not in skeyeventids]  # these are newly entered from gcal
+
+
+  delfromE = appendtokeys(delfromE, delfromEalso)
+  return delfromE, addE, addEinTermsofGkeys, alsoaddtheseNewlyAddedGkeystoE
+ 
 
 def getShelveandLastSyncTimes():
   lastmodifiedg = time.strptime('1995-1-1T12:00:00','%Y-%m-%dT%H:%M:%S')
@@ -713,7 +763,10 @@ def InsertEntryIntoGcal(entry, gcal):
   event.title = atom.Title(text=entry.get('TITLE'))
   event.title.text = entry.get('TITLE')
   event.content = atom.Content(text=entry.get('CONTENT'))
-  event.content.text = entry.get('CONTENT')
+  content = entry.get('CONTENT')
+
+  if content != None:
+    event.content.text = RemoveNewlinesSpacePadding(content)
  
 #    event.where.append(gdata.calendar.Where(value_string=event['WHERE']))
 
@@ -746,20 +799,38 @@ def InsertEntriesIntoGcal(addG,dbe,gcal,shelve):
 
 def DeleteEntriesFromE(shelve,delfromE):
   for key in delfromE:
-    print "-- deleted from Diary: " + shelve[key]['fullentry'] 
-    del shelve[key]
+    record = shelve.get(key)
+    if record != None:
+      print "-- deleted from Diary: " + record.get('fullentry') 
+      del shelve[key]
 
-def DeleteEntriesFromGcal(delG,dbg,gcal,shelve):
+def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeymap):
   #eventids = [shelve[ekey]['eventid'] for ekey in delG]
   #pdb.set_trace() #debug
   #editlinks = [shelve[gkey]['editlink'] for gkey in eventids]
-  editlinks = [shelve[ekey]['editlink'] for ekey in delG]
-  for editlink in editlinks:
-    gcal.DeleteEvent(editlink)
-
+  #for key in delfromdbg:
+  #  editlink = editlinksmap.get(key)
+  #  gcal.DeleteEvent(editlink)
+  #  pdb.set_trace()#debug
+  #  print "-- deleted from Gcal: " + dbg[key]['fullentry']
+ 
   for key in delG:
-    print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
-    del shelve[key]
+    record = shelve.get(key)
+    if record != None:
+      eventid = record.get('eventid')
+      if eventid != None:
+        editlink = editlinksmap.get(eventid)
+        if editlink != None:
+          gcal.DeleteEvent(editlink)
+          print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
+          del shelve[key]
+  #editlinks = [shelve[ekey]['editlink'] for ekey in delG]
+  #for editlink in editlinks:
+  #  gcal.DeleteEvent(editlink)
+
+  #for key in delG:
+  #  print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
+  #  del shelve[key]
 
 
 def InsertEntriesEditedbyDiarytoE(addE,dbe,shelve):
@@ -792,6 +863,7 @@ def createIndexFromShelve(db):
   index.sort(key=lambda x:x[1] )
   return index
 
+
 def WriteEmacsDiary(shelve):
   dict = {}
   dictype = type(dict) 
@@ -818,11 +890,150 @@ def CloseShelveandMarkSyncTimes(gmailuser,gmailpasswd,shelve,gcal):
 
   del gcal
   shelve.close()
-  
+
+
+
+def updateEditLinks(dbg,shelve):
+  dict = {}
+  dictype = type(dict)
+  #pdb.set_trace()
+  ekeyschangedinG = []
+  gkeyschangedinG = []
+  editlinksmap = {}
+  g2ekeymap = {}
+  for key in shelve.keys():
+    if type(shelve[key]) == dictype:
+      dbgrecord =  dbg.get(shelve[key]['eventid'])
+      if dbgrecord != None:
+        eventid = dbgrecord.get('eventid')
+        editlinkg = dbgrecord.get('editlink')
+        editlinksmap[eventid] = editlinkg     #create a keymap for editlinks from g keys
+        g2ekeymap[eventid] = key              #create a keymap from g keys to e keys also 
+        if editlinkg != shelve[key]['editlink']:
+          
+          ekeyschangedinG.append(key)
+          gkeyschangedinG.append(shelve[key]['eventid'])
+          #erecord = shelve[key]
+          #erecord['editlink'] = editlinkg
+          #shelve[key] = erecord.copy()
+
+  for key in dbg.keys():
+    if type(dbg[key]) == dictype:
+      editlinksmap[key] = dbg[key]['editlink']
+
+ 
+  return ekeyschangedinG, gkeyschangedinG, g2ekeymap, editlinksmap
+        
+def appendtokeys( keylist, keystoinsert):
+  for key in keystoinsert:
+    if key not in keylist:
+      keylist.append(key)
+  return keylist
+
+def appendkey( keylist, keytoinsert):
+  if keytoinsert not in keylist:
+    keylist.append(keytoinsert)
+  return keylist
+
+def removekeys( keylist, keystoremove):
+  keylist2 = []
+  for key in keylist:
+    if key not in keystoremove:
+      keylist2.append(key)
+  return keylist2
+
+def removekey (keylist, keytoremove):
+  keylist2 = []
+  for key in keylist:
+    if key != keytoremove:
+      keylist2.append(key)
+  return keylist2
+
+
+def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe):
+  """entry contention happens when both a diary entry and its respective google calendar entry are modified before a sync.  There is no way to precisely tell which diary entry was modified so all we can do is display the modified gcal entry along with perhaps a list of possibilities.   If the globalvar_ENTRY_CONTENTION variable is set to 2 we will do nothing and just add both entries"""
+
+  dict = {}
+  dictype = type(dict)
+  contendingE = [key for key in ekeyschangedinG if key in delfromG]
+  shelvekeys = [key for key in shelve.keys() if type(shelve[key]==dictype)]
+  dbekeys = [key for key in dbe.keys() if type(dbe[key]==dictype)]
+  contendingdbe = [key for key in dbekeys if key not in identicalkeys]    ### contending entries from dbe will not appear in the identicalkeys list
+  delfromdbe = []
+  delfromdbg = []
+  addEdit2E = []
+  i = -1
+  answer = '0'
+  breaktoNextContendingE = False
+  for key in contendingE:                  ###  nest 2 loops for contendingE (from gcal) and contendingdbe (from the diary)
+    i += 1
+    print "!! CONTENTION #", i, "!!!!!!!!! this entry has been modified in both the emacs diary as well as the google calendar" 
+    print ">> gcal:",  dbg[shelve[key]['eventid']]['fullentry']
+    if ENTRY_CONTENTION == 0:       # prompt from list of contenders
+      if len(contendingdbe) == 0:             # if the list is empty then break to the next contendingE
+        break
+      j = -1
+      for dbekey in contendingdbe:         ### nested loop for contendingdbe
+        j += 1
+        print "<< #",j,"diary possibility:", dbe[dbekey]['fullentry']
+      if len(contendingdbe) > 1:
+        answervalidated = False
+        while answervalidated == False:
+          answer = raw_input ("?? Which diary entry# most likely matches in contention with the aforementioned modified gcal entry? (n for none):")
+          if len(answer) > 0:
+            if answer[0] == 'n' or answer[0] == 'N':
+              answervalidated = True
+              breaktoNextContendingE = True
+            if answer[0] >= '0' and answer[0] <= '9' and int(answer) < len(contendingdbe):
+              answervalidated = True
+    elif ENTRY_CONTENTION == 1:     # automatic best guess
+      answer = '0'
+      pdb.set_trace()
+    elif ENTRY_CONTENTION == 2:     # do nothing, allowing for contending entries to be added to both the diary and gcal
+      break
+    if breaktoNextContendingE == True:
+      breaktoNextContendingE = False
+      break
+    match = int(answer)
+    answervalidated = False
+    while answervalidated == False:
+      answer = raw_input("?? keep gcal entry (g) or emacs diary entry (e)? (b for both)")
+      answer = answer.lower()
+      if answer == 'g':                       ### delete dbe match entry, and add the gcal contendingE entry to the diary
+        delfromG = removekey(delfromG, key)
+        record = shelve.get(contendingE[i])
+        eventid = record.get('eventid')
+        addEdit2E = appendkey(addEdit2E, eventid) 
+        addG = removekey(addG, contendingdbe[match])
+        #delfromG = removekey(delfromG, 
+        delfromdbe = appendkey(delfromdbe, contendingdbe[match])  ### delete from the diary 
+        delfromdbe = appendkey(delfromdbe, contendingE[i])        ### delete from the shelve
+
+        del dbe[contendingdbe[match]]
+        #del dbe[contendingE[i]]
+        del contendingdbe[match]
+        
+        answervalidated = True
+      elif answer == 'e':                    ### delete the contendingE entry, and add the dbe match entry
+        delfromG = appendkey(delfromG, contendingE[i])
+        addG = appendkey(addG, contendingdbe[match])
+        
+        record = {}
+      
+        record = shelve.get(contendingE[i])
+        eventid = record.get('eventid')
+        ekeyschangedinG = removekey(ekeyschangedinG, contendingE[i])  ## delete from list of edited gcal entries
+        gkeyschangedinG = removekey(gkeyschangedinG, eventid)
+        delfromdbg = appendkey(delfromdbg, eventid)
+        #del dbg[eventid]
+        del contendingdbe[match]
+        answervalidated = True
+      elif answer == 'b' or answer == 'n':
+        break
+  return identicalkeys, delfromG,delfromdbe, addG, delfromdbg, addEdit2E, ekeyschangedinG, gkeyschangedinG
 
 class _Getch:
-    """Gets a single character from standard input.  Does not echo to the
-screen."""
+    """Gets a single character from standard input."""
     def __init__(self):
         try:
             self.impl = _GetchWindows()
@@ -867,20 +1078,26 @@ def main(argv=None):
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
 rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
 e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"""
-  
+  ### we are dealing with 3 databases: dbe, shelve, and dbg.   dbe is created from the diary file.  shelve was saved from the last sync and was used to write the diary file at that point in time.   dbg is created from google calendar.  using pigeon hole set logic we'll determine where to move the entries contained in these databases.
   if argv==None:
     argv=sys.argv
-  opts, args = getopt.getopt(argv[1:], "hi", ["help","init"])
+  ENTRY_CONTENTION = globalvar_ENTRY_CONTENTION
+  opts, args = getopt.getopt(argv[1:], "hian", ["help","init","autocontention","nocontention"])
   if len(opts) > 0:
     option = opts[0][0]
     if option == "--init" or option == "-i":
       if os.path.exists("shelve.dat"):
         os.remove('shelve.dat')
+    elif option == "--autocontention" or option == "-a":
+      ENTRY_CONTENTION = 1
+    elif option == "--nocontention" or option == "-n":
+      ENTRY_CONTENTION = 2
     elif option == "--help" or option == "-h":
       print "Using this script without any options or arguments will syncronizes the emacs\
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
 rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
 e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"
+      print "Entry contention can happen when the same diary and its respective google calendar entries are both modified before a sync; by default the script will interactively prompt you in this event. However, you may use option -a to make an automatic best guess if its unclear as to which entries are in contention (with option -a you still have to input which entry to keep and which to discard), or option -n to do nothing; allowing for both entries to exist in both gcal and diary, but eliminating user interaction"
       return
 
 
@@ -909,23 +1126,31 @@ e must be one directory above the directory of this script.  Use option -i to de
     GcalWasModified = True
   else:
     GcalWasModified = False
+  ekeyschangedinG, gkeyschangedinG, g2ekeymap, editlinksmap = updateEditLinks(dbg,shelve)   # ekeyschangedinG are edited gcal entries, not newly added ones
 
-#  if DiaryWasModified == False and GcalWasModified == False:
- #   print "-- No changes"
-  #  return
-  identicalkeys, delfromG, addG = getKeystomodifyfromE(dbe,shelve)
+  identicalkeys, delfromG, addG = getKeystomodifyfromE(dbe,shelve) # identicalkeys are hashkeys that are the same in both the shelve and dbe, meaning the entries are unchanged by emacs diary
 
-  delfromE, addE, addEinTermsofG, alsoaddtheseGkeystoE = getKeystomodifyfromG(dbg,shelve,identicalkeys, lastsyncG)
+  identicalkeys, delfromG,delfromE, addG, delfromdbg, addEdit2E, ekeyschangedinG, gkeyschangedinG  = handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe)
+  delfromE, addE, addEinTermsofG, alsoaddtheseNewlyAddedGkeystoE = getKeystomodifyfromG(dbg,delfromE, shelve,identicalkeys, lastsyncG)
+  
+  alsoaddtheseNewlyAddedGkeystoE = removekeys(alsoaddtheseNewlyAddedGkeystoE, delfromdbg)  
+  alsoaddtheseNewlyAddedGkeystoE = appendtokeys(alsoaddtheseNewlyAddedGkeystoE, addEdit2E)    
 
-  if len(delfromE) > 0 or len(addG) > 0 or len(addE) > 0 or len(alsoaddtheseGkeystoE) > 0 or len(delfromG) > 0:
+  delfromE = appendtokeys(delfromE,ekeyschangedinG)
+  alsoaddtheseNewlyAddedGkeystoE = appendtokeys(alsoaddtheseNewlyAddedGkeystoE, gkeyschangedinG)
+
+  if len(alsoaddtheseNewlyAddedGkeystoE) > 0 or len(ekeyschangedinG) > 0: #google calendar doesnt change its 'modified' date when an entry is edited, but it does change the editlink, so we check for that here
+    GcalWasModified = True
+
+  if len(delfromE) > 0 or len(addG) > 0 or len(addE) > 0 or len(alsoaddtheseNewlyAddedGkeystoE) > 0 or len(delfromG) > 0 or len(ekeyschangedinG) > 0:
     DeleteEntriesFromE(shelve,delfromE)
-    DeleteEntriesFromGcal(delfromG,dbg,gcal,shelve)
+    DeleteEntriesFromGcal(delfromG,delfromdbg,dbg,gcal,shelve,editlinksmap, g2ekeymap)
     if DiaryWasModified:
       InsertEntriesIntoGcal(addG,dbe,gcal,shelve)
       InsertEntriesEditedbyDiarytoE(addE,dbe,shelve)
     if GcalWasModified:
       InsertEntriesIntoE(addEinTermsofG, shelve, dbg)
-      InsertEntriesIntoE(alsoaddtheseGkeystoE,shelve,dbg)  
+      InsertEntriesIntoE(alsoaddtheseNewlyAddedGkeystoE,shelve,dbg)  
     WriteEmacsDiary(shelve)
   else:  
    print "-- No Changes"

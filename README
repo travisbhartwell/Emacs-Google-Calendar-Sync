@@ -26,4 +26,6 @@ If many empty entries are generated, or some entries are not being saved, try de
 the following recurrence cases arent working properly yet:
 caseRecMonthlybydayofweekIntervalBlock
 caseRecWeeklyIntervalBlock
-caseRecYearlyInterval
+caseRecYearlyInterval -- this bug is on googles end
+
+Diary formating styles are not yet preserved 
