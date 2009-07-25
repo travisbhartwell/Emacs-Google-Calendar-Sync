@@ -30,7 +30,7 @@ globalvar_TZID = 'America/Chicago'            # Time zone
 globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days prior to the current date before which entries get deleted; they wont be deleted from the google calendar, just from the emacs diary
 globalvar_GMTOFFSET = 6                       # 6=central timezone
 globalvar_GMTOFFSET -= 1                      # for some reason need to subtract 1 to get it to work.  daylight savings time?
-globalvar_ENTRY_CONTENTION = 2                # entry contention happens when the same diary and its respective google calendar entries are both modified before a sync. 0=prompt from list of contenders 1=automatic best guess, 0=prompt from list of contenders, 2=do nothing; allowing for both entries to exist in both gcal and diary
+globalvar_ENTRY_CONTENTION = 0                # entry contention happens when the same diary and its respective google calendar entries are both modified before a sync. 0=prompt from list of contenders 1=automatic best guess, 0=prompt from list of contenders, 2=do nothing; allowing for both entries to exist in both gcal and diary
 def stripallarray(aTarget):
   for i in range(len(aTarget)):
     aTarget[i] = aTarget[i].strip()
@@ -1072,7 +1072,7 @@ e must be one directory above the directory of this script.  Use option -i to de
   if argv==None:
     argv=sys.argv
   ENTRY_CONTENTION = globalvar_ENTRY_CONTENTION
-  opts, args = getopt.getopt(argv[1:], "hian", ["help","init","autocontention","nocontention"])
+  opts, args = getopt.getopt(argv[1:], "hianp", ["help","init","autocontention","nocontention","promptcontention"])
   if len(opts) > 0:
     option = opts[0][0]
     if option == "--init" or option == "-i":
@@ -1082,12 +1082,22 @@ e must be one directory above the directory of this script.  Use option -i to de
       ENTRY_CONTENTION = 1
     elif option == "--nocontention" or option == "-n":
       ENTRY_CONTENTION = 2
+    elif option == "--promptcontention" or option == "-p":
+      ENTRY_CONTENTION = 0
+
     elif option == "--help" or option == "-h":
       print "Using this script without any options or arguments will syncronizes the emacs\
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
 rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
-e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"
-      print "Entry contention can happen when the same diary and its respective google calendar entries are both modified before a sync; by default the script will interactively prompt you in this event. However, you may use option -a to make an automatic best guess if its unclear as to which entries are in contention (with option -a you still have to input which entry to keep and which to discard), or option -n to do nothing; allowing for both entries to exist in both gcal and diary, but eliminating user interaction"
+e must be one directory above the directory of this script.  Use option -i to delete the\
+ shelve when you want to initialize the emacs calendar"
+      print
+      print "Entry contention can happen when the same diary and its respective google\
+ calendar entries are both modified before a sync; by default the script will interactively\
+ prompt you if this occurs (use the -p option if it does not). However, you may use option -a to make an automatic best guess if\
+ its unclear as to which entries are in contention (with option -a you still have to input which\
+ entry to keep and which to discard). Use option -n to do nothing about contending events; this allows for both entries to\
+ exist in both gcal and diary, but eliminating user interaction, and so is preferable when using a crond scheduler"
       return
 
 
