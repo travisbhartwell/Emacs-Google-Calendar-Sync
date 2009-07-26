@@ -27,7 +27,7 @@ from pprint import pprint
 globalvar_DIARYFILE = './../diary'            # Location of emacs diary 
 globalvar_DEFAULTEVENTDURATION = 60           # If no end time default to 60 min
 globalvar_TZID = 'America/Chicago'            # Time zone
-globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days prior to the current date before which entries get deleted; they wont be deleted from the google calendar, just from the emacs diary
+globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days prior to the current date before which entries get deleted; they wont be deleted from the google calendar, just from the emacs diary.  This feature is currently not implemented
 globalvar_GMTOFFSET = 6                       # 6=central timezone
 globalvar_GMTOFFSET -= 1                      # for some reason need to subtract 1 to get it to work.  daylight savings time?
 globalvar_ENTRY_CONTENTION = 0                # entry contention happens when the same diary and its respective google calendar entries are both modified before a sync. 0=prompt from list of contenders 1=automatic best guess, 0=prompt from list of contenders, 2=do nothing; allowing for both entries to exist in both gcal and diary
@@ -295,9 +295,12 @@ def g2emonthabbr(month):
 
 def g2ewhichweek(whichweekg):
   days = {'SU':'0', 'MO':'1','TU':'2','WE':'3','TH':'4','FR':'5','SA':'6'}
-  
-  whichweek = whichweekg[0]
-  whichday = whichweekg[1:3]
+  if whichweekg[0] == '-':
+    whichweek = whichweekg[0:2]
+    whichday = whichweekg[2:4]
+  else:
+    whichweek = whichweekg[0]
+    whichday = whichweekg[1:3]
   whichday = days[whichday.upper()]  
   return whichweek, whichday
 
@@ -340,13 +343,13 @@ def HandleLooseEmacsEnds(db):
     db[dbkey]['STDAY']= db[dbkey].setdefault('STDAY',str(nowday)).zfill(2)
     if 'BYDAY' in reckeys:
       db[dbkey]['BYDAYG'] = e2gbyday(db[dbkey]['BYDAY'])
-    if 'WHICHWEEK' in reckeys:
+    if 'WHICHWEEK' in reckeys and 'NUMDAYOFWEEK' in reckeys:
       whichweek = int(db[dbkey]['WHICHWEEK'])
       if whichweek == -1:
-        whichweekg = '4'
+        whichweekg = '-1'
       else:
         whichweekg = db[dbkey]['WHICHWEEK'].strip()
-      db[dbkey]['WHICHWEEKG'] = whichweekg + daysofweek[int(db[dbkey]['WHICHWEEK'])]
+      db[dbkey]['WHICHWEEKG'] = whichweekg + daysofweek[int(db[dbkey]['NUMDAYOFWEEK'].strip())]
     if 'DAYOFWEEK' in reckeys:
       db[dbkey]['BYDAYG'] = db[dbkey]['DAYOFWEEK'].upper()[:2]
     if 'DAYOFWEEKABBR' in reckeys:
@@ -646,8 +649,8 @@ def getGoogleCalendar(username,passwd,time_min):
       caseinterval = 'Interval'
     bydayg = recGetRRuleField('BYDAY',rrule)
     db[recurrencekeys[i]]['BYDAYG'] = bydayg
-    if len(bydayg) > 0 and bydayg[0].isdigit() == True:
-      generalcase = 'bydayofweek'
+    if len(bydayg) > 0 and ( bydayg[0].isdigit() == True or bydayg[0] == '-'):
+      casegeneral = 'bydayofweek'
       whichweek,whichday= g2ewhichweek(bydayg)
       db[recurrencekeys[i]]['WHICHWEEK'] = whichweek
       db[recurrencekeys[i]]['NUMDAYOFWEEK'] = whichday

@@ -18,8 +18,6 @@
 %%(and (diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>)(diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)) <DETAIL>
 </caseRecDailyIntervalBlock>
 
-
-
 <caseRecWeeklyWeekname>
 <DAYOFWEEK> <DETAIL>
 </caseRecWeeklyWeekname>
@@ -32,7 +30,6 @@
 %%(memq (calendar-day-of-week date) '(<BYDAY>)) <DETAIL>
 </caseRecWeekly>
 
-
 <caseRecWeeklyBlock>  
 %%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
 </caseRecWeeklyBlock>
@@ -44,7 +41,6 @@
 <caseRecWeeklyIntervalBlock>      
 %%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyIntervalBlock>
-
 
 <caseRecMonthly>
 * <STDAY> <DETAIL>
@@ -76,6 +72,7 @@
 </caseRecMonthlybydayofweekIntervalBlock>
 
 
+
 <caseMonthdayyear>
 <STMONTH>/<STDAY>/<STYEAR> <DETAIL>
 </caseMonthdayyear>
@@ -88,10 +85,12 @@
 <MONTHABBR>  <STDAY>, <STYEAR> <DETAIL>
 </caseMonthABBRdayyearwspace>
 
+
+
+
 <caseRecYearly>
 %%(diary-anniversary <STMONTH> <STDAY> <STYEAR>) <DETAIL>
 </caseRecYearly>
-
 
 <caseRecYearlyABBRB>
 <MONTHABBR> <STDAYNOTFOLLOWEDBYCOMMA> <DETAIL>
