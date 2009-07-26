@@ -30,7 +30,6 @@ error message: "Redirect received, but redirects_remaining <= 0" can occur accom
 If many empty entries are generated, or some entries are not being saved, try deleting the google calendar and running the script again.  Google sometimes has the problem of retaining deleted entries; for example when i've deleted 1 day out of a recurring event, and then deleted the recurring event, google will send that one day back as a schedule day when syncing.  I had to resort to deleting the calendar when that happend to correct it, which is one of the reasons why exceptions for recurring events are not yet supported.
 
 the following recurrence cases arent working properly yet:
-caseRecMonthlybydayofweekIntervalBlock
 caseRecYearlyInterval -- this bug is on googles end
 %%(diary-date t t t)
 
