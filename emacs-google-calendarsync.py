@@ -1,7 +1,7 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 39
+# emacs-google-calendarsync revision 41
 # written and maintained by CiscoRx@gmail.com
-
+# DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which would be small enough to fit in an envelope to mail to you.  Hopefully, it will cover postage.
 
 try:
   from xml.etree import ElementTree
@@ -24,13 +24,15 @@ import shelve
 import pdb
 from pprint import pprint
 
-globalvar_DIARYFILE = './../diary'            # Location of emacs diary 
+globalvar_DIARYFILE = ''            # Location of emacs diary 
+globalvar_SHELVEFILE = ''                     # Location to put the shelve.dat file, which contains the schedule from the last sync.  The name of the shelve file will automatically contain the google calendar username
 globalvar_DEFAULTEVENTDURATION = 60           # If no end time default to 60 min
 globalvar_TZID = 'America/Chicago'            # Time zone
 globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days prior to the current date before which entries get deleted; they wont be deleted from the google calendar, just from the emacs diary.  This feature is currently not implemented
 globalvar_GMTOFFSET = 6                       # 6=central timezone
 globalvar_GMTOFFSET -= 1                      # for some reason need to subtract 1 to get it to work.  daylight savings time?
 globalvar_ENTRY_CONTENTION = 0                # entry contention happens when the same diary and its respective google calendar entries are both modified before a sync. 0=prompt from list of contenders 1=automatic best guess, 0=prompt from list of contenders, 2=do nothing; allowing for both entries to exist in both gcal and diary
+globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE =  '#@!z8#'  # this will allow for multiple read-only calendars to be viewed in the same dairy.  The multiple calendar support is not yet implemented
 def stripallarray(aTarget):
   for i in range(len(aTarget)):
     aTarget[i] = aTarget[i].strip()
@@ -448,11 +450,11 @@ def printcontents(db):
     print db[keys].get('CONTENT')
     print " "
 
-def getEmacsDiary():
+def getEmacsDiary(emacsDiaryLocation):
   db={}
   ap = loadTemplate('cases_template')
   pat,sp = EvaluateTemplates(ap, 'cases_template_mtch')
-  f=open(globalvar_DIARYFILE, "r") 
+  f=open(emacsDiaryLocation, "r") 
   file=f.read()
   f.close()
   keys = []
@@ -465,14 +467,15 @@ def getEmacsDiary():
       entry = {}
       entry = mo.groupdict()
       fullentry = StripExtraNewLines(file[mo.start(0):mo.end(0)]  )
-      entry['fullentry'] = fullentry    
-      entrypid = str(hash(fullentry))
-      keys.append(entrypid)
-      details.append(entry['DETAIL'])
-      entry['entrypid'] = entrypid
-      entry['entrycase'] = idxCase
-      entry['gcase'] = e2gcase_table[idxCase]
-      db[entrypid] = entry
+      entry['fullentry'] = fullentry
+      if fullentry.find(globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:  ## this is for a future feature
+        entrypid = str(hash(fullentry))
+        keys.append(entrypid)
+        details.append(entry['DETAIL'])
+        entry['entrypid'] = entrypid
+        entry['entrycase'] = idxCase
+        entry['gcase'] = e2gcase_table[idxCase]
+        db[entrypid] = entry
       file = file[:mo.start(0)] + file[mo.end(0):]
       mo= pat[idxCase].search(file)
   updateDetails(db, details, keys)
@@ -480,7 +483,6 @@ def getEmacsDiary():
   if (len(file)>5):
     print "-- UNRECOGNIZED ENTRIES:"
     print file[:-3]
-#  printcontents(db)
 
   return db, ap
    
@@ -745,10 +747,12 @@ def getKeystomodifyfromG(dbg,delfromEalso,shelve,identicalkeys, glastsynctime):
   return delfromE, addE, addEinTermsofGkeys, alsoaddtheseNewlyAddedGkeystoE
  
 
-def getShelveandLastSyncTimes():
+def getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser):
   lastmodifiedg = time.strptime('1995-1-1T12:00:00','%Y-%m-%dT%H:%M:%S')
-  lastmodifiede = time.gmtime(os.stat(globalvar_DIARYFILE).st_mtime)
-  f=shelve.open('shelve.dat')
+  lastmodifiede = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)
+  shelvepath = globalvar_SHELVEFILE
+  shelvenamefq = shelvepath + 'egcsyncshelve' + gmailuser + '.dat'
+  f=shelve.open(shelvenamefq)
   if f!={}:
     lastmodifiedg = f['updated-g']
     lastmodifiede = f['updated-e']    
@@ -860,19 +864,19 @@ def createIndexFromShelve(db):
   return index
 
 
-def WriteEmacsDiary(shelve):
+def WriteEmacsDiary(emacsDiaryLocation, shelve):
   dict = {}
   dictype = type(dict) 
   #keys = [key for key in shelve.keys() if type(shelve[key])==dictype]
   index = createIndexFromShelve(shelve)
   
-  f = open(globalvar_DIARYFILE,'w')
+  f = open(emacsDiaryLocation,'w')
   f.seek(0)
   for row in index: 
     f.write(shelve[row[1]].get('fullentry') + '\n')  
   f.close()
 
-def CloseShelveandMarkSyncTimes(gmailuser,gmailpasswd,shelve,gcal):
+def CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal):
 
   query = gdata.calendar.service.CalendarEventQuery('default', 'private', 
         'full')
@@ -881,7 +885,7 @@ def CloseShelveandMarkSyncTimes(gmailuser,gmailpasswd,shelve,gcal):
   #query.updated_min = start_date
   feed = gcal.CalendarQuery(query)
  
-  shelve['updated-e'] = time.gmtime(os.stat(globalvar_DIARYFILE).st_mtime)
+  shelve['updated-e'] = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)
   shelve['updated-g'] = time.strptime(feed.updated.text,'%Y-%m-%dT%H:%M:%S.000Z')
 
   del gcal
@@ -1069,6 +1073,40 @@ def getpasswd():
     print '*',
   return passwd[0:len(passwd) - 1]
 
+def gethomedir():   ## should work for windows and linux but not mac   ## OS Dependent
+  try:
+    from win32com.shell import shellcon, shell            
+    homedir = shell.SHGetFolderPath(0, shellcon.CSIDL_APPDATA, 0, 0)
+ 
+  except ImportError: #  non-windows/win32com case
+    homedir = os.path.expanduser("~")
+  return homedir
+
+def locateEmacsDiaryLinux(homedir):
+  """ find the location of the diary file by first looking for ~/diary, then try looking for the diary file location in the ~/.emacs file.  If we cant find it return None.  ## OS Dependent.  """
+  defaultlocation =  globalvar_DIARYFILE
+  if os.path.exists(defaultlocation):
+    return defaultlocation
+  elif os.path.exists( homedir + '/diary'):
+    return homedir + '/diary'
+  elif os.path.exists( homedir + '/.emacs'):
+    f= open( homedir + '/.emacs',"r")
+    emacsfile = f.read()
+    f.close()
+    emacspat = re.compile(r'\(setq diary-file (.+?)\)')
+    matches = emacspat.findall(emacsfile)
+    if len(matches) > 0:
+      match = matches[0]
+      if len(match) > 2:
+        if match[0] == '"' or match[0] == "'":
+          match = match[1:-1]
+        if match[0] == "~":
+          match = match[1:]
+          match = homedir + match
+        if os.path.exists(match):
+          return match
+  return None
+
 
 def main(argv=None):
   """Using this script without any options or arguments will syncronizes the emacs\
@@ -1078,6 +1116,11 @@ e must be one directory above the directory of this script.  Use option -i to de
   ### we are dealing with 3 databases: dbe, shelve, and dbg.   dbe is created from the diary file.  shelve was saved from the last sync and was used to write the diary file at that point in time.   dbg is created from google calendar.  using pigeon hole set logic we'll determine where to move the entries contained in these databases.
   if argv==None:
     argv=sys.argv
+  homedir = gethomedir()
+  emacsDiaryLocation = locateEmacsDiaryLinux(homedir)     ## OS Dependent
+  if emacsDiaryLocation == None:
+    print "Unable to locate the emacs diary.  Please create a file in your home directory called diary"
+    return 1
   ENTRY_CONTENTION = globalvar_ENTRY_CONTENTION
   opts, args = getopt.getopt(argv[1:], "hianp", ["help","init","autocontention","nocontention","promptcontention"])
   if len(opts) > 0:
@@ -1120,9 +1163,9 @@ e must be one directory above the directory of this script.  Use option -i to de
     print('enter gmail passwd:'),
     gmailpasswd = getpasswd()
  
-  shelve, lastsyncG, lastsyncE = getShelveandLastSyncTimes()
-  lastmodifiedE = time.gmtime(os.stat(globalvar_DIARYFILE).st_mtime)
-  dbe, ap = getEmacsDiary()
+  shelve, lastsyncG, lastsyncE = getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser)
+  lastmodifiedE = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)  ## OS Dependent
+  dbe, ap = getEmacsDiary(emacsDiaryLocation)
   dbg, gcal = getGoogleCalendar(gmailuser,gmailpasswd, lastsyncG) 
   lastmodifiedG = dbg['updated-g']
   if lastmodifiedE > lastsyncE:
@@ -1158,9 +1201,9 @@ e must be one directory above the directory of this script.  Use option -i to de
     if GcalWasModified:
       InsertEntriesIntoE(addEinTermsofG, shelve, dbg)
       InsertEntriesIntoE(alsoaddtheseNewlyAddedGkeystoE,shelve,dbg)  
-    WriteEmacsDiary(shelve)
+    WriteEmacsDiary(emacsDiaryLocation, shelve)
   else:  
    print "-- No Changes"
-  CloseShelveandMarkSyncTimes(gmailuser,gmailpasswd,shelve,gcal)
+  CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal)
 if __name__ == '__main__':
   main()
