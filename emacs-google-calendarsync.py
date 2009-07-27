@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# Simple Emacs-Google Calendar Sync
+# emacs-google-calendarsync revision 39
 # written and maintained by CiscoRx@gmail.com
 
 

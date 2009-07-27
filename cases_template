@@ -64,7 +64,7 @@
 </caseRecMonthlybydayofweek>
 
 <caseRecMonthlybydayofweekInterval>
-%%(and (= (mod (- (car date) <STMONTH> ) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
+%%(and (= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
 </caseRecMonthlybydayofweekInterval>
 
 <caseRecMonthlybydayofweekIntervalBlock>
