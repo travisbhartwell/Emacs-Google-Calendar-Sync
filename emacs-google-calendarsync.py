@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 41
+# emacs-google-calendarsync revision 43
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which would be small enough to fit in an envelope to mail to you.  Hopefully, it will cover postage.
 
@@ -860,7 +860,7 @@ def createIndexFromShelve(db):
       row.append(dttimestamp)
       row.append(key)
       index.append(row)
-  index.sort(key=lambda x:x[1] )
+  index.sort()
   return index
 
 def sortkeysbydate(db, keys):
@@ -970,18 +970,20 @@ def removekey (keylist, keytoremove):
   return keylist2
 
 
-def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe):
+def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe, g2ekeymap):
   """entry contention happens when both a diary entry and its respective google calendar entry are modified before a sync.  There is no way to precisely tell which diary entry was modified so all we can do is display the modified gcal entry along with perhaps a list of possibilities.   If the globalvar_ENTRY_CONTENTION variable is set to 2 we will do nothing and just add both entries"""
 
   dict = {}
   dictype = type(dict)
-  contendingE = [key for key in ekeyschangedinG if key in delfromG]
+  contendingE = [shelve[key].get('eventid') for key in ekeyschangedinG if key in delfromG]
+  
   shelvekeys = [key for key in shelve.keys() if type(shelve[key]==dictype)]
   dbekeys = [key for key in dbe.keys() if type(dbe[key]==dictype)]
   contendingdbe = [key for key in dbekeys if key not in identicalkeys]    ### contending entries from dbe will not appear in the identicalkeys list
-
+  
   contendingdbe = sortkeysbydate(dbe,contendingdbe)
-  print contendingdbe
+
+  contendingE = sortkeysbydate(dbg,contendingE)
   delfromdbe = []
   
   delfromdbg = []
@@ -993,7 +995,7 @@ def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschan
     continuetoNextContendingE = False 
     i += 1
     print "!! CONTENTION #", i, "!!!!!!!!! The following entry has been modified in both the emacs diary as well as the google calendar:" 
-    print ">> gcal:",  dbg[shelve[key]['eventid']]['fullentry']
+    print ">> gcal:",  dbg[key]['fullentry']
     if ENTRY_CONTENTION == 0:       # prompt from list of contenders
       if len(contendingdbe) == 0:             # if the list is empty then break to the next contendingE
         continue
@@ -1029,13 +1031,11 @@ def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschan
       answer = raw_input("?? keep gcal entry (g) or emacs diary entry (e)? (b for both)")
       answer = answer.lower()
       if answer == 'g':                       ### delete dbe match entry, and add the gcal contendingE entry to the diary
-        delfromG = removekey(delfromG, key)
-        record = shelve.get(contendingE[i])
-        eventid = record.get('eventid')
-        addEdit2E = appendkey(addEdit2E, eventid) 
+        delfromG = removekey(delfromG, g2ekeymap.get(key))
+        addEdit2E = appendkey(addEdit2E, key) 
         addG = removekey(addG, contendingdbe[match])
         delfromdbe = appendkey(delfromdbe, contendingdbe[match])  ### delete from the diary 
-        delfromdbe = appendkey(delfromdbe, contendingE[i])        ### delete from the shelve
+        delfromdbe = appendkey(delfromdbe, g2ekeymap.get(key))        ### delete from the shelve
 
         del dbe[contendingdbe[match]]
         del contendingdbe[match]
@@ -1044,14 +1044,10 @@ def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschan
       elif answer == 'e':                    ### delete the contendingE entry, and add the dbe match entry
         delfromG = appendkey(delfromG, contendingE[i])
         addG = appendkey(addG, contendingdbe[match])
-        
-        record = {}
-      
-        record = shelve.get(contendingE[i])
-        eventid = record.get('eventid')
-        ekeyschangedinG = removekey(ekeyschangedinG, contendingE[i])  ## delete from list of edited gcal entries
-        gkeyschangedinG = removekey(gkeyschangedinG, eventid)
-        delfromdbg = appendkey(delfromdbg, eventid)
+
+        ekeyschangedinG = removekey(ekeyschangedinG, g2ekeymap.get(key))  ## delete from list of edited gcal entries
+        gkeyschangedinG = removekey(gkeyschangedinG, key)
+        delfromdbg = appendkey(delfromdbg, key)
         del contendingdbe[match]
         answervalidated = True
       elif answer == 'b' or answer == 'n':
@@ -1205,7 +1201,7 @@ e must be one directory above the directory of this script.  Use option -i to de
 
   identicalkeys, delfromG, addG = getKeystomodifyfromE(dbe,shelve) # identicalkeys are hashkeys that are the same in both the shelve and dbe, meaning the entries are unchanged by emacs diary
 
-  identicalkeys, delfromG,delfromE, addG, delfromdbg, addEdit2E, ekeyschangedinG, gkeyschangedinG  = handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe)
+  identicalkeys, delfromG,delfromE, addG, delfromdbg, addEdit2E, ekeyschangedinG, gkeyschangedinG  = handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe, g2ekeymap)
   delfromE, addE, addEinTermsofG, alsoaddtheseNewlyAddedGkeystoE = getKeystomodifyfromG(dbg,delfromE, shelve,identicalkeys, lastsyncG)
   
   alsoaddtheseNewlyAddedGkeystoE = removekeys(alsoaddtheseNewlyAddedGkeystoE, delfromdbg)  
