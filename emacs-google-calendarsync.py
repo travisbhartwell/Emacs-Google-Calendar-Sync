@@ -863,7 +863,27 @@ def createIndexFromShelve(db):
   index.sort(key=lambda x:x[1] )
   return index
 
+def sortkeysbydate(db, keys):
+  """ function called from handlecontentions() used to sort the diary entries for the emacs calendar
+        it returns a 2xn matrix of timestamps associated with entry starting dates and hash keys, primary keys of the shelve"""
+  dict = {}
+  dictype = type(dict)
+  index = []
+  for key in keys:
+    if type(db[key]) == dictype:
+      dttimestamp= time.mktime(db[key]['timetuple_dtstart'])   ## start date converted to timestamp for indexing
+      row = []
+      row.append(dttimestamp)
+      row.append(key)
+      index.append(row)
+  index.sort()
 
+  target = [];
+  size = len(index)
+  for i in range(0,size):
+    target.append(index[i][1])
+  return target
+  
 def WriteEmacsDiary(emacsDiaryLocation, shelve):
   dict = {}
   dictype = type(dict) 
@@ -959,45 +979,50 @@ def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschan
   shelvekeys = [key for key in shelve.keys() if type(shelve[key]==dictype)]
   dbekeys = [key for key in dbe.keys() if type(dbe[key]==dictype)]
   contendingdbe = [key for key in dbekeys if key not in identicalkeys]    ### contending entries from dbe will not appear in the identicalkeys list
+
+  contendingdbe = sortkeysbydate(dbe,contendingdbe)
+  print contendingdbe
   delfromdbe = []
+  
   delfromdbg = []
   addEdit2E = []
   i = -1
   answer = '0'
   
   for key in contendingE:                  ###  nest 2 loops for contendingE (from gcal) and contendingdbe (from the diary)
-    breaktoNextContendingE = False 
+    continuetoNextContendingE = False 
     i += 1
-    print "!! CONTENTION #", i, "!!!!!!!!! this entry has been modified in both the emacs diary as well as the google calendar" 
+    print "!! CONTENTION #", i, "!!!!!!!!! The following entry has been modified in both the emacs diary as well as the google calendar:" 
     print ">> gcal:",  dbg[shelve[key]['eventid']]['fullentry']
     if ENTRY_CONTENTION == 0:       # prompt from list of contenders
       if len(contendingdbe) == 0:             # if the list is empty then break to the next contendingE
-        break
+        continue
+                                              #sort contendingdbe list
       j = -1
       for dbekey in contendingdbe:         ### nested loop for contendingdbe
         j += 1
-        print "<< #",j,"diary possibility:", dbe[dbekey]['fullentry']
+        print "<< diary possibility#",j,":", dbe[dbekey]['fullentry']
       if len(contendingdbe) > 1:
         answervalidated = False
         while answervalidated == False:
-          answer = raw_input ("?? Which diary entry# most likely matches in contention with the aforementioned modified gcal entry? (n for none):")
+          answer = raw_input ("?? Which diary possibility# most likely matches in contention with the aforementioned modified gcal entry? (n for none):")
           if len(answer) > 0:
             if answer[0] == 'n' or answer[0] == 'N':
               answervalidated = True
-              breaktoNextContendingE = True
-            if answer[0] >= '0' and answer[0] <= '9' and int(answer) < len(contendingdbe):
+              continuetoNextContendingE = True             
+            elif answer[0] >= '0' and answer[0] <= '9' and int(answer) < len(contendingdbe):
               answervalidated = True
       elif len(contendingdbe) == 1:
         answer = '0'
       else:
-        breaktoNextContendingE = True
+        continuetoNextContendingE = True
     elif ENTRY_CONTENTION == 1:     # automatic best guess
       answer = '0'
     elif ENTRY_CONTENTION == 2:     # do nothing, allowing for contending entries to be added to both the diary and gcal
-      break
-    if breaktoNextContendingE == True:
-      breaktoNextContendingE = False
-      break
+      continuetoNextContendingE = True
+    if continuetoNextContendingE == True:
+      continuetoNextContendingE = False
+      continue
     match = int(answer)
     answervalidated = False
     while answervalidated == False:
@@ -1030,7 +1055,7 @@ def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschan
         del contendingdbe[match]
         answervalidated = True
       elif answer == 'b' or answer == 'n':
-        break
+        answervalidated = True
   return identicalkeys, delfromG,delfromdbe, addG, delfromdbg, addEdit2E, ekeyschangedinG, gkeyschangedinG
 
 class _Getch:
