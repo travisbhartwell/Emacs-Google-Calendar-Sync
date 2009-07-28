@@ -1,7 +1,16 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 43
+# emacs-google-calendarsync revision 44
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which would be small enough to fit in an envelope to mail to you.  Hopefully, it will cover postage.
+
+globalvar_GMTOFFSET = 6                       # 6=central timezone
+globalvar_TZID = 'America/Chicago'            # Time zone
+globalvar_DIARYFILE = ''                      # Location of emacs diary (if this is left blank, the location will be guessed) 
+globalvar_SHELVEFILE = ''                     # Location to put the shelve.dat file, which contains the schedule from the last sync. (if this is left blank, the location will be the directory where this script resides.) The filename of the shelve file will contain the google calendar username
+globalvar_DEFAULTEVENTDURATION = 60           # If no end time default to 60 min
+globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days prior to the current date before which entries get deleted; they wont be deleted from the google calendar, just from the emacs diary.  This feature is currently not implemented
+globalvar_ENTRY_CONTENTION = 0                # entry contention happens when the same diary and its respective google calendar entries are both modified before a sync. 0=prompt from list of contenders 1=automatic best guess, 0=prompt from list of contenders, 2=do nothing; allowing for both entries to exist in both gcal and diary
+globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE =  '#@!z8#'  # this will allow for multiple read-only calendars to be viewed in the same dairy.  The multiple calendar support is not yet implemented
 
 try:
   from xml.etree import ElementTree
@@ -24,15 +33,398 @@ import shelve
 import pdb
 from pprint import pprint
 
-globalvar_DIARYFILE = ''            # Location of emacs diary 
-globalvar_SHELVEFILE = ''                     # Location to put the shelve.dat file, which contains the schedule from the last sync.  The name of the shelve file will automatically contain the google calendar username
-globalvar_DEFAULTEVENTDURATION = 60           # If no end time default to 60 min
-globalvar_TZID = 'America/Chicago'            # Time zone
-globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days prior to the current date before which entries get deleted; they wont be deleted from the google calendar, just from the emacs diary.  This feature is currently not implemented
-globalvar_GMTOFFSET = 6                       # 6=central timezone
 globalvar_GMTOFFSET -= 1                      # for some reason need to subtract 1 to get it to work.  daylight savings time?
-globalvar_ENTRY_CONTENTION = 0                # entry contention happens when the same diary and its respective google calendar entries are both modified before a sync. 0=prompt from list of contenders 1=automatic best guess, 0=prompt from list of contenders, 2=do nothing; allowing for both entries to exist in both gcal and diary
-globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE =  '#@!z8#'  # this will allow for multiple read-only calendars to be viewed in the same dairy.  The multiple calendar support is not yet implemented
+
+### TEMPLATES
+
+### the \n and \t characters must be double escaped in all template files, e.g. \\n \\t ###
+
+### cases_template describes the total number of ways that a given emacs diary entry date can be formatted.  Recurring cases contain the letters Rec.  
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in cases_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
+### Each formatting case is delimited in an XML like manner.  Uppercase fields are variable names.  
+cases_template = """<caseRecDailyAsterix>
+* *, * <DETAIL>
+</caseRecDailyAsterix>
+
+<caseRecDaily>
+*/*/* <DETAIL>
+</caseRecDaily>
+
+<caseRecDailyBlock>
+%%(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>) <DETAIL>
+</caseRecDailyBlock>
+
+<caseRecDailyInterval>
+%%(diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>) <DETAIL>
+</caseRecDailyInterval>
+
+<caseRecDailyIntervalBlock>
+%%(and (diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>)(diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)) <DETAIL>
+</caseRecDailyIntervalBlock>
+
+<caseRecWeeklyWeekname>
+<DAYOFWEEK> <DETAIL>
+</caseRecWeeklyWeekname>
+
+<caseRecWeeklyAbbr>
+<DAYOFWEEKABBR> <DETAIL>
+</caseRecWeeklyAbbr>
+
+<caseRecWeekly>  
+%%(memq (calendar-day-of-week date) '(<BYDAY>)) <DETAIL>
+</caseRecWeekly>
+
+<caseRecWeeklyBlock>  
+%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
+</caseRecWeeklyBlock>
+
+<caseRecWeeklyInterval>      
+%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
+</caseRecWeeklyInterval>
+
+<caseRecWeeklyIntervalBlock>      
+%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
+</caseRecWeeklyIntervalBlock>
+
+<caseRecMonthly>
+* <STDAY> <DETAIL>
+</caseRecMonthly>
+
+<caseRecMonthlyBlock>
+%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)) <DETAIL>
+</caseRecMonthlyBlock>
+
+<caseRecMonthlyInterval> 
+%%(and (= (car (cdr date)) <STDAY>)(= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)) <DETAIL>
+</caseRecMonthlyInterval>
+
+<caseRecMonthlyIntervalBlock> 
+%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)) <DETAIL>
+</caseRecMonthlyIntervalBlock>
+
+
+<caseRecMonthlybydayofweek>
+%%(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>) <DETAIL>
+</caseRecMonthlybydayofweek>
+
+<caseRecMonthlybydayofweekInterval>
+%%(and (= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
+</caseRecMonthlybydayofweekInterval>
+
+<caseRecMonthlybydayofweekIntervalBlock>
+%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
+</caseRecMonthlybydayofweekIntervalBlock>
+
+
+
+<caseMonthdayyear>
+<STMONTH>/<STDAY>/<STYEAR> <DETAIL>
+</caseMonthdayyear>
+
+<caseMonthABBRdayyear>
+<MONTHABBR> <STDAY>, <STYEAR> <DETAIL>
+</caseMonthABBRdayyear>
+
+<caseMonthABBRdayyearwspace>
+<MONTHABBR>  <STDAY>, <STYEAR> <DETAIL>
+</caseMonthABBRdayyearwspace>
+
+
+
+
+<caseRecYearly>
+%%(diary-anniversary <STMONTH> <STDAY> <STYEAR>) <DETAIL>
+</caseRecYearly>
+
+<caseRecYearlyABBRB>
+<MONTHABBR> <STDAYNOTFOLLOWEDBYCOMMA> <DETAIL>
+</caseRecYearlyABBRB>
+
+<caseRecYearlyModern>
+<STMONTH>/<STDAY>/* <DETAIL>
+</caseRecYearlyModern>
+
+<caseRecYearlyInterval>
+%%(and (diary-anniversary <STMONTH> <STDAY> <STYEAR>)(= (mod (- (car (nthcdr 2 date)) <STYEAR2>) <INTERVAL>) 0)) <DETAIL>
+</caseRecYearlyInterval>
+"""
+
+### cases_template_mtch contains the regexp patterns associated with the cases_template.  All _mtch templates must end in a new line.
+cases_template_mtch = """BYDAY ([0-6 ]{1,13})
+STDAY ([0-3]?\d)
+WHICHWEEK (-?[0-3])
+STYEAR (\d?\d?\d\d)
+STMONTH ([01]?\d)
+STMONTHABBR (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec)
+ENDDAY ([0-3]?\d)
+ENDMONTH ([01]?\d)
+ENDYEAR (20[0-3]\d)
+UNTILDAY ([0-3]?\d)
+UNTILMONTH ([01]?\d)
+UNTILYEAR (20[0-3]\d)
+STMONTH2 ([01]?\d)
+STDAY2 ([0-3]?\d)
+STYEAR2 (20[0-3]\d)
+SOMEZING (.{4})
+SOMEZING2 (.{4})
+INTERVAL (\d+)
+NUMDAYOFWEEK ([0-6])
+DAYOFWEEK (Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)
+DAYOFWEEKABBR (Sun|Mon|Tue|Wed|Thu|Fri|Sat)
+MONTHABBR (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)
+STDAYNOTFOLLOWEDBYCOMMA ([0-3]?\d)(?!,)
+notfollowedbycomma (?!,) 
+DETAIL (.*?)(?=^[\w%&\d*])
+"""
+
+### details_template describes the total number of ways that a given <DETAIL> field, from that of cases_template, can be formatted in the diary file.  
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
+### Each formatting case is delimited in an XML like manner.  .  
+
+detail_template = """
+<detailsATitleII>
+<TITLEII><newlinespace><TIMERANGE> <CONTENT>
+</detailsATitleII>
+
+<detailsBTitle>
+<TITLE> <TIMERANGE> <CONTENT>
+</detailsBTitle>
+
+<detailsC>
+<TIMERANGE> <TITLE><newline><CONTENT>
+</detailsC>
+
+<detailsE>
+<TIMERANGE> <TITLE>
+</detailsE>
+
+<detailsF>
+<TITLE><newline><CONTENT>
+</detailsF>
+
+<detailsH>
+<TITLE>
+</detailsH>
+"""
+
+### detail_template_mtch contains the regexp patterns associated with detail_template.  All _mtch templates must end in a new line.
+detail_template_mtch = """TITLE (\w[\w \?\.\(\)'"\[\]\-]+)
+TITLEII (\w[\w ]+(?=\\n[\s\\t]))
+CONTENT (.+)
+TAB (?:\s+?)?
+TIMERANGE (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-?\s{0,8}(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))?)
+BLOCK (.+?)
+ENTRY (.+?)
+WHITESPACE (\s+)
+INTERVAL (\d+)
+DETAIL (.*?)(?=^[\w%&\d*])
+newlinespace \\n[\s\\t](?=^[ \d\w])
+newline .*?(?=^)
+"""
+
+### e2gcase_table maps an emacs diary formatting case to its equivalent Google calendar case
+e2gcase_table = """caseMonthdayyear	caseMDY
+caseMonthABBRdayyear	caseMDY
+caseMonthABBRdayyearwspace	caseMDY
+caseRecDailyAsterix	caseRecDaily
+caseRecDaily	caseRecDaily
+caseRecDailyBlock	caseRecDailyBlock
+caseRecDailyInterval	caseRecDailyInterval
+caseRecDailyIntervalBlock	caseRecDailyIntervalBlock
+caseRecWeeklyWeekname	caseRecWeekly
+caseRecWeeklyAbbr	caseRecWeekly
+caseRecWeekly	caseRecWeekly
+caseRecWeeklyBlock	caseRecWeeklyBlock
+caseRecWeeklyInterval	caseRecWeeklyInterval
+caseRecWeeklyIntervalBlock	caseRecWeeklyIntervalBlock
+caseRecMonthly	caseRecMonthly
+caseRecMonthlyBlock	caseRecMonthlyBlock
+caseRecMonthlyInterval	caseRecMonthlyInterval
+caseRecMonthlyIntervalBlock	caseRecMonthlyIntervalBlock
+caseRecMonthlybydayofweek	caseRecMonthlybydayofweek
+caseRecMonthlybydayofweekBlock	caseRecMonthlybydayofweekBlock
+caseRecMonthlybydayofweekInterval	caseRecMonthlybydayofweekInterval
+caseRecMonthlybydayofweekIntervalBlock	caseRecMonthlybydayofweekIntervalBlock
+caseRecYearly	caseRecYearly
+caseRecYearlyABBRB	caseRecYearly
+caseRecYearlyModern	caseRecYearly
+caseRecYearlyInterval	caseRecYearlyInterval
+"""
+
+### gcases_template describes the total number of ways that a recursion entry can be formatted in a google calendar feed.  
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
+### Each formatting case is delimited in an XML like manner.  .  
+gcases_template = """
+<caseRecDaily>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=DAILY;WKST=SU<newline>
+</caseRecDaily>
+
+<caseRecDailyBlock>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=DAILY;UNTIL=<UNTILDATETIME>;WKST=SU<newline>
+</caseRecDailyBlock>
+
+<caseRecDailyInterval>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=DAILY;INTERVAL=<INTERVAL>;WKST=SU<newline>
+</caseRecDailyInterval>
+
+<caseRecDailyIntervalBlock>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=DAILY;INTERVAL=<INTERVAL>;UNTIL=<UNTILDATETIME>;WKST=SU<newline>
+</caseRecDailyIntervalBlock>
+
+<caseRecMonthly>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=MONTHLY;WKST=SU;BYMONTHDAY=<STDAY><newline>
+</caseRecMonthly>
+
+<caseRecMonthlybydayofweek>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=MONTHLY;BYDAY=<WHICHWEEKG>;WKST=SU<newline>
+</caseRecMonthlybydayofweek>
+
+<caseRecMonthlybydayofweekBlock>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=MONTHLY;BYDAY=<WHICHWEEKG>;UNTIL=<UNTILDATETIME>;WKST=SU<newline>
+</caseRecMonthlybydayofweekBlock>
+
+<caseRecMonthlybydayofweekInterval>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=MONTHLY;INTERVAL=<INTERVAL>;BYDAY=<WHICHWEEKG>;WKST=SU<newline>
+</caseRecMonthlybydayofweekInterval>
+
+<caseRecMonthlybydayofweekIntervalBlock>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=MONTHLY;INTERVAL=<INTERVAL>;BYDAY=<WHICHWEEKG>;UNTIL=<UNTILDATETIME>;WKST=SU<newline>
+</caseRecMonthlybydayofweekIntervalBlock>
+
+<caseRecMonthlyInterval>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=MONTHLY;INTERVAL=<INTERVAL>;WKST=SU;BYMONTHDAY=<STDAY><newline>
+</caseRecMonthlyInterval>
+
+<caseRecMonthlyBlock>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=MONTHLY;UNTIL=<UNTILDATETIME>;WKST=SU;BYMONTHDAY=<STDAY><newline>
+</caseRecMonthlyBlock>
+
+<caseRecMonthlyIntervalBlock>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=MONTHLY;INTERVAL=<INTERVAL>;WKST=SU;BYMONTHDAY=<STDAY>;UNTIL=<UNTILDATETIME><newline>
+</caseRecMonthlyIntervalBlock>
+
+<caseRecWeekly>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=WEEKLY;BYDAY=<BYDAYG>;WKST=SU<newline>
+</caseRecWeekly>
+
+<caseRecWeeklyBlock>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=WEEKLY;WKST=SU;UNTIL=<UNTILDATETIME>;BYDAY=<BYDAYG><newline>
+</caseRecWeeklyBlock>
+
+<caseRecWeeklyInterval>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=WEEKLY;INTERVAL=<INTERVAL>;BYDAY=<BYDAYG>;WKST=SU<newline>
+</caseRecWeeklyInterval>
+
+<caseRecWeeklyIntervalBlock>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=WEEKLY;INTERVAL=<INTERVAL>;BYDAY=<BYDAYG>;UNTIL=<UNTILDATETIME>;WK
+ST=SU<newline>
+</caseRecWeeklyIntervalBlock>
+
+<caseRecYearly>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=YEARLY;WKST=SU<newline>
+</caseRecYearly>
+
+<caseRecYearlyBlock>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=YEARLY;UNTIL=<UNTILDATETIME>;WKST=SU<newline>
+</caseRecYearlyBlock>
+
+<caseRecYearlyInterval>
+DTSTART;TZID=<TZID>:<STDATETIME><newline>
+DTEND;TZID=<TZID2>:<ENDDATETIME><newline>
+RRULE:FREQ=YEARLY;INTERVAL=<INTERVAL>;WKST=SU<newline>
+</caseRecYearlyInterval>
+"""
+
+### gcases_template_mtch contains the regexp patterns associated with gcases_template.  All _mtch templates must end in a new line.
+gcases_template_mtch = """UNTILGTIME (T[0-2]\d{3}00Z?)?)
+BYDAYG ([1234,MOTUWEHFR]+)
+newline \\n
+STDATETIME ([12]0[012]\d(T[012][\d][0-5]\d[0-5]\d)?)
+ENDDATETIME ([12]0[012]\d(T[012][\d][0-5]\d[0-5]\d)?)
+UNTILDATETIME ([12]0[012]\d(T[012][\d][0-5]\d[0-5]\dZ)?)
+STDAY ([0-3]?\d)
+TZID (.+?)
+TZID2 (.+?)
+INTERVAL (\d?\d)
+"""
+
+### times_template describes the total number of ways that a given <TIMERANGE> field, from that of details_template, can be formatted in the diary file.  
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
+### Each formatting case is delimited in an XML like manner.  .  
+times_template = """
+<caseTimeARange>
+<STHOUR>:<STMINUTE><STAMPM><HYPHEN><ENDHOUR>:<ENDMINUTE><ENDAMPM>
+</caseTimeARange>
+
+<caseTimeBRangewithoutMinutes>
+<STHOUR><STAMPM><HYPHEN><ENDHOUR><ENDAMPM>
+</caseTimeBRangewithoutMinutes>
+
+<caseTimeCStarttimeOnly>
+<STHOUR>:<STMINUTE><STAMPM>
+</caseTimeCStarttimeOnly>
+
+<caseTimeDStarttimeOnlywithoutMinutes>
+<STHOUR><STAMPM>
+</caseTimeDStarttimeOnlywithoutMinutes>TITLE (\w[\w ]+)
+"""
+
+### times_template_mtch contains the regexp patterns associated with times_template.  All _mtch templates must end in a new line.
+times_template_mtch = """TITLEII (\w[\w ]+(?=\\n))
+STTIME (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))
+TAB (?:\s+?)?
+ENDTIME (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))
+HYPHEN (\s{0,8}-\s{0,8})
+STHOUR ([012]?\d)
+STMINUTE ([0-5]\d)
+STAMPM (am|pm|AM|PM)
+STAMPMHYPHEN (am|pm|AM|PM)[\s\\t]{0,8}-[\s\t]{0,8}
+STAMPMNOHYPHEN (am|pm|AM|PM)(?![\s\\t]{0,8}-[\s\\t]{0,8})
+ENDHOUR ([012]?\d)
+ENDMINUTE ([0-5]\d)
+ENDAMPM (am|pm|AM|PM)
+ENDAMPMANOTHER ([ampAPM]{2})
+STDAYNOTFOLLOWEDBYCOMMA ([0-3]?\d)(?!,)
+DETAIL (.*?)(?=^[\w%&\d*])
+"""
+
+
 def stripallarray(aTarget):
   for i in range(len(aTarget)):
     aTarget[i] = aTarget[i].strip()
@@ -115,9 +507,9 @@ def rmwhtspc(sTarget):
  
 def loadMtchvars(filename): 
   """The _mtch file must end in a new line.  Uppercase entries are recognized as variable names for pattern patching.  Lowercase entries are not recognized as matching variables, and their values are substituted in verbatim.  Any variable appearing more than once in an entry must have a 1 digit ordinal number appende to the variable name, incremented for each occurrence"""
-  f = open(filename)
-  ff=f.readlines()
-  f.close()
+  filecontent = globals()[locals()['filename']]        ## this coding convention is frowned upon but i dont care
+
+  ff= filecontent.splitlines(True)
   key = ''
   identicalkeys = []
   dicDatatypes = {}
@@ -135,9 +527,9 @@ def loadMtchvars(filename):
 
 def loadreftable(filename):
   """ loads simple one level dictionary from a file. The file must be tab separated and end in a new line.  There cannot be more than 1 newline at the end of the file or an error will result"""
-  f = open(filename)
-  ff=f.readlines()
-  f.close()
+  filecontent = globals()[locals()['filename']]        ## this coding convention is frowned upon but i dont care
+
+  ff = filecontent.splitlines(True)
   key = ''
   value = ''
   dict = {}
@@ -154,12 +546,11 @@ def loadTemplate(filename, Escape = True):
   """all whitespace thats longer than a single space is removed from template.  If whitespace is needed to be represented in a pattern, create a tag for it in lowercase letters, and create an entry in the _mtch file indicating what to sub in verbatim.
      note: the ^ may only be used in template to indicate beginning of string.  The EvaluateTemplate() function is used to create matching patterns using loadTemplates return value as an argument. 
     """
-  f= open(filename,"r")
-  test = f.readlines()
-  f.close()
+  filecontent = globals()[locals()['filename']]        ## this coding convention is frowned upon but i dont care
+
+  test = filecontent.splitlines(True)
   test = stripallarray(test)
   casestring = ''.join(test) 
-  #casestring = rmwhtspc(casestring)
   casepat = re.compile(r'<(.+?)>(.+?)</')
   tpCases = casepat.findall(casestring)
 
@@ -184,7 +575,7 @@ def EvaluateTemplates(atTemplate, matchvarfilename):
   """makes match pattern for future matches
      This function also calls loadMtchvars() """
   dicTypes = loadMtchvars(matchvarfilename)
-  dicEvaluatedTemplatesArray = {}  
+  dicEvaluatedTemplatesArray = {}
   stringpatterns = []
   for i in atTemplate.keys():
     p0 = atTemplate[i]%dicTypes
@@ -916,7 +1307,6 @@ def CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal):
 def updateEditLinks(dbg,shelve):
   dict = {}
   dictype = type(dict)
-  #pdb.set_trace()
   ekeyschangedinG = []
   gkeyschangedinG = []
   editlinksmap = {}

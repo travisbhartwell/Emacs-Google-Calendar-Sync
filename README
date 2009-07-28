@@ -5,9 +5,9 @@ INTRODUCTION
 Emacs, because of its stability, portability and extensibility of features, remains a popular editor in todays age. Its calendar feature is simple and can be read and modified quickly and easily. Moreover, with the proliferation of portable pdas and netbook devices, it becomes convenient to be able to schedule google calendar events when an internet connection is temporarily not available. 
 Details
 
-This python script requires the email and password of the google calendar, either passed as arguments to the script, or entered as raw_input. The path to the emacs diary file must provided by editing the globalvar_DIARYFILE global variable at the begining of the script. Likewise, local timezone information and GMT offset must be provided in the same manner. 
+This python script requires the email and password of the google calendar, either passed as arguments to the script, or entered as raw_input. GMT offset and Local timezone information must be provided by editing the script and changing globalvar_GMTOFFSET and globalvar_TZID, respectively. The path to the emacs diary file may also be provided in the same manner.  If it is not, ~/diary will be used, unless that doesnt exist, in which case the diary location will be fetched out of the ~/.emacs file. 
 
-Also, requires the GData library for python. 
+Also, this script requires the installation of the GData library for python. 
 
 FUNCTIONAL DEFINITION
 
