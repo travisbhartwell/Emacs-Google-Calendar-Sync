@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 44
+# emacs-google-calendarsync revision 45
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which would be small enough to fit in an envelope to mail to you.  Hopefully, it will cover postage.
 
@@ -177,7 +177,7 @@ notfollowedbycomma (?!,)
 DETAIL (.*?)(?=^[\w%&\d*])
 """
 
-### details_template describes the total number of ways that a given <DETAIL> field, from that of cases_template, can be formatted in the diary file.  
+### detail_template describes the total number of ways that a given <DETAIL> field, from that of cases_template, can be formatted in the diary file.  
 ### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
 ### Each formatting case is delimited in an XML like manner.  .  
 
@@ -252,7 +252,7 @@ caseRecYearlyInterval	caseRecYearlyInterval
 """
 
 ### gcases_template describes the total number of ways that a recursion entry can be formatted in a google calendar feed.  
-### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in gcases_template_mtch.  Lowercase fields are place holders for literal strings as described in the gcases_template_mtch template, and do not act as variables.
 ### Each formatting case is delimited in an XML like manner.  .  
 gcases_template = """
 <caseRecDaily>
@@ -385,7 +385,7 @@ INTERVAL (\d?\d)
 """
 
 ### times_template describes the total number of ways that a given <TIMERANGE> field, from that of details_template, can be formatted in the diary file.  
-### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in times_template_mtch.  Lowercase fields are place holders for literal strings as described in the times_template_mtch template, and do not act as variables.
 ### Each formatting case is delimited in an XML like manner.  .  
 times_template = """
 <caseTimeARange>
@@ -1142,7 +1142,8 @@ def getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser):
   lastmodifiedg = time.strptime('1995-1-1T12:00:00','%Y-%m-%dT%H:%M:%S')
   lastmodifiede = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)
   shelvepath = globalvar_SHELVEFILE
-  shelvenamefq = shelvepath + 'egcsyncshelve' + gmailuser + '.dat'
+  postfix = str(abs(hash(gmailuser)))
+  shelvenamefq = shelvepath + 'egcsyncshelve' + postfix + '.dat'
   f=shelve.open(shelvenamefq)
   if f!={}:
     lastmodifiedg = f['updated-g']
