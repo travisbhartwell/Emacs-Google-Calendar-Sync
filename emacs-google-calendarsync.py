@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 49
+# emacs-google-calendarsync revision 52
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit in an envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -869,9 +869,11 @@ def printcontents(db):
     print db[keys].get('CONTENT')
     print " "
 
-def getEmacsDiary(emacsDiaryLocation):
+def getEmacsDiary(emacsDiaryLocation, initialiseShelve):
   db={}
   ap = loadTemplate('cases_template')
+  if initialiseShelve == True:
+    return db
   pat,sp = EvaluateTemplates(ap, 'cases_template_mtch')
   f=open(emacsDiaryLocation, "r") 
   file=f.read()
@@ -903,7 +905,7 @@ def getEmacsDiary(emacsDiaryLocation):
     print "-- UNRECOGNIZED ENTRIES:"
     print file[:-3]
 
-  return db, ap
+  return db
    
 
 def recGetFieldTZID( recurrence):
@@ -1185,14 +1187,21 @@ def getKeystomodifyfromG(dbg,delfromEalso,shelve,identicalkeys, glastsynctime):
   return delfromE, addE, addEinTermsofGkeys, alsoaddtheseNewlyAddedGkeystoE
  
 
-def getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser):
+def getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve):
   lastmodifiedg = time.strptime('1995-1-1T12:00:00','%Y-%m-%dT%H:%M:%S')
   lastmodifiede = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)
   shelvepath = globalvar_SHELVEFILE
   postfix = str(abs(hash(gmailuser)))
   shelvenamefq = shelvepath + 'egcsyncshelve' + postfix + '.dat'
   f=shelve.open(shelvenamefq)
-  if f!={}:
+  emptydict = {}
+  dicType = type(emptydict)
+  if f=={} or initialiseShelve == True:
+    for key in f.keys():
+      del f[key]
+    f['updated-e'] = time.gmtime()
+    f['updated-g'] = time.strptime("1970-10-10T10:30:30.000Z",'%Y-%m-%dT%H:%M:%S.000Z')
+  else:
     lastmodifiedg = f['updated-g']
     lastmodifiede = f['updated-e']    
   return f,lastmodifiedg,lastmodifiede
@@ -1582,11 +1591,11 @@ e must be one directory above the directory of this script.  Use option -i to de
     return 1
   ENTRY_CONTENTION = globalvar_ENTRY_CONTENTION
   opts, args = getopt.getopt(argv[1:], "hianp", ["help","init","autocontention","nocontention","promptcontention"])
+  initialiseShelve = False
   if len(opts) > 0:
     option = opts[0][0]
     if option == "--init" or option == "-i":
-      if os.path.exists("shelve.dat"):
-        os.remove('shelve.dat')
+      initialiseShelve = True
     elif option == "--autocontention" or option == "-a":
       ENTRY_CONTENTION = 1
     elif option == "--nocontention" or option == "-n":
@@ -1622,9 +1631,9 @@ e must be one directory above the directory of this script.  Use option -i to de
     print('enter gmail passwd:'),
     gmailpasswd = getpasswd()
  
-  shelve, lastsyncG, lastsyncE = getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser)
+  shelve, lastsyncG, lastsyncE = getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve)
   lastmodifiedE = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)  ## OS Dependent
-  dbe, ap = getEmacsDiary(emacsDiaryLocation)
+  dbe = getEmacsDiary(emacsDiaryLocation, initialiseShelve)
   dbg, gcal = getGoogleCalendar(gmailuser,gmailpasswd, lastsyncG) 
   lastmodifiedG = dbg['updated-g']
   if lastmodifiedE > lastsyncE:
