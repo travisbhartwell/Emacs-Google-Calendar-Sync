@@ -1,7 +1,7 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 45
+# emacs-google-calendarsync revision 48
 # written and maintained by CiscoRx@gmail.com
-# DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which would be small enough to fit in an envelope to mail to you.  Hopefully, it will cover postage.
+# DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit in an envelope to mail to you.  Hopefully, it will also cover postage.
 
 globalvar_GMTOFFSET = 6                       # 6=central timezone
 globalvar_TZID = 'America/Chicago'            # Time zone
@@ -392,24 +392,30 @@ times_template = """
 <STHOUR>:<STMINUTE><STAMPM><HYPHEN><ENDHOUR>:<ENDMINUTE><ENDAMPM>
 </caseTimeARange>
 
-<caseTimeBRangewithoutMinutes>
+<caseTimeBRangewithStarttimeMinutesOnly>
+<STHOUR>:<STMINUTE><STAMPM><HYPHEN><ENDHOUR><ENDAMPM>
+</caseTimeBRangewithStarttimeMinutesOnly>
+ 
+<caseTimeCRangewithEndtimeMinutesOnly>
+<STHOUR><STAMPM><HYPHEN><ENDHOUR>:<ENDMINUTE><ENDAMPM>
+</caseTimeCRangewithEndtimeMinutesOnly>
+
+
+<caseTimeDRangewithoutMinutes>
 <STHOUR><STAMPM><HYPHEN><ENDHOUR><ENDAMPM>
-</caseTimeBRangewithoutMinutes>
+</caseTimeDRangewithoutMinutes>
 
-<caseTimeCStarttimeOnly>
+<caseTimeEStarttimeOnly>
 <STHOUR>:<STMINUTE><STAMPM>
-</caseTimeCStarttimeOnly>
+</caseTimeEStarttimeOnly>
 
-<caseTimeDStarttimeOnlywithoutMinutes>
+<caseTimeFStarttimeOnlywithoutMinutes>
 <STHOUR><STAMPM>
-</caseTimeDStarttimeOnlywithoutMinutes>TITLE (\w[\w ]+)
+</caseTimeFStarttimeOnlywithoutMinutes>TITLE (\w[\w ]+)
 """
 
 ### times_template_mtch contains the regexp patterns associated with times_template.  All _mtch templates must end in a new line.
-times_template_mtch = """TITLEII (\w[\w ]+(?=\\n))
-STTIME (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))
-TAB (?:\s+?)?
-ENDTIME (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))
+times_template_mtch = """TAB (?:\s+?)?
 HYPHEN (\s{0,8}-\s{0,8})
 STHOUR ([012]?\d)
 STMINUTE ([0-5]\d)
@@ -419,9 +425,7 @@ STAMPMNOHYPHEN (am|pm|AM|PM)(?![\s\\t]{0,8}-[\s\\t]{0,8})
 ENDHOUR ([012]?\d)
 ENDMINUTE ([0-5]\d)
 ENDAMPM (am|pm|AM|PM)
-ENDAMPMANOTHER ([ampAPM]{2})
 STDAYNOTFOLLOWEDBYCOMMA ([0-3]?\d)(?!,)
-DETAIL (.*?)(?=^[\w%&\d*])
 """
 
 
@@ -765,6 +769,7 @@ def HandleLooseEmacsEnds(db):
       db[dbkey]['STHOUR'] = db[dbkey]['STHOUR'].zfill(2)
       if 'STMINUTE' not in reckeys:
         db[dbkey]['STMINUTE'] = '00'     
+
     stday = int(db[dbkey]['STDAY'])
     stmonth = int(db[dbkey]['STMONTH'])
     styear = int(db[dbkey]['STYEAR'])
@@ -772,37 +777,46 @@ def HandleLooseEmacsEnds(db):
     stminute = int(db[dbkey]['STMINUTE'])
     if 'STAMPM' not in reckeys:
       db[dbkey]['STAMPM'] = 'AM'
-    if db[dbkey]['STAMPM'].upper()[0] == 'P' and sthour != 12:
+    if db[dbkey]['STAMPM'].upper()[0] == 'P' and sthour < 12:
         sthour += 12
+    if db[dbkey]['STAMPM'].upper()[0] == 'A' and sthour == 12:
+        sthour = 0
+        db[dbkey]['STHOUR'] = '12'
     stdatetime = datetime.datetime(styear,stmonth,stday,sthour,stminute)
     stdatetimestr = stdatetime.isoformat()
     stdatetimestr = stdatetimestr.replace(':','')
     stdatetimestr = stdatetimestr.replace('-','')
+
     defaultenddatetime = stdatetime + datetime.timedelta(minutes=globalvar_DEFAULTEVENTDURATION)
     defaultenddatetimetuple = defaultenddatetime.timetuple()
     if 'ENDYEAR' not in reckeys:
       db[dbkey]['ENDYEAR'] = str(defaultenddatetimetuple[0]).zfill(4)
     elif len(db[dbkey]['ENDYEAR']) < 4:
       year = '2' + db[dbkey]['ENDYEAR'].zfill(3)
-      db[dbkey]['STYEAR'] = year 
+      db[dbkey]['ENDYEAR'] = year  
     db[dbkey]['ENDMONTH'] = db[dbkey].setdefault('ENDMONTH',str(defaultenddatetimetuple[1])).zfill(2)
     db[dbkey]['ENDDAY'] = db[dbkey].setdefault('ENDDAY',str(defaultenddatetimetuple[2])).zfill(2)
-    db[dbkey]['ENDHOUR'] = db[dbkey].setdefault('ENDHOUR',str(defaultenddatetimetuple[3])).zfill(2)
-    db[dbkey]['ENDMINUTE'] = db[dbkey].setdefault('ENDMINUTE',str(defaultenddatetimetuple[4])).zfill(2)
-    endday = int(db[dbkey]['ENDDAY'])
-    endmonth = int(db[dbkey]['ENDMONTH'])
-    endyear = int(db[dbkey]['ENDYEAR'])
+    if 'ENDHOUR' in reckeys and 'ENDMINUTE' not in reckeys:   ### this is a case like 3:30pm - 5pm, where no minutes are given in the endtime, because they are abbreviated from 00
+      db[dbkey]['ENDMINUTE'] = '00'
+    else:
+      db[dbkey]['ENDMINUTE'] = db[dbkey].setdefault('ENDMINUTE',str(defaultenddatetimetuple[4])).zfill(2) 
+    db[dbkey]['ENDHOUR'] = db[dbkey].setdefault('ENDHOUR',str(defaultenddatetimetuple[3])).zfill(2) 
+    endday = int(db[dbkey]['STDAY'])
+    endmonth = int(db[dbkey]['STMONTH'])
+    endyear = int(db[dbkey]['STYEAR'])
     endhour = int(db[dbkey]['ENDHOUR'])
     endminute = int(db[dbkey]['ENDMINUTE'])
-    if 'ENDAMPM' not in reckeys:       ## assume default from calculated delta
+
+    if 'ENDAMPM' not in reckeys:       ## assume default event duration, as provided from globalvar_DEFAULTEVENTDURATION, if one is not given
       db[dbkey]['ENDAMPM'] = time.strftime('%p',defaultenddatetimetuple)
       db[dbkey]['ENDHOUR'] = time.strftime('%I',defaultenddatetimetuple)
-    elif db[dbkey]['ENDAMPM'].upper()[0] == 'P' and endhour != 12:
-      endhour += 12
+    elif db[dbkey]['ENDAMPM'].upper()[0] == 'P' and endhour <= 12:
+        endhour += 12
     enddatetime = datetime.datetime(endyear,endmonth,endday,endhour,endminute)
     enddatetimestr = enddatetime.isoformat()
     enddatetimestr = enddatetimestr.replace(':','')
     enddatetimestr = enddatetimestr.replace('-','')
+
     if alldayevent == True:
       db[dbkey]['alldayevent'] = True
       enddatetimestr = enddatetimestr[:8]
@@ -947,11 +961,13 @@ def getGoogleCalendar(username,passwd,time_min):
   query.ctz = globalvar_TZID
   query.max_results = 400
   feed = gcal.CalendarQuery(query)
-  db['updated-g']=  time.strptime(feed.updated.text,'%Y-%m-%dT%H:%M:%S.000Z')
+  feedupdatedtext = feed.updated.text
+  feedupdatedtext = feedupdatedtext[:-5]
+  db['updated-g']=  time.strptime(feedupdatedtext,'%Y-%m-%dT%H:%M:%S')
   for i, an_event in zip(xrange(len(feed.entry)), feed.entry):
     entrypid = an_event.id.text
     entry={}
-    entry['HYPHEN'] = ' - '
+    entry['HYPHEN'] = '-'
     entry['eventid'] = entrypid
     entry['where'] = blankforNoneType(an_event.where[0].text)
     entry['TITLE'] = blankforNoneType(an_event.title.text)
@@ -978,19 +994,28 @@ def getGoogleCalendar(username,passwd,time_min):
       entry['ENDDAY'] = enddatetime[6:8]
       entry['timetuple_dtstart'] = Convertdtstart2timetuple(stdatetime)
       if len(stdatetime) > 8:
-        if int(stdatetime[9:11]) > 12:
+        if int(stdatetime[9:11]) >= 12:
           entry['STAMPM'] = 'pm'
           entry['STHOUR'] = str(int(stdatetime[9:11]) - 12)
+          if entry['STHOUR'] == '0':
+            entry['STHOUR'] = '12'
         else:
           entry['STAMPM'] = 'am'
-          entry['STHOUR'] = stdatetime[9:11]
+          entry['STHOUR'] = str(int(stdatetime[9:11]))
+          if entry['STHOUR'] == '0':
+            entry['STHOUR'] = '12'
         entry['STMINUTE'] = stdatetime[11:13]
-        if int(enddatetime[9:11]) > 12:
+
+        if int(enddatetime[9:11]) >= 12:
           entry['ENDAMPM'] = 'pm'
           entry['ENDHOUR'] = str(int(enddatetime[9:11]) - 12)
+          if entry['ENDHOUR'] == '0':
+            entry['ENDHOUR'] = '12'
         else:
           entry['ENDAMPM'] = 'am'
-          entry['ENDHOUR'] = enddatetime[9:11]
+          entry['ENDHOUR'] = str(int(enddatetime[9:11]))
+          if entry['ENDHOUR'] == '0':
+            entry['ENDHOUR'] = '12'
         entry['ENDMINUTE'] = enddatetime[11:13]
         entry['DETAIL'] = entry['TITLE'] + ' ' + at['caseTimeARange'] % entry + entry['CONTENT']
       else:                                      #### all day event
@@ -1052,19 +1077,27 @@ def getGoogleCalendar(username,passwd,time_min):
     casename = 'caseRec' + casefrequency + casegeneral + caseinterval + caseblock
     db[recurrencekeys[i]]['caseRec'] = casename
     if len(dtstart) > 8:
-      if int(dtstart[9:11]) > 12:
+      if int(dtstart[9:11]) >= 12:
         db[recurrencekeys[i]]['STAMPM'] = 'pm'
         db[recurrencekeys[i]]['STHOUR'] = str(int(dtstart[9:11]) - 12)
+        if db[recurrencekeys[i]]['STHOUR'] == '0':
+          db[recurrencekeys[i]]['STHOUR'] = '12'
       else:
         db[recurrencekeys[i]]['STAMPM'] = 'am'
-        db[recurrencekeys[i]]['STHOUR'] = dtstart[9:11]
+        db[recurrencekeys[i]]['STHOUR'] = str(int(dtstart[9:11]))
+        if db[recurrencekeys[i]]['STHOUR'] == '0':
+          db[recurrencekeys[i]]['STHOUR'] = '12'
       db[recurrencekeys[i]]['STMINUTE'] = dtstart[11:13]
-      if int(dtend[9:11]) > 12:
+      if int(dtend[9:11]) >= 12:
         db[recurrencekeys[i]]['ENDAMPM'] = 'pm'
         db[recurrencekeys[i]]['ENDHOUR'] = str(int(dtend[9:11]) - 12)
+        if db[recurrencekeys[i]]['ENDHOUR'] == '0':
+          db[recurrencekeys[i]]['ENDHOUR'] = '12'
       else:
         db[recurrencekeys[i]]['ENDAMPM'] = 'am'
-        db[recurrencekeys[i]]['ENDHOUR'] = dtend[9:11]
+        db[recurrencekeys[i]]['ENDHOUR'] = str(int(dtend[9:11]))
+        if db[recurrencekeys[i]]['ENDHOUR'] == '0':
+          db[recurrencekeys[i]]['ENDHOUR'] = '12'
       db[recurrencekeys[i]]['ENDMINUTE'] = dtend[11:13]
       db[recurrencekeys[i]]['DETAIL'] =  db[recurrencekeys[i]]['TITLE'] + ' ' + at['caseTimeARange'] % db[recurrencekeys[i]] + ' ' + db[recurrencekeys[i]]['CONTENT']
     else:

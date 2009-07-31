@@ -1,9 +1,10 @@
-Emacs-Google-Calendar-Sync is a simple command line python script which syncronizes the emacs Diary with a Google calendar. 
+emacs-google-calendarsync is a simple command line python script which syncronizes the emacs Diary with a Google calendar. 
 
 INTRODUCTION
 
-Emacs, because of its stability, portability and extensibility of features, remains a popular editor in todays age. Its calendar feature is simple and can be read and modified quickly and easily. Moreover, with the proliferation of portable pdas and netbook devices, it becomes convenient to be able to schedule google calendar events when an internet connection is temporarily not available. 
-Details
+Emacs, because of its stability, portability and extensibility of features, remains a popular editor in todays age. Arguably, there exists no other file editor with such quantity and quality of features, supporting both GUI and terminal modes. Its calendar feature is simple and can be read and modified quickly and easily. Moreover, with the proliferation of portable pdas and netbook devices, it becomes convenient to be able to schedule Google calendar events when an internet connection is temporarily not available.
+
+DETAILS
 
 This python script requires the email and password of the google calendar, either passed as arguments to the script, or entered as raw_input. GMT offset and Local timezone information must be provided by editing the script and changing globalvar_GMTOFFSET and globalvar_TZID, respectively. The path to the emacs diary file may also be provided in the same manner.  If it is not, ~/diary will be used, unless that doesnt exist, in which case the diary location will be fetched out of the ~/.emacs file. 
 
@@ -35,5 +36,5 @@ caseRecYearlyInterval -- this bug is on googles end
 
 Diary formating styles are not yet preserved 
 
-diary entries containing start time or end time of 12:00 am arent displaying properly.  Instead, the script currently converts an end time of 12:00 am to 12:00 pm.  But, on a positive note, the script recognizes 00:00 am as 12:00 am, which is a work around.
+
 
