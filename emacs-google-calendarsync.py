@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 48
+# emacs-google-calendarsync revision 49
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit in an envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -801,6 +801,8 @@ def HandleLooseEmacsEnds(db):
     else:
       db[dbkey]['ENDMINUTE'] = db[dbkey].setdefault('ENDMINUTE',str(defaultenddatetimetuple[4])).zfill(2) 
     db[dbkey]['ENDHOUR'] = db[dbkey].setdefault('ENDHOUR',str(defaultenddatetimetuple[3])).zfill(2) 
+
+    endhour = int(db[dbkey]['ENDHOUR'])
     endday = int(db[dbkey]['STDAY'])
     endmonth = int(db[dbkey]['STMONTH'])
     endyear = int(db[dbkey]['STYEAR'])
@@ -810,8 +812,20 @@ def HandleLooseEmacsEnds(db):
     if 'ENDAMPM' not in reckeys:       ## assume default event duration, as provided from globalvar_DEFAULTEVENTDURATION, if one is not given
       db[dbkey]['ENDAMPM'] = time.strftime('%p',defaultenddatetimetuple)
       db[dbkey]['ENDHOUR'] = time.strftime('%I',defaultenddatetimetuple)
-    elif db[dbkey]['ENDAMPM'].upper()[0] == 'P' and endhour <= 12:
-        endhour += 12
+    if db[dbkey]['ENDAMPM'].upper()[0] == 'P' and endhour < 12:
+      endhour += 12
+                            ### check to see if end date spans into its tomorrows date  
+    if endhour < sthour:
+      tomorrowsdate = stdatetime
+      tomorrowsdate += datetime.timedelta(hours=23)      
+      db[dbkey]['ENDDAY'] = tomorrowsdate.strftime('%d').zfill(2)
+      db[dbkey]['ENDMONTH'] = tomorrowsdate.strftime('%m').zfill(2)
+      db[dbkey]['ENDYEAR'] = tomorrowsdate.strftime('%Y')
+      endday = int(db[dbkey]['ENDDAY'])
+      endmonth = int(db[dbkey]['ENDMONTH'])
+      endyear = int(db[dbkey]['ENDYEAR'])
+
+      
     enddatetime = datetime.datetime(endyear,endmonth,endday,endhour,endminute)
     enddatetimestr = enddatetime.isoformat()
     enddatetimestr = enddatetimestr.replace(':','')

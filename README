@@ -20,7 +20,7 @@ FUNCTIONAL CONSTRAINTS
 
 Recurring events cannot have exceptions. 
 
-The ending time of an event must procede midnight of the same day of the scheduled starting date; an event duration may not span past the days boundry delimiter, which is midnight. 
+An event may have a duration up to 24 hours; a recurring event must be used if the event duration exceeds 24 hours.
 
 A copy or snapshot of the last sync of the Diary and Google calendar is stored in a shelve data file in the same directory as this script.
 
