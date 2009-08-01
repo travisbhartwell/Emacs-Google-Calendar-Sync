@@ -1,7 +1,7 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 52
+# emacs-google-calendarsync revision 53
 # written and maintained by CiscoRx@gmail.com
-# DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit in an envelope to mail to you.  Hopefully, it will also cover postage.
+# DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
 globalvar_GMTOFFSET = 6                       # 6=central timezone
 globalvar_TZID = 'America/Chicago'            # Time zone
@@ -11,7 +11,8 @@ globalvar_DEFAULTEVENTDURATION = 60           # If no end time default to 60 min
 globalvar_DELETE_OLD_ENTRIES_OFFSET = 90      # number of days prior to the current date before which entries get deleted; they wont be deleted from the google calendar, just from the emacs diary.  This feature is currently not implemented
 globalvar_ENTRY_CONTENTION = 0                # entry contention happens when the same diary and its respective google calendar entries are both modified before a sync. 0=prompt from list of contenders 1=automatic best guess, 0=prompt from list of contenders, 2=do nothing; allowing for both entries to exist in both gcal and diary
 globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE =  '#@!z8#'  # this will allow for multiple read-only calendars to be viewed in the same dairy.  The multiple calendar support is not yet implemented
-
+globalvar_DEFAULT_NON_RECURRING_FORMAT = 0    # which format to use for entries synced from gcal to diary?: 0 = monthabbreviated day, year      1 = month/day/year  
+globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY = True  # True/False: do we want entries synced from gcal to diary to be written with time first then title, or vice versa
 try:
   from xml.etree import ElementTree
 except ImportError:
@@ -37,11 +38,12 @@ globalvar_GMTOFFSET -= 1                      # for some reason need to subtract
 
 ### TEMPLATES
 
-### the \n and \t characters must be double escaped in all template files, e.g. \\n \\t ###
-
+### The \n and \t characters must be double escaped in all template variables, e.g. \\n \\t , they must be tripple escaped in _mtch variables, e.g. \\\n  ###
+###   No escape is necessary when the templates are stored in separate files
+ 
 ### cases_template describes the total number of ways that a given emacs diary entry date can be formatted.  Recurring cases contain the letters Rec.  
-### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in cases_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
-### Each formatting case is delimited in an XML like manner.  Uppercase fields are variable names.  
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, containing regexps which are found in cases_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
+### Each formatting case is delimited in an XML like manner.  .  
 cases_template = """<caseRecDailyAsterix>
 * *, * <DETAIL>
 </caseRecDailyAsterix>
@@ -178,7 +180,7 @@ DETAIL (.*?)(?=^[\w%&\d*])
 """
 
 ### detail_template describes the total number of ways that a given <DETAIL> field, from that of cases_template, can be formatted in the diary file.  
-### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, containing regexps which are found in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
 ### Each formatting case is delimited in an XML like manner.  .  
 
 detail_template = """
@@ -191,7 +193,7 @@ detail_template = """
 </detailsBTitle>
 
 <detailsC>
-<TIMERANGE> <TITLE><newline><CONTENT>
+<TIMERANGE> <TITLE><newlinehere><CONTENT>
 </detailsC>
 
 <detailsE>
@@ -199,7 +201,7 @@ detail_template = """
 </detailsE>
 
 <detailsF>
-<TITLE><newline><CONTENT>
+<TITLE><newlinehere><CONTENT>
 </detailsF>
 
 <detailsH>
@@ -219,7 +221,7 @@ WHITESPACE (\s+)
 INTERVAL (\d+)
 DETAIL (.*?)(?=^[\w%&\d*])
 newlinespace \\n[\s\\t](?=^[ \d\w])
-newline .*?(?=^)
+newlinehere \\\n
 """
 
 ### e2gcase_table maps an emacs diary formatting case to its equivalent Google calendar case
@@ -252,7 +254,7 @@ caseRecYearlyInterval	caseRecYearlyInterval
 """
 
 ### gcases_template describes the total number of ways that a recursion entry can be formatted in a google calendar feed.  
-### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in gcases_template_mtch.  Lowercase fields are place holders for literal strings as described in the gcases_template_mtch template, and do not act as variables.
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, the regexps of which are contained in gcases_template_mtch.  Lowercase fields are place holders for literal strings as described in the gcases_template_mtch template, and do not act as variables.
 ### Each formatting case is delimited in an XML like manner.  .  
 gcases_template = """
 <caseRecDaily>
@@ -385,7 +387,7 @@ INTERVAL (\d?\d)
 """
 
 ### times_template describes the total number of ways that a given <TIMERANGE> field, from that of details_template, can be formatted in the diary file.  
-### Fields are delimited by '<' and '>'; Uppercase fields refer to variables, the regexps of which are contained in times_template_mtch.  Lowercase fields are place holders for literal strings as described in the times_template_mtch template, and do not act as variables.
+### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, containing regexps which are found in times_template_mtch.  Lowercase fields are place holders for literal strings as described in the times_template_mtch template, and do not act as variables.
 ### Each formatting case is delimited in an XML like manner.  .  
 times_template = """
 <caseTimeARange>
@@ -643,7 +645,8 @@ def getTimeRanges(db, keys):
         timeranges.append('')
   return timeranges 
 
-def updateDetails(db, details, keys):
+def updateDetails(db, details, keys): 
+  """ called from getEmacsDiary() """
   tDetails = loadTemplate('detail_template')
   patDetails, sd = EvaluateTemplates(tDetails, 'detail_template_mtch') 
   dbTmp = parseList2db(patDetails, details, keys)
@@ -872,15 +875,26 @@ def printcontents(db):
 def getEmacsDiary(emacsDiaryLocation, initialiseShelve):
   db={}
   ap = loadTemplate('cases_template')
-  if initialiseShelve == True:
-    return db
+ 
   pat,sp = EvaluateTemplates(ap, 'cases_template_mtch')
   f=open(emacsDiaryLocation, "r") 
   file=f.read()
   f.close()
   keys = []
   details = []
+  diaryheader = ""
+  lookforheaders = True
   file = file + "\nend"            ## need this or last entry wont be read
+  while len(file) > 13 and lookforheaders == True:   ## preserve any header information in the diary
+    if file[:13] == "&%%(org-diary" or file[:12] == "%%(org-diary":
+      newlinepos = file.find('\n')
+      diaryheader = diaryheader + file[:newlinepos] + '\n'
+      file = file[newlinepos + 1:]
+    else:
+      lookforheaders = False
+  if initialiseShelve == True:
+    return db, diaryheader
+
   e2gcase_table = loadreftable('e2gcase_table')
   for idxCase in pat.keys():
     mo =  pat[idxCase].search(file)
@@ -904,8 +918,7 @@ def getEmacsDiary(emacsDiaryLocation, initialiseShelve):
   if (len(file)>5):
     print "-- UNRECOGNIZED ENTRIES:"
     print file[:-3]
-
-  return db
+  return db, diaryheader
    
 
 def recGetFieldTZID( recurrence):
@@ -960,6 +973,7 @@ def getGoogleCalendar(username,passwd,time_min):
   nowdatetime = sCurrentDatetime()
   recurrences = []
   recurrencekeys = []
+  months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   db={}
   gcal = gdata.calendar.service.CalendarService()
   gcal.email = username
@@ -991,7 +1005,7 @@ def getGoogleCalendar(username,passwd,time_min):
     content = StripExtraNewLines(content)
     content = RemoveNewlinesSpacePadding(content)  #debug
     content = PadAllNewlinesWithSpace(content)
-    entry['CONTENT'] = content
+    entry['CONTENT'] = content                     #content is an empty string if its blank, else each line is padded on the left with a space
 
     entry['modified'] = time.strptime(an_event.updated.text[:19],'%Y-%m-%dT%H:%M:%S')
     entry['editlink'] = an_event.GetEditLink().href
@@ -1009,6 +1023,8 @@ def getGoogleCalendar(username,passwd,time_min):
       entry['ENDMONTH'] = enddatetime[4:6]
       entry['ENDDAY'] = enddatetime[6:8]
       entry['timetuple_dtstart'] = Convertdtstart2timetuple(stdatetime)
+      content = entry['CONTENT']
+
       if len(stdatetime) > 8:
         if int(stdatetime[9:11]) >= 12:
           entry['STAMPM'] = 'pm'
@@ -1033,10 +1049,27 @@ def getGoogleCalendar(username,passwd,time_min):
           if entry['ENDHOUR'] == '0':
             entry['ENDHOUR'] = '12'
         entry['ENDMINUTE'] = enddatetime[11:13]
-        entry['DETAIL'] = entry['TITLE'] + ' ' + at['caseTimeARange'] % entry + entry['CONTENT']
+        if globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY == True:
+          if content != "":
+            content = '\n' + content
+          entry['DETAIL'] = at['caseTimeARange'] % entry + ' ' +  entry['TITLE'] + content
+        else:
+          entry['DETAIL'] = entry['TITLE'] + " " + at['caseTimeARange'] % entry  + content
       else:                                      #### all day event
-        entry['DETAIL'] = entry['TITLE'] + '\n' + entry['CONTENT']
-      entry['fullentry'] =  StripExtraNewLines(entry['STMONTH'] + '/' + entry['STDAY'] + '/' + entry['ENDYEAR'] + ' ' + entry['DETAIL']  )
+        if content != "":
+          content = '\n' + content
+        entry['DETAIL'] = entry['TITLE'] + content
+
+
+      if globalvar_DEFAULT_NON_RECURRING_FORMAT == 0:
+        stday = str(int(entry['STDAY']))
+        if len(stday) == 1:
+          spacevar = "  "
+        else:
+          spacevar = " "
+        entry['fullentry'] = StripExtraNewLines(months[int(entry['STMONTH'])-1] + spacevar + stday + ', ' + entry['STYEAR'] + ' ' + entry['DETAIL'] )
+      else:
+        entry['fullentry'] =  StripExtraNewLines(entry['STMONTH'] + '/' + entry['STDAY'] + '/' + entry['STYEAR'] + ' ' + entry['DETAIL']  )
     db[entrypid] = entry
 
                                                  #### now parse recurrences
@@ -1092,6 +1125,7 @@ def getGoogleCalendar(username,passwd,time_min):
       db[recurrencekeys[i]]['BYDAY'] = g2ebyday(bydayg)
     casename = 'caseRec' + casefrequency + casegeneral + caseinterval + caseblock
     db[recurrencekeys[i]]['caseRec'] = casename
+    content = db[recurrencekeys[i]]['CONTENT']
     if len(dtstart) > 8:
       if int(dtstart[9:11]) >= 12:
         db[recurrencekeys[i]]['STAMPM'] = 'pm'
@@ -1115,9 +1149,16 @@ def getGoogleCalendar(username,passwd,time_min):
         if db[recurrencekeys[i]]['ENDHOUR'] == '0':
           db[recurrencekeys[i]]['ENDHOUR'] = '12'
       db[recurrencekeys[i]]['ENDMINUTE'] = dtend[11:13]
-      db[recurrencekeys[i]]['DETAIL'] =  db[recurrencekeys[i]]['TITLE'] + ' ' + at['caseTimeARange'] % db[recurrencekeys[i]] + ' ' + db[recurrencekeys[i]]['CONTENT']
-    else:
-      db[recurrencekeys[i]]['DETAIL'] = db[recurrencekeys[i]]['TITLE'] + ' ' + db[recurrencekeys[i]]['CONTENT'] 
+      if globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY == True:
+        if content != "":
+          content = '\n' + content
+        db[recurrencekeys[i]]['DETAIL'] =  at['caseTimeARange'] % db[recurrencekeys[i]] + ' ' +  db[recurrencekeys[i]]['TITLE'] + content
+      else:
+        db[recurrencekeys[i]]['DETAIL'] =  db[recurrencekeys[i]]['TITLE'] + ' ' + at['caseTimeARange'] % db[recurrencekeys[i]] + db[recurrencekeys[i]]['CONTENT']
+    else:             ### all day event
+      if content != "":
+        content = '\n' + content
+      db[recurrencekeys[i]]['DETAIL'] = db[recurrencekeys[i]]['TITLE'] + content
     recurrencestring = ap[casename] % db[recurrencekeys[i]]
     if recurrencestring[0] == '%':
       recurrencestring = '%' + recurrencestring
@@ -1332,7 +1373,7 @@ def sortkeysbydate(db, keys):
     target.append(index[i][1])
   return target
   
-def WriteEmacsDiary(emacsDiaryLocation, shelve):
+def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader):
   dict = {}
   dictype = type(dict) 
   #keys = [key for key in shelve.keys() if type(shelve[key])==dictype]
@@ -1340,6 +1381,8 @@ def WriteEmacsDiary(emacsDiaryLocation, shelve):
   
   f = open(emacsDiaryLocation,'w')
   f.seek(0)
+  if diaryheader != "":
+    f.write(diaryheader + '\n')
   for row in index: 
     f.write(shelve[row[1]].get('fullentry') + '\n')  
   f.close()
@@ -1579,8 +1622,8 @@ def locateEmacsDiaryLinux(homedir):
 def main(argv=None):
   """Using this script without any options or arguments will syncronizes the emacs\
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
-rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
-e must be one directory above the directory of this script.  Use option -i to delete the shelve when you want to initialize the emacs calendar"""
+rguments; if they are not, then they will be prompted upon execution.   Use option -i to \
+delete the shelve when you want to initialize the emacs calendar"""
   ### we are dealing with 3 databases: dbe, shelve, and dbg.   dbe is created from the diary file.  shelve was saved from the last sync and was used to write the diary file at that point in time.   dbg is created from google calendar.  using pigeon hole set logic we'll determine where to move the entries contained in these databases.
   if argv==None:
     argv=sys.argv
@@ -1606,9 +1649,8 @@ e must be one directory above the directory of this script.  Use option -i to de
     elif option == "--help" or option == "-h":
       print "Using this script without any options or arguments will syncronizes the emacs\
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
-rguments; if they are not, then they will be prompted upon execution.  The emacs diary fil\
-e must be one directory above the directory of this script.  Use option -i to delete the\
- shelve when you want to initialize the emacs calendar"
+rguments; if they are not, then they will be prompted upon execution."
+      print "Use option -i to initialise the emacs diary by deleting the shelve and diary and then populating them from the Google Calendar"
       print
       print "Entry contention can happen when the same diary and its respective google\
  calendar entries are both modified before a sync; by default the script will interactively\
@@ -1633,7 +1675,7 @@ e must be one directory above the directory of this script.  Use option -i to de
  
   shelve, lastsyncG, lastsyncE = getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve)
   lastmodifiedE = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)  ## OS Dependent
-  dbe = getEmacsDiary(emacsDiaryLocation, initialiseShelve)
+  dbe, diaryheader = getEmacsDiary(emacsDiaryLocation, initialiseShelve)
   dbg, gcal = getGoogleCalendar(gmailuser,gmailpasswd, lastsyncG) 
   lastmodifiedG = dbg['updated-g']
   if lastmodifiedE > lastsyncE:
@@ -1669,7 +1711,7 @@ e must be one directory above the directory of this script.  Use option -i to de
     if GcalWasModified:
       InsertEntriesIntoE(addEinTermsofG, shelve, dbg)
       InsertEntriesIntoE(alsoaddtheseNewlyAddedGkeystoE,shelve,dbg)  
-    WriteEmacsDiary(emacsDiaryLocation, shelve)
+    WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader)
   else:  
    print "-- No Changes"
   CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal)
