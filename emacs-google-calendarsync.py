@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 53
+# emacs-google-calendarsync revision 54
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -45,109 +45,109 @@ globalvar_GMTOFFSET -= 1                      # for some reason need to subtract
 ### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, containing regexps which are found in cases_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
 ### Each formatting case is delimited in an XML like manner.  .  
 cases_template = """<caseRecDailyAsterix>
-* *, * <DETAIL>
+<VIS>* *, * <DETAIL>
 </caseRecDailyAsterix>
 
 <caseRecDaily>
-*/*/* <DETAIL>
+<VIS>*/*/* <DETAIL>
 </caseRecDaily>
 
 <caseRecDailyBlock>
-%%(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>) <DETAIL>
+<VIS>%%(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>) <DETAIL>
 </caseRecDailyBlock>
 
 <caseRecDailyInterval>
-%%(diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>) <DETAIL>
+<VIS>%%(diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>) <DETAIL>
 </caseRecDailyInterval>
 
 <caseRecDailyIntervalBlock>
-%%(and (diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>)(diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)) <DETAIL>
+<VIS>%%(and (diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>)(diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)) <DETAIL>
 </caseRecDailyIntervalBlock>
 
 <caseRecWeeklyWeekname>
-<DAYOFWEEK> <DETAIL>
+<VIS><DAYOFWEEK> <DETAIL>
 </caseRecWeeklyWeekname>
 
 <caseRecWeeklyAbbr>
-<DAYOFWEEKABBR> <DETAIL>
+<VIS><DAYOFWEEKABBR> <DETAIL>
 </caseRecWeeklyAbbr>
 
 <caseRecWeekly>  
-%%(memq (calendar-day-of-week date) '(<BYDAY>)) <DETAIL>
+<VIS>%%(memq (calendar-day-of-week date) '(<BYDAY>)) <DETAIL>
 </caseRecWeekly>
 
 <caseRecWeeklyBlock>  
-%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
+<VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
 </caseRecWeeklyBlock>
 
 <caseRecWeeklyInterval>      
-%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
+<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyInterval>
 
 <caseRecWeeklyIntervalBlock>      
-%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
+<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyIntervalBlock>
 
 <caseRecMonthly>
-* <STDAY> <DETAIL>
+<VIS>* <STDAY> <DETAIL>
 </caseRecMonthly>
 
 <caseRecMonthlyBlock>
-%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)) <DETAIL>
+<VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)) <DETAIL>
 </caseRecMonthlyBlock>
 
 <caseRecMonthlyInterval> 
-%%(and (= (car (cdr date)) <STDAY>)(= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)) <DETAIL>
+<VIS>%%(and (= (car (cdr date)) <STDAY>)(= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)) <DETAIL>
 </caseRecMonthlyInterval>
 
 <caseRecMonthlyIntervalBlock> 
-%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)) <DETAIL>
+<VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)) <DETAIL>
 </caseRecMonthlyIntervalBlock>
 
 
 <caseRecMonthlybydayofweek>
-%%(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>) <DETAIL>
+<VIS>%%(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>) <DETAIL>
 </caseRecMonthlybydayofweek>
 
 <caseRecMonthlybydayofweekInterval>
-%%(and (= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
+<VIS>%%(and (= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
 </caseRecMonthlybydayofweekInterval>
 
 <caseRecMonthlybydayofweekIntervalBlock>
-%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
+<VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
 </caseRecMonthlybydayofweekIntervalBlock>
 
 
 
 <caseMonthdayyear>
-<STMONTH>/<STDAY>/<STYEAR> <DETAIL>
+<VIS><STMONTH>/<STDAY>/<STYEAR> <DETAIL>
 </caseMonthdayyear>
 
 <caseMonthABBRdayyear>
-<MONTHABBR> <STDAY>, <STYEAR> <DETAIL>
+<VIS><MONTHABBR> <STDAY>, <STYEAR> <DETAIL>
 </caseMonthABBRdayyear>
 
 <caseMonthABBRdayyearwspace>
-<MONTHABBR>  <STDAY>, <STYEAR> <DETAIL>
+<VIS><MONTHABBR>  <STDAY>, <STYEAR> <DETAIL>
 </caseMonthABBRdayyearwspace>
 
 
 
 
 <caseRecYearly>
-%%(diary-anniversary <STMONTH> <STDAY> <STYEAR>) <DETAIL>
+<VIS>%%(diary-anniversary <STMONTH> <STDAY> <STYEAR>) <DETAIL>
 </caseRecYearly>
 
 <caseRecYearlyABBRB>
-<MONTHABBR> <STDAYNOTFOLLOWEDBYCOMMA> <DETAIL>
+<VIS><MONTHABBR> <STDAYNOTFOLLOWEDBYCOMMA> <DETAIL>
 </caseRecYearlyABBRB>
 
 <caseRecYearlyModern>
-<STMONTH>/<STDAY>/* <DETAIL>
+<VIS><STMONTH>/<STDAY>/* <DETAIL>
 </caseRecYearlyModern>
 
 <caseRecYearlyInterval>
-%%(and (diary-anniversary <STMONTH> <STDAY> <STYEAR>)(= (mod (- (car (nthcdr 2 date)) <STYEAR2>) <INTERVAL>) 0)) <DETAIL>
+<VIS>%%(and (diary-anniversary <STMONTH> <STDAY> <STYEAR>)(= (mod (- (car (nthcdr 2 date)) <STYEAR2>) <INTERVAL>) 0)) <DETAIL>
 </caseRecYearlyInterval>
 """
 
@@ -176,51 +176,81 @@ DAYOFWEEKABBR (Sun|Mon|Tue|Wed|Thu|Fri|Sat)
 MONTHABBR (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)
 STDAYNOTFOLLOWEDBYCOMMA ([0-3]?\d)(?!,)
 notfollowedbycomma (?!,) 
+VIS (&?)
 DETAIL (.*?)(?=^[\w%&\d*])
 """
 
 ### detail_template describes the total number of ways that a given <DETAIL> field, from that of cases_template, can be formatted in the diary file.  
 ### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, containing regexps which are found in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
-### Each formatting case is delimited in an XML like manner.  .  
+### Each formatting case is delimited in an XML like manner.  .\n must be double escaped e.g. \\n
 
 detail_template = """
-<detailsATitleII>
-<TITLEII><newlinespace><TIMERANGE> <CONTENT>
-</detailsATitleII>
 
-<detailsBTitle>
-<TITLE> <TIMERANGE> <CONTENT>
-</detailsBTitle>
+<detailsC_title_newline_space_timerange_content>
+<TITLE>\\n\s<TIMERANGE> <CONTENT>
+</detailsC_title_newline_space_timerange_content>
 
-<detailsC>
+<detailsF_title_timerange_newline_content>
+<TITLE> <TIMERANGE><newlinehere><CONTENT>
+</detailsF_title_timerange_newline_content>
+
+<detailsH_title_timerangeII_content>
+<TITLE> <TIMERANGEIII> <CONTENT>
+</detailsH_title_timerangeII_content>
+
+<detailsI_title_timerangeIV_content>
+<TITLE> <TIMERANGEIV> <CONTENT>
+</detailsI_title_timerangeIV_content>
+
+<detailsJ_timerangeII_title_newline_content>
+<TIMERANGEII> <TITLE>\\n\s<CONTENT>
+</detailsJ_timerangeII_title_newline_content>
+
+<detailsK_timerangeII_title>
+<TIMERANGEII> <TITLE>
+</detailsK_timerangeII_title>
+
+
+
+<detailsM_timerange_title_newline_content>
 <TIMERANGE> <TITLE><newlinehere><CONTENT>
-</detailsC>
+</detailsM_timerange_title_newline_content>
 
-<detailsE>
+<detailsP_title_timerange_content>
+<TITLE> <TIMERANGE> <CONTENT>
+</detailsP_title_timerange_content>
+
+<detailsS_timerange_title>
 <TIMERANGE> <TITLE>
-</detailsE>
+</detailsS_timerange_title>
 
-<detailsF>
+<detailsQ_title_timerange>
+<TITLE> <TIMERANGE>
+</detailsQ_title_timerange>
+
+<detailsU_title_newline_content>
 <TITLE><newlinehere><CONTENT>
-</detailsF>
+</detailsU_title_newline_content>
 
-<detailsH>
+<detailsX_title>
 <TITLE>
-</detailsH>
+</detailsX_title>
+
+
+
+
 """
 
-### detail_template_mtch contains the regexp patterns associated with detail_template.  All _mtch templates must end in a new line.
+### detail_template_mtch contains the regexp patterns associated with detail_template.  All _mtch templates must end in a new line.  \n must be tripple escaped e.g. \\\n
 detail_template_mtch = """TITLE (\w[\w \?\.\(\)'"\[\]\-]+)
+TITLEIV (\w[\w \?\.\(\)'"\[\]\-]+)
 TITLEII (\w[\w ]+(?=\\n[\s\\t]))
 CONTENT (.+)
-TAB (?:\s+?)?
-TIMERANGE (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-?\s{0,8}(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))?)
-BLOCK (.+?)
-ENTRY (.+?)
-WHITESPACE (\s+)
-INTERVAL (\d+)
-DETAIL (.*?)(?=^[\w%&\d*])
-newlinespace \\n[\s\\t](?=^[ \d\w])
+TIMERANGEIV (\d{1,2}(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))
+TIMERANGEIII (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?:am|pm|AM|PM))
+TIMERANGEII (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))
+TIMERANGEJJ (\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-?\s{0,8}(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))?)
+TIMERANGE ((\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-\s{0,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))|(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)))
 newlinehere \\\n
 """
 
@@ -491,14 +521,16 @@ def escstring(string):
       str.append('\\')
     elif string[i] == "%":
       str.append('%')
+    elif string[i] == "&":
+      str.append('&')
     str.append(string[i])
 
-  if string[0]=='&':
-    str.insert(0,'&')
-    str[1]='?'
-  elif string[1]=='&':
-    str.insert(1,'&')
-    str[2]='?'
+#  if string[0]=='&':
+#    str.insert(0,'&')
+#    str[1]='?'
+#  elif string[1]=='&':
+#    str.insert(1,'&')
+#    str[2]='?'
   
   target=''.join(str)
   return target 
@@ -569,7 +601,7 @@ def loadTemplate(filename, Escape = True):
   for i in range(len(tpCases)):
     casename=tpCases[i][0]
     if Escape == True:
-      escapedstring = escstring(tpCases[i][1])  #escape (,),%, adding ? if starts with &
+      escapedstring = escstring(tpCases[i][1])  #escape (,),%, &
     else:
       escapedstring = tpCases[i][1]
     tmpstr = re.sub(pat,r'%(\1)s',escapedstring)  
@@ -639,8 +671,9 @@ def getTimeRanges(db, keys):
   tmpRec = {}
   for key in keys:
       tmpRec = db[key]
-      if 'TIMERANGE' in tmpRec.keys():
-        timeranges.append(tmpRec['TIMERANGE'])
+      tmpReckeys = [key for key in tmpRec.keys() if key[:9] == 'TIMERANGE'] ### workaround for having created an extra variable called TIMERANGEII and TIMERANGEIII in detail_template
+      if len(tmpReckeys) > 0:
+        timeranges.append(tmpRec[tmpReckeys[0]])
       else:
         timeranges.append('')
   return timeranges 
@@ -650,6 +683,12 @@ def updateDetails(db, details, keys):
   tDetails = loadTemplate('detail_template')
   patDetails, sd = EvaluateTemplates(tDetails, 'detail_template_mtch') 
   dbTmp = parseList2db(patDetails, details, keys)
+#  for entrykey in dbTmp.keys():                                            ### workaround for having created an extra variable called TIMERANGEII in detail_template
+#    if 'TIMERANGEII' in dbTmp[entrykey].keys():
+#      dbTmp[entrykey]['TIMERANGE'] = dbTmp[entrykey]['TIMERANGEII']
+#    if 'TIMERANGEIII' in dbTmp[entrykey].keys():
+#      dbTmp[entrykey]['TIMERANGE'] = dbTmp[entrykey]['TIMERANGEIII']
+
   deepupdate(db,dbTmp)
   timeranges = getTimeRanges(db, keys)
 
@@ -792,6 +831,10 @@ def HandleLooseEmacsEnds(db):
 
     defaultenddatetime = stdatetime + datetime.timedelta(minutes=globalvar_DEFAULTEVENTDURATION)
     defaultenddatetimetuple = defaultenddatetime.timetuple()
+    aaa = [key for key in db[dbkey].keys() if key[:8] == 'casename']
+    #print aaa   ## debug for details and times regexp
+    #pdb.set_trace()
+    #sys.exit(0)
     if 'ENDYEAR' not in reckeys:
       db[dbkey]['ENDYEAR'] = str(defaultenddatetimetuple[0]).zfill(4)
     elif len(db[dbkey]['ENDYEAR']) < 4:
@@ -967,9 +1010,33 @@ def Convertdtstart2timetuple(datestring):
   x = datetime.datetime(year,month,day,hour,minute)
   return x.timetuple()  
   
+def findExtendedProperty(properties, name):
+  for property in properties:
+    if property.name == name:
+      return property.value
+  return ""
+
+def mapTimeBeforeTitles():
+  aa = re.compile(r'<(details.+?)>(.+?)</', re.M | re.S)
+  bb = aa.findall(detail_template)
+  dicMap = {}
+  for i in range(0,len(bb)):
+    key = bb[i][0]
+    case = 'casename-' + key
+    detail = bb[i][1]
+    posTime = detail.find('TIME')
+    posTitle = detail.find('TITLE')
+    if posTime < posTitle:
+      dicMap[case] = '1'
+    else:
+      dicMap[case] = '0'
+  return dicMap
+
 def getGoogleCalendar(username,passwd,time_min):
   at = loadTemplate('times_template', Escape = False)
   ap = loadTemplate('cases_template', Escape = False)
+
+ 
   nowdatetime = sCurrentDatetime()
   recurrences = []
   recurrencekeys = []
@@ -997,7 +1064,7 @@ def getGoogleCalendar(username,passwd,time_min):
   for i, an_event in zip(xrange(len(feed.entry)), feed.entry):
     entrypid = an_event.id.text
     entry={}
-    entry['HYPHEN'] = '-'
+    entry['HYPHEN'] = ' - '
     entry['eventid'] = entrypid
     entry['where'] = blankforNoneType(an_event.where[0].text)
     entry['TITLE'] = blankforNoneType(an_event.title.text)
@@ -1009,6 +1076,21 @@ def getGoogleCalendar(username,passwd,time_min):
 
     entry['modified'] = time.strptime(an_event.updated.text[:19],'%Y-%m-%dT%H:%M:%S')
     entry['editlink'] = an_event.GetEditLink().href
+###                                                                                     ### get extended_properties here
+    formatTimeBeforeTitle =  findExtendedProperty(an_event.extended_property,'formatTimeBeforeTitle') #  time before title?
+    if formatTimeBeforeTitle == "":
+      formatTimeBeforeTitle = globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY
+    elif formatTimeBeforeTitle == "1":
+      formatTimeBeforeTitle = True
+    else:
+      formatTimeBeforeTitle = False
+    entry['formatTimeBeforeTitle'] = formatTimeBeforeTitle
+    entry['VIS'] = findExtendedProperty(an_event.extended_property,'VIS')                             # entry visibility inhibiter?
+    nonrecurringformat = findExtendedProperty(an_event.extended_property,'nonrecurringformat')        # non recurring format : mm/dd/yyyy or Jul 4, 2009 style?
+    if nonrecurringformat == "":
+      nonrecurringformat = globalvar_DEFAULT_NON_RECURRING_FORMAT
+    else:
+      nonrecurringformat = int(nonrecurringformat)
     if an_event.recurrence != None:
       entry['recurrence_raw']= an_event.recurrence.text
       recurrences.append(an_event.recurrence.text)
@@ -1049,9 +1131,9 @@ def getGoogleCalendar(username,passwd,time_min):
           if entry['ENDHOUR'] == '0':
             entry['ENDHOUR'] = '12'
         entry['ENDMINUTE'] = enddatetime[11:13]
-        if globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY == True:
-          if content != "":
-            content = '\n' + content
+        if content != "":
+          content = '\n' + content
+        if formatTimeBeforeTitle == True:
           entry['DETAIL'] = at['caseTimeARange'] % entry + ' ' +  entry['TITLE'] + content
         else:
           entry['DETAIL'] = entry['TITLE'] + " " + at['caseTimeARange'] % entry  + content
@@ -1061,15 +1143,15 @@ def getGoogleCalendar(username,passwd,time_min):
         entry['DETAIL'] = entry['TITLE'] + content
 
 
-      if globalvar_DEFAULT_NON_RECURRING_FORMAT == 0:
+      if nonrecurringformat == 0:
         stday = str(int(entry['STDAY']))
         if len(stday) == 1:
           spacevar = "  "
         else:
           spacevar = " "
-        entry['fullentry'] = StripExtraNewLines(months[int(entry['STMONTH'])-1] + spacevar + stday + ', ' + entry['STYEAR'] + ' ' + entry['DETAIL'] )
+        entry['fullentry'] = StripExtraNewLines(entry['VIS'] + months[int(entry['STMONTH'])-1] + spacevar + stday + ', ' + entry['STYEAR'] + ' ' + entry['DETAIL'] )
       else:
-        entry['fullentry'] =  StripExtraNewLines(entry['STMONTH'] + '/' + entry['STDAY'] + '/' + entry['STYEAR'] + ' ' + entry['DETAIL']  )
+        entry['fullentry'] =  StripExtraNewLines(entry['VIS'] +entry['STMONTH'] + '/' + entry['STDAY'] + '/' + entry['STYEAR'] + ' ' + entry['DETAIL']  )
     db[entrypid] = entry
 
                                                  #### now parse recurrences
@@ -1149,7 +1231,7 @@ def getGoogleCalendar(username,passwd,time_min):
         if db[recurrencekeys[i]]['ENDHOUR'] == '0':
           db[recurrencekeys[i]]['ENDHOUR'] = '12'
       db[recurrencekeys[i]]['ENDMINUTE'] = dtend[11:13]
-      if globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY == True:
+      if db[recurrencekeys[i]]['formatTimeBeforeTitle'] == True:
         if content != "":
           content = '\n' + content
         db[recurrencekeys[i]]['DETAIL'] =  at['caseTimeARange'] % db[recurrencekeys[i]] + ' ' +  db[recurrencekeys[i]]['TITLE'] + content
@@ -1160,10 +1242,12 @@ def getGoogleCalendar(username,passwd,time_min):
         content = '\n' + content
       db[recurrencekeys[i]]['DETAIL'] = db[recurrencekeys[i]]['TITLE'] + content
     recurrencestring = ap[casename] % db[recurrencekeys[i]]
-    if recurrencestring[0] == '%':
+
+    if recurrencestring[0] == '%':                                # this is a work around for printing the escaped the % char 
       recurrencestring = '%' + recurrencestring
-    if recurrencestring[:1] == '&%':
-      recurrencesstring = '&%' + recurrencestring[1:]
+    if recurrencestring[:2] == '&%':
+      recurrencestring = '&%' + recurrencestring[1:]
+
     db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring ) 
     db[recurrencekeys[i]]['timetuple_dtstart'] = Convertdtstart2timetuple(dtstart)
 
@@ -1252,19 +1336,16 @@ def convertTimetuple2GMT(tt):
   a += datetime.timedelta(hours=globalvar_GMTOFFSET)
   return a.timetuple()
   
-def InsertEntryIntoGcal(entry, gcal):
+def InsertEntryIntoGcal(entry, gcal,dicFindTimeBeforeTitle ):
   ## all non-recurring events must be entered in terms of GMT
   event = gdata.calendar.CalendarEventEntry()
   event.title = atom.Title(text=entry.get('TITLE'))
   event.title.text = entry.get('TITLE')
   event.content = atom.Content(text=entry.get('CONTENT'))
   content = entry.get('CONTENT')
-
   if content != None:
-    event.content.text = RemoveNewlinesSpacePadding(content)
- 
-#    event.where.append(gdata.calendar.Where(value_string=event['WHERE']))
-
+    event.content.text = RemoveNewlinesSpacePadding(content) 
+#    event.where.append(gdata.calendar.Where(value_string=event['WHERE']))             ### WHERE feature not yet supported
   if 'recurrencestring' in entry:
     event.recurrence = gdata.calendar.Recurrence(text=entry['recurrencestring'])
   else:
@@ -1280,13 +1361,39 @@ def InsertEntryIntoGcal(entry, gcal):
       start_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtstart)
       end_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtend)
     event.when.append(gdata.calendar.When(start_time=start_time, end_time=end_time))
-    
+
+###                                                                                   ### set extended_property additions here
+
+  entrykeys = entry.keys()
+  entrycase = entry.get('entrycase')
+  if 'caseMonthdayyear' == entrycase:                                                        # non recurring format: mm/dd/yyyy or Jul 4, 2009 format?
+    extendeddefaultformat = gdata.calendar.ExtendedProperty(name="nonrecurringformat", value="1")
+    event.extended_property.append(extendeddefaultformat)
+  elif 'caseMonthABBRdayyear' == entrycase or 'caseMonthABBRdayyearwspace' == entrycase:     # Jul  4, 2009 format?
+    extendeddefaultformat = gdata.calendar.ExtendedProperty(name="nonrecurringformat", value="0")
+    event.extended_property.append(extendeddefaultformat)
+#  timebeforetitle = loadreftable("timeBeforeTitleMap")
+  casenames = [key for key in entry.keys() if key[:16] == 'casename-details']                # Time before title ?
+  if len(casenames) > 0:
+    casename = casenames[0]
+    if dicFindTimeBeforeTitle[casename] == "1":
+      extendedcase = gdata.calendar.ExtendedProperty(name="formatTimeBeforeTitle", value="1")
+      event.extended_property.append(extendedcase)
+    else:
+      extendedcase = gdata.calendar.ExtendedProperty(name="formatTimeBeforeTitle", value="0")
+      event.extended_property.append(extendedcase)
+
+  diaryentryvisibility = entry.get('VIS')
+  if diaryentryvisibility == '&':                                                           # entry visibility inhibiter?
+    extended = gdata.calendar.ExtendedProperty(name="VIS", value="&")
+    event.extended_property.append(extended)
   new_event = gcal.InsertEvent(event, '/calendar/feeds/default/private/full')
   return new_event.id.text, new_event.GetEditLink().href
 
 def InsertEntriesIntoGcal(addG,dbe,gcal,shelve):
+  dicFindTimeBeforeTitle = mapTimeBeforeTitles()
   for key in addG:
-    eventid, editlink = InsertEntryIntoGcal(dbe[key],gcal)
+    eventid, editlink = InsertEntryIntoGcal(dbe[key],gcal,dicFindTimeBeforeTitle)
     dbe[key]['eventid'] = eventid
     dbe[key]['editlink'] = editlink 
     shelve[key] = dbe[key].copy()
@@ -1625,6 +1732,7 @@ def main(argv=None):
 rguments; if they are not, then they will be prompted upon execution.   Use option -i to \
 delete the shelve when you want to initialize the emacs calendar"""
   ### we are dealing with 3 databases: dbe, shelve, and dbg.   dbe is created from the diary file.  shelve was saved from the last sync and was used to write the diary file at that point in time.   dbg is created from google calendar.  using pigeon hole set logic we'll determine where to move the entries contained in these databases.
+
   if argv==None:
     argv=sys.argv
   homedir = gethomedir()
@@ -1675,8 +1783,11 @@ rguments; if they are not, then they will be prompted upon execution."
  
   shelve, lastsyncG, lastsyncE = getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve)
   lastmodifiedE = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)  ## OS Dependent
+
   dbe, diaryheader = getEmacsDiary(emacsDiaryLocation, initialiseShelve)
+
   dbg, gcal = getGoogleCalendar(gmailuser,gmailpasswd, lastsyncG) 
+
   lastmodifiedG = dbg['updated-g']
   if lastmodifiedE > lastsyncE:
     DiaryWasModified = True
