@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 60
+# emacs-google-calendarsync revision 64
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -1146,7 +1146,7 @@ def convert_exceptions_to_dict(exceptions):
   """ part of  addressExceptions() """
   dicExceptions = {}
   exceptions.sort()
-  for exception in exceptions:
+  for exception in exceptions:                             
     eventid = exception[:-17]
     datestr = exception[-16:]
     datemdy = datestr[4:6] + ' ' + datestr[6:8] + ' ' + datestr[:4] 
@@ -1187,7 +1187,7 @@ def add_exceptions_to_record(dbgrecord, exceptions):
   """ part of addressExceptions """
   exceptionstring = ""
   
-  for exception in exceptions:
+  for exception in exceptions:                                ### generate an EXCEPTIONSTRING
     exceptionstring = exceptionstring + "(diary-date " +  exception + ")"
   exceptionstring = exceptionstring[12:-1]                      # if there are more than 1 exceptions, then we need them separated by '(diary-date'
   dbgrecord['EXCEPTIONSTRING'] = exceptionstring
@@ -1209,7 +1209,9 @@ def addressExceptions(dbg, shelve, g2ekeymap, Exceptions, timeARangeString, Case
         dbgrecord['caseRec'] = caseRecname
       dbgrecord = add_exceptions_to_record(dbgrecord, dicExceptions[eventid])
       dbgrecord = update_full_entry_for_caseRec_record(dbgrecord, timeARangeString, CasesTemplate[caseRecname]  )
-      if dbgrecord['EXCEPTIONSTRING'] != shelve.get(g2ekeymap.get(eventid)).get('EXCEPTIONSTRING'):
+
+      shelverecord =  shelve.get(g2ekeymap.get(eventid))
+      if shelverecord != None and dbgrecord['EXCEPTIONSTRING'] != shelverecord.get('EXCEPTIONSTRING'):
         flagRecurrenceUpdates = appendkey(flagRecurrenceUpdates, eventid)
       dbg[eventid] = dbgrecord.copy()
   return dbg, flagRecurrenceUpdates
@@ -2092,7 +2094,7 @@ delete the shelve when you want to initialize the emacs calendar"""
       print "Using this script without any options or arguments will syncronizes the emacs\
  and google calendars.  Optionally, the gmail user name and password may be specified as a\
 rguments; if they are not, then they will be prompted upon execution."
-      print "Use option -i to initialise the emacs diary by deleting the shelve and diary and then populating them from the Google Calendar"
+      print "Use option -i to initialise the emacs diary by deleting the shelve and diary and then populating them from the Google Calendar.  Consider the -i option as a one way sync from Google to Emacs"
       print
       print "Entry contention can happen when the same diary and its respective google\
  calendar entries are both modified before a sync; by default the script will interactively\
