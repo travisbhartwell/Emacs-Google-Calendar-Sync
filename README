@@ -18,6 +18,12 @@ If, before running this script, the same calendar entry has been edited by both 
 
 In a similar manner, if before running this script, edits or deletions are made to instances of a recurring event, then the script will interactively prompt you as to your intention, whether to delete or edit.  Again, the -n option eliminates these user interactions as well.  However, only deletions can be made to instances of recurring events when the -n option is invoked.
 
+The -i, or --init, option initializes the emacs diary and populate it from the Google Calendar, also clearing the last synced data from the shelve file. It will cause no modification to the Google calendar
+
+The -r, or --readgoogleonly, option is similar to the -i option in that it will not modify the Google Calendar. It acts as a one way sync from the Google calendar to the Emacs diary. It will display --No Changes, if the Google calendar content was unchanged from the last sync.
+
+Options must precede the user name and password, if they are passed as arguments to the script. e.g. emacs-google-calendarsync.py -r username password
+
 FUNCTIONAL CONSTRAINTS
 
 Instances of recurring events may be edited and deleted.  However, there is no method, at this time, to create an instance of a recurring event without using the Google calendar web interface to do so.

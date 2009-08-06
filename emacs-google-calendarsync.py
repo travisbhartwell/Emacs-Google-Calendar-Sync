@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 64
+# emacs-google-calendarsync revision 67
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -13,6 +13,7 @@ globalvar_ENTRY_CONTENTION = 0                # entry contention happens when th
 globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE =  '#@!z8#'  # this will allow for multiple read-only calendars to be viewed in the same dairy.  The multiple calendar support is not yet implemented
 globalvar_DEFAULT_NON_RECURRING_FORMAT = 0    # which format to use for entries synced from gcal to diary?: 0 = monthabbreviated day, year      1 = month/day/year  
 globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY = True  # True/False: do we want entries synced from gcal to diary to be written with time first then title, or vice versa
+globalvar_READ_FROM_GOOGLE_ONLY = False       # True/False: True = no modifications will be made to the google calendar at all, but will tell you if changes have been made,  False = two way sync between the Emacs diary and the Google Calendar.  This global variable can be set by the -r option.  This is much like option -i, --init, only it tells you  -- No Changes if the Google Calendar content was the same as it was last sync
 try:
   from xml.etree import ElementTree
 except ImportError:
@@ -1189,7 +1190,7 @@ def add_exceptions_to_record(dbgrecord, exceptions):
 
   dicConsolidatedExceptions = {}
   montharray = []
-  for i, exception in zip(xrange(len(exceptions)),exceptions):
+  for exception in exceptions:
     month = exception[:2]
     day = exception[3:5]
     year = exception[-4:]
@@ -1232,10 +1233,10 @@ def addressExceptions(dbg, shelve, g2ekeymap, Exceptions, timeARangeString, Case
       dbg[eventid] = dbgrecord.copy()
   return dbg, flagRecurrenceUpdates
 
-def handleExceptions( ENTRY_CONTENTION, dbg, shelve, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap):
+def handleExceptions( readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap):
   """ this function interactively prompts the user to determine if an altered orphan was intented to be edited or deleted.  if the -n option was invoked, assume deleting in lieu of editing """
 
-  if len(Orphaned) == 0:
+  if len(Orphaned) == 0 or readFromGoogleOnly == True:
     return delfromG, addG, {}, [], dbe
 #  if len(Canceled)> 0:
 #    for cancel in Canceled:
@@ -1919,9 +1920,10 @@ def removekey (keylist, keytoremove):
   return keylist2
 
 
-def handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe, g2ekeymap):
+def handleContentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe, g2ekeymap):
   """entry contention happens when both a diary entry and its respective google calendar entry are modified before a sync.  There is no way to precisely tell which diary entry was modified so all we can do is display the modified gcal entry along with perhaps a list of possibilities.   If the globalvar_ENTRY_CONTENTION variable is set to 2 we will do nothing and just add both entries"""
-
+  if readFromGoogleOnly == True:
+    ENTRY_CONTENTION = 2
   dict = {}
   dictype = type(dict)
   contendingE = [shelve[key].get('eventid') for key in ekeyschangedinG if key in delfromG]
@@ -2093,12 +2095,15 @@ delete the shelve when you want to initialize the emacs calendar"""
     print "Unable to locate the emacs diary.  Please create a file in your home directory called diary"
     return 1
   ENTRY_CONTENTION = globalvar_ENTRY_CONTENTION
-  opts, args = getopt.getopt(argv[1:], "hianp", ["help","init","autocontention","nocontention","promptcontention"])
+  opts, args = getopt.getopt(argv[1:], "hianpr", ["help","init","autocontention","nocontention","promptcontention","readfromgoogleonly"])
   initialiseShelve = False
+  readFromGoogleOnly = globalvar_READ_FROM_GOOGLE_ONLY
   if len(opts) > 0:
     option = opts[0][0]
     if option == "--init" or option == "-i":
       initialiseShelve = True
+    if option == "--readgoogleonly" or option == "-r":
+      readFromGoogleOnly = True
     elif option == "--autocontention" or option == "-a":
       ENTRY_CONTENTION = 1
     elif option == "--nocontention" or option == "-n":
@@ -2170,9 +2175,9 @@ rguments; if they are not, then they will be prompted upon execution."
 
  
 
-  delfromG, addG, dicUpdateorphans, Deleteorphans, dbe = handleExceptions( ENTRY_CONTENTION, dbg, shelve, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap )
+  delfromG, addG, dicUpdateorphans, Deleteorphans, dbe = handleExceptions( readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap )
 
-  identicalkeys, delfromG,delfromE, addG, delfromdbg, addEdit2E, ekeyschangedinG, gkeyschangedinG  = handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe, g2ekeymap)
+  identicalkeys, delfromG,delfromE, addG, delfromdbg, addEdit2E, ekeyschangedinG, gkeyschangedinG  = handleContentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe, g2ekeymap)
 
   delfromE, addE, addEinTermsofG, alsoaddtheseNewlyAddedGkeystoE = getKeystomodifyfromG(dbg,delfromE, shelve,identicalkeys, lastsyncG)
   
@@ -2193,11 +2198,12 @@ rguments; if they are not, then they will be prompted upon execution."
 
   if len(delfromE) > 0 or len(addG) > 0 or len(addE) > 0 or len(alsoaddtheseNewlyAddedGkeystoE) > 0 or len(delfromG) > 0 or len(ekeyschangedinG) > 0 or initialiseShelve == True or len(dicUpdateorphans)>0 or len(Deleteorphans) > 0:
     DeleteEntriesFromE(shelve,delfromE)
-    DeleteEntriesFromGcal(delfromG,delfromdbg,dbg,gcal,shelve,editlinksmap, g2ekeymap, Deleteorphans )
-  
-    UpdateOrphansInGcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2ekeymap, feed)
+    if readFromGoogleOnly == False:
+      DeleteEntriesFromGcal(delfromG,delfromdbg,dbg,gcal,shelve,editlinksmap, g2ekeymap, Deleteorphans )
+      UpdateOrphansInGcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2ekeymap, feed)
     if DiaryWasModified:
-      InsertEntriesIntoGcal(addG,dbe,gcal,shelve)
+      if readFromGoogleOnly == False:
+        InsertEntriesIntoGcal(addG,dbe,gcal,shelve)
       InsertEntriesEditedbyDiarytoE(addE,dbe,shelve)
     if GcalWasModified or len(flagRecurrenceUpdates)> 0:  
       InsertEntriesIntoE(addEinTermsofG, shelve, dbg)
