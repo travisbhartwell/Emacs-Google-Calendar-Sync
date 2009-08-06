@@ -1186,12 +1186,28 @@ def update_full_entry_for_caseRec_record(record,TimeARangeString, CaseTemplateSt
 def add_exceptions_to_record(dbgrecord, exceptions):
   """ part of addressExceptions """
   exceptionstring = ""
-  
-  for exception in exceptions:                                ### generate an EXCEPTIONSTRING
-    exceptionstring = exceptionstring + "(diary-date " +  exception + ")"
+
+  dicConsolidatedExceptions = {}
+  montharray = []
+  for i, exception in zip(xrange(len(exceptions)),exceptions):
+    month = exception[:2]
+    day = exception[3:5]
+    year = exception[-4:]
+    montharray = dicConsolidatedExceptions.setdefault(month + year, [])
+    montharray.append(day)
+    dicConsolidatedExceptions[month+year] = montharray
+      
+  for exception in dicConsolidatedExceptions.keys():                                ### generate an EXCEPTIONSTRING
+    montharray = dicConsolidatedExceptions[exception]
+    if len(montharray) > 1:
+      exceptionstring = exceptionstring + "(diary-date " + exception[:2] + " '(" + " ".join(montharray) + ") " + exception[-4:]+ ")"  ## put all the dates of the same month into the same EXCEPTIONSTRING
+    else:
+      exceptionstring = exceptionstring + "(diary-date " + exception[:2] + " " + montharray[0] +" " + exception[-4:]+ ")"
   exceptionstring = exceptionstring[12:-1]                      # if there are more than 1 exceptions, then we need them separated by '(diary-date'
   dbgrecord['EXCEPTIONSTRING'] = exceptionstring
   return dbgrecord
+
+
 
 def addressExceptions(dbg, shelve, g2ekeymap, Exceptions, timeARangeString, CasesTemplate):
                          ###  This function depends on the preservation of event ids for recurrence exception instance records, and that their eventStatus is marked deleted in lieu of actually being deleted.
