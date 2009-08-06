@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 54
+# emacs-google-calendarsync revision 60
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -35,7 +35,7 @@ import pdb
 from pprint import pprint
 
 globalvar_GMTOFFSET -= 1                      # for some reason need to subtract 1 to get it to work.  daylight savings time?
-
+DictionaryDefinedType = type({})
 ### TEMPLATES
 
 ### The \n and \t characters must be double escaped in all template variables, e.g. \\n \\t , they must be tripple escaped in _mtch variables, e.g. \\\n  ###
@@ -56,13 +56,27 @@ cases_template = """<caseRecDailyAsterix>
 <VIS>%%(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>) <DETAIL>
 </caseRecDailyBlock>
 
+
+<caseRecDailyBlockException>
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)) <DETAIL>
+</caseRecDailyBlockException>
+
+
 <caseRecDailyInterval>
 <VIS>%%(diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>) <DETAIL>
 </caseRecDailyInterval>
 
+<caseRecDailyIntervalException>
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>)) <DETAIL>
+</caseRecDailyIntervalException>
+
 <caseRecDailyIntervalBlock>
 <VIS>%%(and (diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>)(diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)) <DETAIL>
 </caseRecDailyIntervalBlock>
+
+<caseRecDailyIntervalBlockException>
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-cyclic <INTERVAL> <STMONTH> <STDAY> <STYEAR>)(diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)) <DETAIL>
+</caseRecDailyIntervalBlockException>
 
 <caseRecWeeklyWeekname>
 <VIS><DAYOFWEEK> <DETAIL>
@@ -76,17 +90,36 @@ cases_template = """<caseRecDailyAsterix>
 <VIS>%%(memq (calendar-day-of-week date) '(<BYDAY>)) <DETAIL>
 </caseRecWeekly>
 
+<caseRecWeeklyException>  
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
+</caseRecWeeklyException>
+
 <caseRecWeeklyBlock>  
 <VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
 </caseRecWeeklyBlock>
+
+<caseRecWeeklyBlockException>  
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
+</caseRecWeeklyBlockException>
+
 
 <caseRecWeeklyInterval>      
 <VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyInterval>
 
+<caseRecWeeklyIntervalException>      
+<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (not (or (diary-date <EXCEPTIONSTRING>)))(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
+</caseRecWeeklyIntervalException>
+
+
 <caseRecWeeklyIntervalBlock>      
-<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
+<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date))(car date)(car (nthcdr 2 date)))))))(and (diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyIntervalBlock>
+
+<caseRecWeeklyIntervalBlockException>      
+<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date))(car date)(car (nthcdr 2 date)))))))(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
+</caseRecWeeklyIntervalBlockException>
+
 
 <caseRecMonthly>
 <VIS>* <STDAY> <DETAIL>
@@ -96,27 +129,55 @@ cases_template = """<caseRecDailyAsterix>
 <VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)) <DETAIL>
 </caseRecMonthlyBlock>
 
+<caseRecMonthlyBlockException>
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)) <DETAIL>
+</caseRecMonthlyBlockException>
+
+
 <caseRecMonthlyInterval> 
 <VIS>%%(and (= (car (cdr date)) <STDAY>)(= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)) <DETAIL>
 </caseRecMonthlyInterval>
 
+<caseRecMonthlyIntervalException> 
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(= (car (cdr date)) <STDAY>)(= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)) <DETAIL>
+</caseRecMonthlyIntervalException>
+
+
 <caseRecMonthlyIntervalBlock> 
 <VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)) <DETAIL>
 </caseRecMonthlyIntervalBlock>
+
+<caseRecMonthlyIntervalBlockException> 
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)) <DETAIL>
+</caseRecMonthlyIntervalBlockException>
 
 
 <caseRecMonthlybydayofweek>
 <VIS>%%(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>) <DETAIL>
 </caseRecMonthlybydayofweek>
 
+<caseRecMonthlybydayofweekException>
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
+</caseRecMonthlybydayofweekException>
+
+
 <caseRecMonthlybydayofweekInterval>
 <VIS>%%(and (= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
 </caseRecMonthlybydayofweekInterval>
+
+<caseRecMonthlybydayofweekIntervalException>
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(= (mod (- (car date) <STMONTH>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
+</caseRecMonthlybydayofweekIntervalException>
+
+
 
 <caseRecMonthlybydayofweekIntervalBlock>
 <VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
 </caseRecMonthlybydayofweekIntervalBlock>
 
+<caseRecMonthlybydayofweekIntervalBlockException>
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
+</caseRecMonthlybydayofweekIntervalBlockException>
 
 
 <caseMonthdayyear>
@@ -138,6 +199,11 @@ cases_template = """<caseRecDailyAsterix>
 <VIS>%%(diary-anniversary <STMONTH> <STDAY> <STYEAR>) <DETAIL>
 </caseRecYearly>
 
+<caseRecYearlyException>
+<VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-anniversary <STMONTH> <STDAY> <STYEAR>)) <DETAIL>
+</caseRecYearlyException>
+
+
 <caseRecYearlyABBRB>
 <VIS><MONTHABBR> <STDAYNOTFOLLOWEDBYCOMMA> <DETAIL>
 </caseRecYearlyABBRB>
@@ -147,13 +213,20 @@ cases_template = """<caseRecDailyAsterix>
 </caseRecYearlyModern>
 
 <caseRecYearlyInterval>
-<VIS>%%(and (diary-anniversary <STMONTH> <STDAY> <STYEAR>)(= (mod (- (car (nthcdr 2 date)) <STYEAR2>) <INTERVAL>) 0)) <DETAIL>
+<VIS>%%(or (diary-date <STMONTH> <STDAY> <STYEAR>)(and (diary-anniversary <STMONTH2> <STDAY2> <STYEAR2>)(= (mod (- (car (nthcdr 2 date)) <STYEAR3>) <INTERVAL>) 0))) <DETAIL>
 </caseRecYearlyInterval>
+
+<caseRecYearlyIntervalException>
+<VIS>%%(or (diary-date <STMONTH> <STDAY> <STYEAR>)(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-anniversary <STMONTH2> <STDAY2> <STYEAR2>)(= (mod (- (car (nthcdr 2 date)) <STYEAR3>) <INTERVAL>) 0))) <DETAIL>
+</caseRecYearlyIntervalException>
+
+
 """
 
 ### cases_template_mtch contains the regexp patterns associated with the cases_template.  All _mtch templates must end in a new line.
 cases_template_mtch = """BYDAY ([0-6 ]{1,13})
 STDAY ([0-3]?\d)
+EXCEPTIONSTRING (.*?)
 WHICHWEEK (-?[0-3])
 STYEAR (\d?\d?\d\d)
 STMONTH ([01]?\d)
@@ -167,6 +240,7 @@ UNTILYEAR (20[0-3]\d)
 STMONTH2 ([01]?\d)
 STDAY2 ([0-3]?\d)
 STYEAR2 (20[0-3]\d)
+STYEAR3 (20[0-3]\d)
 SOMEZING (.{4})
 SOMEZING2 (.{4})
 INTERVAL (\d+)
@@ -259,28 +333,47 @@ e2gcase_table = """caseMonthdayyear	caseMDY
 caseMonthABBRdayyear	caseMDY
 caseMonthABBRdayyearwspace	caseMDY
 caseRecDailyAsterix	caseRecDaily
+caseRecDailyAsterixException	caseRecDailyException
 caseRecDaily	caseRecDaily
+caseRecDailyException	caseRecDaily
 caseRecDailyBlock	caseRecDailyBlock
+caseRecDailyBlockException	caseRecDailyBlock
 caseRecDailyInterval	caseRecDailyInterval
+caseRecDailyIntervalException	caseRecDailyInterval
 caseRecDailyIntervalBlock	caseRecDailyIntervalBlock
+caseRecDailyIntervalBlockException	caseRecDailyIntervalBlock
 caseRecWeeklyWeekname	caseRecWeekly
 caseRecWeeklyAbbr	caseRecWeekly
 caseRecWeekly	caseRecWeekly
+caseRecWeeklyException	caseRecWeekly
 caseRecWeeklyBlock	caseRecWeeklyBlock
+caseRecWeeklyBlockException	caseRecWeeklyBlock
 caseRecWeeklyInterval	caseRecWeeklyInterval
+caseRecWeeklyIntervalException	caseRecWeeklyInterval
 caseRecWeeklyIntervalBlock	caseRecWeeklyIntervalBlock
+caseRecWeeklyIntervalBlockException	caseRecWeeklyIntervalBlock
 caseRecMonthly	caseRecMonthly
+caseRecMonthlyException	caseRecMonthly
 caseRecMonthlyBlock	caseRecMonthlyBlock
+caseRecMonthlyBlockException	caseRecMonthlyBlock
 caseRecMonthlyInterval	caseRecMonthlyInterval
+caseRecMonthlyIntervalException	caseRecMonthlyInterval
 caseRecMonthlyIntervalBlock	caseRecMonthlyIntervalBlock
+caseRecMonthlyIntervalBlockException	caseRecMonthlyIntervalBlock
 caseRecMonthlybydayofweek	caseRecMonthlybydayofweek
+caseRecMonthlybydayofweekException	caseRecMonthlybydayofweek
 caseRecMonthlybydayofweekBlock	caseRecMonthlybydayofweekBlock
+caseRecMonthlybydayofweekBlockException	caseRecMonthlybydayofweekBlock
 caseRecMonthlybydayofweekInterval	caseRecMonthlybydayofweekInterval
+caseRecMonthlybydayofweekIntervalException	caseRecMonthlybydayofweekInterval
 caseRecMonthlybydayofweekIntervalBlock	caseRecMonthlybydayofweekIntervalBlock
+caseRecMonthlybydayofweekIntervalBlockException	caseRecMonthlybydayofweekIntervalBlock
 caseRecYearly	caseRecYearly
+caseRecYearlyException	caseRecYearly
 caseRecYearlyABBRB	caseRecYearly
 caseRecYearlyModern	caseRecYearly
 caseRecYearlyInterval	caseRecYearlyInterval
+caseRecYearlyIntervalException	caseRecYearlyInterval
 """
 
 ### gcases_template describes the total number of ways that a recursion entry can be formatted in a google calendar feed.  
@@ -834,7 +927,7 @@ def HandleLooseEmacsEnds(db):
     aaa = [key for key in db[dbkey].keys() if key[:8] == 'casename']
     #print aaa   ## debug for details and times regexp
     #pdb.set_trace()
-    #sys.exit(0)
+    #sys.exit(0)  ##debug
     if 'ENDYEAR' not in reckeys:
       db[dbkey]['ENDYEAR'] = str(defaultenddatetimetuple[0]).zfill(4)
     elif len(db[dbkey]['ENDYEAR']) < 4:
@@ -954,10 +1047,13 @@ def getEmacsDiary(emacsDiaryLocation, initialiseShelve):
         entry['entrycase'] = idxCase
         entry['gcase'] = e2gcase_table[idxCase]
         db[entrypid] = entry
+        #print entry #debug
+        #sys.exit(0) #debug
       file = file[:mo.start(0)] + file[mo.end(0):]
       mo= pat[idxCase].search(file)
   updateDetails(db, details, keys)
   HandleLooseEmacsEnds(db)
+  #sys.exit(0) #debug
   if (len(file)>5):
     print "-- UNRECOGNIZED ENTRIES:"
     print file[:-3]
@@ -1032,11 +1128,162 @@ def mapTimeBeforeTitles():
       dicMap[case] = '0'
   return dicMap
 
-def getGoogleCalendar(username,passwd,time_min):
-  at = loadTemplate('times_template', Escape = False)
-  ap = loadTemplate('cases_template', Escape = False)
+def get_eventStatus(event):
+  """ returns 2 values, first value if canceled, second value if orphaned """
+  eventstr = str(event)
+  eventid = event.id.text
+  result = eventstr.find('eventStatus value="http://schemas.google.com/g/2005#event.canceled')
+  if result == -1:
+    if eventid[-4:] == '000Z' and eventid[-8] == 'T' and eventid[-17] == '_':   ### orphaned
+      return "orphaned"
+    else:
+      return ""  ### neither orphan nor canceled
+  else:
+    return "canceled"    ### canceled
 
- 
+
+def convert_exceptions_to_dict(exceptions):
+  """ part of  addressExceptions() """
+  dicExceptions = {}
+  exceptions.sort()
+  for exception in exceptions:
+    eventid = exception[:-17]
+    datestr = exception[-16:]
+    datemdy = datestr[4:6] + ' ' + datestr[6:8] + ' ' + datestr[:4] 
+    elementlist = dicExceptions.get(eventid)
+    if elementlist == None:
+      dicExceptions[eventid] = [datemdy]
+    else:
+      elementlist.append(datemdy)
+      dicExceptions[eventid] = elementlist
+  return dicExceptions
+
+def update_full_entry_for_caseRec_record(record,TimeARangeString, CaseTemplateString):
+  """ part of addressExceptions() """
+  formatTimeBeforeTitle= record.get('formatTimeBeforeTitle')
+#  nonrecurringformat = record.get('nonrecurringformat')
+  content = record.get('CONTENT')
+  entrycase = record.get('caseRec')
+  title = record.get('TITLE')
+  if content != "":
+    content = '\n' + content
+  if record.get('alldayevent') == True:
+    detail = title + content
+  elif  formatTimeBeforeTitle == True:
+    detail = TimeARangeString % record + ' ' + title + content
+  else:
+    detail = title + ' ' + TimeARangeString % record + content
+  record['DETAIL'] = detail
+  recurrencestring = CaseTemplateString % record
+  if recurrencestring[0] == '%':                                # this is a work around for printing the escaped % char 
+    recurrencestring = '%' + recurrencestring
+  if recurrencestring[:2] == '&%':
+    recurrencestring = '&%' + recurrencestring[1:]
+  record['fullentry'] = StripExtraNewLines(recurrencestring) 
+  return record
+
+
+def add_exceptions_to_record(dbgrecord, exceptions):
+  """ part of addressExceptions """
+  exceptionstring = ""
+  
+  for exception in exceptions:
+    exceptionstring = exceptionstring + "(diary-date " +  exception + ")"
+  exceptionstring = exceptionstring[12:-1]                      # if there are more than 1 exceptions, then we need them separated by '(diary-date'
+  dbgrecord['EXCEPTIONSTRING'] = exceptionstring
+  return dbgrecord
+
+def addressExceptions(dbg, shelve, g2ekeymap, Exceptions, timeARangeString, CasesTemplate):
+                         ###  This function depends on the preservation of event ids for recurrence exception instance records, and that their eventStatus is marked deleted in lieu of actually being deleted.
+  flagRecurrenceUpdates = []
+  if len(Exceptions) == 0:
+    return dbg, flagRecurrenceUpdates
+  dicExceptions = convert_exceptions_to_dict(Exceptions)
+  dbgkeys = [key for key in dbg.keys() if type(dbg[key]) == DictionaryDefinedType]
+  for eventid in dicExceptions.keys():  ## these event ids are normal ones, not those that are found in exceptions
+    if eventid in dbgkeys:
+      dbgrecord = dbg[eventid]
+      caseRecname = dbgrecord.get('caseRec')
+      if caseRecname[-9:] != "Exception":
+        caseRecname = caseRecname + "Exception"
+        dbgrecord['caseRec'] = caseRecname
+      dbgrecord = add_exceptions_to_record(dbgrecord, dicExceptions[eventid])
+      dbgrecord = update_full_entry_for_caseRec_record(dbgrecord, timeARangeString, CasesTemplate[caseRecname]  )
+      if dbgrecord['EXCEPTIONSTRING'] != shelve.get(g2ekeymap.get(eventid)).get('EXCEPTIONSTRING'):
+        flagRecurrenceUpdates = appendkey(flagRecurrenceUpdates, eventid)
+      dbg[eventid] = dbgrecord.copy()
+  return dbg, flagRecurrenceUpdates
+
+def handleExceptions( ENTRY_CONTENTION, dbg, shelve, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap):
+  """ this function interactively prompts the user to determine if an altered orphan was intented to be edited or deleted.  if the -n option was invoked, assume deleting in lieu of editing """
+
+  if len(Orphaned) == 0:
+    return delfromG, addG, {}, [], dbe
+#  if len(Canceled)> 0:
+#    for cancel in Canceled:
+
+  Deleteorphans = []
+  dicUpdateorphans = {}
+
+  modifiedorphans = [key for key in Orphaned if g2ekeymap.get(key) in delfromG]
+  delfromG = [key for key in delfromG if shelve[key]['eventid'] not in modifiedorphans]  ## delfromG cannot contain orphaned event ids
+                       ### check modifiedorphans against addG
+  modifiedorphans = sortkeysbydate(dbg, modifiedorphans)
+  addG = sortkeysbydate(dbe, addG)
+  if len(addG) > 0 and ENTRY_CONTENTION !=2:
+    print "!!!! INSTANCES OF RECURRENCES WERE MODIFIED !!!!"
+  for instancenum, orphan in zip(xrange(0,len(modifiedorphans)),modifiedorphans):
+    if len(addG) != 0:
+      if ENTRY_CONTENTION != 2:
+        print "Instance #", instancenum, ":",shelve[g2ekeymap[orphan]].get('fullentry')
+        answervalidated = False
+
+        while answervalidated == False:
+          answer = raw_input("Were you intending on Updating or Deleting this gcal entry?  U for Update, D for Delete, S for show related recurrence event:")
+          answer = answer.upper()
+          if answer == 'D':
+            answervalidated = True
+          elif answer == 'U':
+            answervalidated = True
+          elif answer == 'S':
+            print "Recurrence event:", dbg[orphan[:-17]].get('fullentry')
+      else:
+        answer = 'D'
+    else:
+      answer = 'D'
+
+    if answer == 'U':
+      if len(addG) > 1:
+        for i, key in zip(xrange(len(addG)),addG):
+          print "entry", i, ":", dbe[key].get('fullentry')
+        answervalidated = False
+        while answervalidated == False:
+          answer = raw_input("Which of the above diary entries represents the update? S for show related recurrence event:")
+          if answer == "S" or answer == "s":
+             print "Recurrence event:", dbg[orphan[:-17]].get('fullentry')
+          elif len(answer) > 0 and answer[0] >= '0' and answer[0] <= '9':
+            answervalidated = True
+            answer = int(answer)
+            dicUpdateorphans[orphan] = addG[answer]
+            dbe[addG[answer]]['eventid'] = orphan                   ### associate the orphan to the diary entry via eventid
+            dbe[addG[answer]]['editlink'] = editlinksmap[orphan]
+            del addG[answer]
+      elif len(addG) == 1:
+        dicUpdateorphans[orphan] = addG[0]
+        dbe[addG[0]]['eventid'] = orphan
+        dbe[addG[0]]['editlink'] = editlinksmap[orphan]
+        del addG[0]
+    elif answer == 'D':
+      Deleteorphans.append(orphan)
+      
+          
+  return delfromG, addG, dicUpdateorphans, Deleteorphans, dbe
+
+
+
+def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
+  Canceled = []
+  Orphaned = []
   nowdatetime = sCurrentDatetime()
   recurrences = []
   recurrencekeys = []
@@ -1062,7 +1309,16 @@ def getGoogleCalendar(username,passwd,time_min):
   feedupdatedtext = feedupdatedtext[:-5]
   db['updated-g']=  time.strptime(feedupdatedtext,'%Y-%m-%dT%H:%M:%S')
   for i, an_event in zip(xrange(len(feed.entry)), feed.entry):
+    #print feed #debug
     entrypid = an_event.id.text
+    eventStatus = get_eventStatus(an_event)  ### It would be nice if eventStatus was actually a visible property but its not:P
+    if eventStatus == "canceled":                                      # if event is part of a recurring event but was deleted as an instance the recurring event, then discard it
+      Canceled.append(entrypid)
+      continue
+    elif eventStatus == "orphaned":                                      # if event is part of a recurring event, but was edited as an instance of that event, process it as normal
+      Orphaned.append(entrypid)
+    #pdb.set_trace() #debug
+    #sys.exit(0) # debug
     entry={}
     entry['HYPHEN'] = ' - '
     entry['eventid'] = entrypid
@@ -1091,8 +1347,9 @@ def getGoogleCalendar(username,passwd,time_min):
       nonrecurringformat = globalvar_DEFAULT_NON_RECURRING_FORMAT
     else:
       nonrecurringformat = int(nonrecurringformat)
+    entry['nonrecurringformat'] = nonrecurringformat
     if an_event.recurrence != None:
-      entry['recurrence_raw']= an_event.recurrence.text
+      #entry['recurrence_raw']= an_event.recurrence.text      ##the gcal recurrence info is never used and takes up alot of space
       recurrences.append(an_event.recurrence.text)
       recurrencekeys.append(entrypid)
     else:                                                     #parse non-recurring entries
@@ -1134,10 +1391,11 @@ def getGoogleCalendar(username,passwd,time_min):
         if content != "":
           content = '\n' + content
         if formatTimeBeforeTitle == True:
-          entry['DETAIL'] = at['caseTimeARange'] % entry + ' ' +  entry['TITLE'] + content
+          entry['DETAIL'] = casetimeARangeString % entry + ' ' +  entry['TITLE'] + content
         else:
-          entry['DETAIL'] = entry['TITLE'] + " " + at['caseTimeARange'] % entry  + content
+          entry['DETAIL'] = entry['TITLE'] + " " + casetimeARangeString  % entry  + content
       else:                                      #### all day event
+        entry['alldayevent'] = True
         if content != "":
           content = '\n' + content
         entry['DETAIL'] = entry['TITLE'] + content
@@ -1234,24 +1492,26 @@ def getGoogleCalendar(username,passwd,time_min):
       if db[recurrencekeys[i]]['formatTimeBeforeTitle'] == True:
         if content != "":
           content = '\n' + content
-        db[recurrencekeys[i]]['DETAIL'] =  at['caseTimeARange'] % db[recurrencekeys[i]] + ' ' +  db[recurrencekeys[i]]['TITLE'] + content
+        db[recurrencekeys[i]]['DETAIL'] =  casetimeARangeString % db[recurrencekeys[i]] + ' ' +  db[recurrencekeys[i]]['TITLE'] + content
       else:
-        db[recurrencekeys[i]]['DETAIL'] =  db[recurrencekeys[i]]['TITLE'] + ' ' + at['caseTimeARange'] % db[recurrencekeys[i]] + db[recurrencekeys[i]]['CONTENT']
+        db[recurrencekeys[i]]['DETAIL'] =  db[recurrencekeys[i]]['TITLE'] + ' ' + casetimeARangeString % db[recurrencekeys[i]] + db[recurrencekeys[i]]['CONTENT']
     else:             ### all day event
+      db[recurrencekeys[i]]['alldayevent'] = True
       if content != "":
         content = '\n' + content
       db[recurrencekeys[i]]['DETAIL'] = db[recurrencekeys[i]]['TITLE'] + content
     recurrencestring = ap[casename] % db[recurrencekeys[i]]
 
-    if recurrencestring[0] == '%':                                # this is a work around for printing the escaped the % char 
+    if recurrencestring[0] == '%':                                # this is a work around for printing the escaped % char 
       recurrencestring = '%' + recurrencestring
     if recurrencestring[:2] == '&%':
       recurrencestring = '&%' + recurrencestring[1:]
 
     db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring ) 
     db[recurrencekeys[i]]['timetuple_dtstart'] = Convertdtstart2timetuple(dtstart)
-
-  return db, gcal
+  
+  #sys.exit(0) #debug
+  return db, gcal, Canceled, Orphaned, feed
 
 def getKeystomodifyfromE(db1,db2):
   """ Returns some arrays of keys that are to be inserted into or deleted from Gcal.  Any edited entries are deleted and reinserted """
@@ -1335,9 +1595,87 @@ def convertTimetuple2GMT(tt):
   a = datetime.datetime(tt[0],tt[1],tt[2],tt[3],tt[4])
   a += datetime.timedelta(hours=globalvar_GMTOFFSET)
   return a.timetuple()
-  
-def InsertEntryIntoGcal(entry, gcal,dicFindTimeBeforeTitle ):
+
+
+
+
+def UpdateOrphansInGcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2ekeymap, feed):
   ## all non-recurring events must be entered in terms of GMT
+  dicFindTimeBeforeTitle = mapTimeBeforeTitles()
+      
+  for orphan in dicUpdateorphans.keys():
+    for event in feed.entry:
+      if event.id.text == orphan:
+        break
+  
+    entry = dbe[dicUpdateorphans[orphan]]
+    event.title = atom.Title(text=entry.get('TITLE'))
+    event.title.text = entry.get('TITLE')
+    event.content = atom.Content(text=entry.get('CONTENT'))
+    content = entry.get('CONTENT')
+    if content != None:
+      event.content.text = RemoveNewlinesSpacePadding(content) 
+  #    event.where.append(gdata.calendar.Where(value_string=event['WHERE']))             ### WHERE feature not yet supported
+    if 'recurrencestring' in entry:
+      event.recurrence = gdata.calendar.Recurrence(text=entry['recurrencestring'])
+    else:
+      event.recurrence = None
+      timetuple_dtstart = entry['timetuple_dtstart']
+      timetuple_dtstart = convertTimetuple2GMT(timetuple_dtstart)
+      timetuple_dtend = entry['timetuple_dtend']
+      timetuple_dtend = convertTimetuple2GMT(timetuple_dtend)
+      if entry['alldayevent'] == True:
+        start_time = time.strftime('%Y-%m-%d', timetuple_dtstart)
+        end_time = time.strftime('%Y-%m-%d', timetuple_dtend)
+      else:
+        start_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtstart)
+        end_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', timetuple_dtend)
+
+    event.when.append(gdata.calendar.When(start_time=start_time, end_time=end_time))
+
+
+###                                                                                   ### set extended_property additions here
+
+    entrykeys = entry.keys()
+    entrycase = entry.get('entrycase')
+    if 'caseMonthdayyear' == entrycase:                                                        # non recurring format: mm/dd/yyyy or Jul 4, 2009 format?
+      extendeddefaultformat = gdata.calendar.ExtendedProperty(name="nonrecurringformat", value="1")
+      event.extended_property.append(extendeddefaultformat)
+    elif 'caseMonthABBRdayyear' == entrycase or 'caseMonthABBRdayyearwspace' == entrycase:     # Jul  4, 2009 format?
+      extendeddefaultformat = gdata.calendar.ExtendedProperty(name="nonrecurringformat", value="0")
+      event.extended_property.append(extendeddefaultformat)
+  #  timebeforetitle = loadreftable("timeBeforeTitleMap")
+      casenames = [key for key in entry.keys() if key[:16] == 'casename-details']                # Time before title ?
+    if len(casenames) > 0:
+      casename = casenames[0]
+    if dicFindTimeBeforeTitle[casename] == "1":
+      extendedcase = gdata.calendar.ExtendedProperty(name="formatTimeBeforeTitle", value="1")
+      event.extended_property.append(extendedcase)
+    else:
+      extendedcase = gdata.calendar.ExtendedProperty(name="formatTimeBeforeTitle", value="0")
+      event.extended_property.append(extendedcase)
+
+    diaryentryvisibility = entry.get('VIS')
+    if diaryentryvisibility == '&':                                                           # entry visibility inhibiter?
+      extended = gdata.calendar.ExtendedProperty(name="VIS", value="&")
+      event.extended_property.append(extended)
+  
+    print "-- Updated recurring event instance in Gcal to:", dbe[dicUpdateorphans[orphan]].get('fullentry')
+    new_event = gcal.UpdateEvent(event.GetEditLink().href, event)
+    dbe[dicUpdateorphans[orphan]]['editlink'] = new_event.GetEditLink().href
+    del shelve[g2ekeymap[orphan]]
+    
+
+  return
+
+#def Flag_to_UpdateRecurrence_Entries_If_Change_In_Orphans(flagRecurrenceUpdate, addEinTermsofG, delfromE, dicUpdateorphans):
+#   flagRecurrenceUpdate:
+    
+#   return addEinTermsofG, delfromE
+
+def InsertEntryIntoGcal(entry, gcal,dicFindTimeBeforeTitle):
+  ## all non-recurring events must be entered in terms of GMT
+
   event = gdata.calendar.CalendarEventEntry()
   event.title = atom.Title(text=entry.get('TITLE'))
   event.title.text = entry.get('TITLE')
@@ -1384,9 +1722,10 @@ def InsertEntryIntoGcal(entry, gcal,dicFindTimeBeforeTitle ):
       event.extended_property.append(extendedcase)
 
   diaryentryvisibility = entry.get('VIS')
-  if diaryentryvisibility == '&':                                                           # entry visibility inhibiter?
+  if diaryentryvisibility == '&':                                                           # diary entry visibility inhibiter?
     extended = gdata.calendar.ExtendedProperty(name="VIS", value="&")
     event.extended_property.append(extended)
+
   new_event = gcal.InsertEvent(event, '/calendar/feeds/default/private/full')
   return new_event.id.text, new_event.GetEditLink().href
 
@@ -1406,15 +1745,7 @@ def DeleteEntriesFromE(shelve,delfromE):
       print "-- deleted from Diary: " + record.get('fullentry') 
       del shelve[key]
 
-def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeymap):
-  #eventids = [shelve[ekey]['eventid'] for ekey in delG]
-  #pdb.set_trace() #debug
-  #editlinks = [shelve[gkey]['editlink'] for gkey in eventids]
-  #for key in delfromdbg:
-  #  editlink = editlinksmap.get(key)
-  #  gcal.DeleteEvent(editlink)
-  #  pdb.set_trace()#debug
-  #  print "-- deleted from Gcal: " + dbg[key]['fullentry']
+def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeymap, DeleteOrphans):
  
   for key in delG:
     record = shelve.get(key)
@@ -1426,6 +1757,12 @@ def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeyma
           gcal.DeleteEvent(editlink)
           print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
           del shelve[key]
+
+  for key in DeleteOrphans:
+    editlink = editlinksmap.get(key)
+    gcal.DeleteEvent(editlink)
+    print "-- deleted recurring event instance from Gcal and Diary:" + dbg[key].get('fullentry')
+    del shelve[g2ekeymap[key]]
 
 
 
@@ -1512,14 +1849,13 @@ def CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal):
 
 
 def updateEditLinks(dbg,shelve):
-  dict = {}
-  dictype = type(dict)
+ 
   ekeyschangedinG = []
   gkeyschangedinG = []
   editlinksmap = {}
   g2ekeymap = {}
   for key in shelve.keys():
-    if type(shelve[key]) == dictype:
+    if type(shelve[key]) == DictionaryDefinedType:
       dbgrecord =  dbg.get(shelve[key]['eventid'])
       if dbgrecord != None:
         eventid = dbgrecord.get('eventid')
@@ -1530,12 +1866,10 @@ def updateEditLinks(dbg,shelve):
           
           ekeyschangedinG.append(key)
           gkeyschangedinG.append(shelve[key]['eventid'])
-          #erecord = shelve[key]
-          #erecord['editlink'] = editlinkg
-          #shelve[key] = erecord.copy()
+
 
   for key in dbg.keys():
-    if type(dbg[key]) == dictype:
+    if type(dbg[key]) == DictionaryDefinedType:
       editlinksmap[key] = dbg[key]['editlink']
 
  
@@ -1786,7 +2120,18 @@ rguments; if they are not, then they will be prompted upon execution."
 
   dbe, diaryheader = getEmacsDiary(emacsDiaryLocation, initialiseShelve)
 
-  dbg, gcal = getGoogleCalendar(gmailuser,gmailpasswd, lastsyncG) 
+  TimesTemplate = loadTemplate('times_template', Escape = False)
+  CasesTemplate = loadTemplate('cases_template', Escape = False)
+
+  dbg, gcal, Canceled, Orphaned, feed = getGoogleCalendar(gmailuser,gmailpasswd, lastsyncG, TimesTemplate['caseTimeARange'], CasesTemplate) 
+
+
+
+## Canceled must be taken out of shelve and E; if they exist there then they were once orphaned
+## Orphaned must be treated as normal entrys, except that they cannot be deleted if edits were made, but instead must be edited and have their eventStatus changed to Canceled
+## Any exceptional recurring event, meaning containing canceled or orphaned instances, may not be deleted if edits are made. When they're deleted all their orphans must be deleted too
+
+
 
   lastmodifiedG = dbg['updated-g']
   if lastmodifiedE > lastsyncE:
@@ -1797,31 +2142,48 @@ rguments; if they are not, then they will be prompted upon execution."
     GcalWasModified = True
   else:
     GcalWasModified = False
+
   ekeyschangedinG, gkeyschangedinG, g2ekeymap, editlinksmap = updateEditLinks(dbg,shelve)   # ekeyschangedinG are edited gcal entries, not newly added ones
+
+  dbg, flagRecurrenceUpdates = addressExceptions(dbg,shelve, g2ekeymap, Orphaned + Canceled, TimesTemplate['caseTimeARange'], CasesTemplate)   ## the term 'exception' refers to recurrence exceptions, and not error exceptions
+  
 
   identicalkeys, delfromG, addG = getKeystomodifyfromE(dbe,shelve) # identicalkeys are hashkeys that are the same in both the shelve and dbe, meaning the entries are unchanged by emacs diary
 
+ 
+
+  delfromG, addG, dicUpdateorphans, Deleteorphans, dbe = handleExceptions( ENTRY_CONTENTION, dbg, shelve, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap )
+
   identicalkeys, delfromG,delfromE, addG, delfromdbg, addEdit2E, ekeyschangedinG, gkeyschangedinG  = handleContentions(ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe, g2ekeymap)
+
   delfromE, addE, addEinTermsofG, alsoaddtheseNewlyAddedGkeystoE = getKeystomodifyfromG(dbg,delfromE, shelve,identicalkeys, lastsyncG)
   
   alsoaddtheseNewlyAddedGkeystoE = removekeys(alsoaddtheseNewlyAddedGkeystoE, delfromdbg)  
   alsoaddtheseNewlyAddedGkeystoE = appendtokeys(alsoaddtheseNewlyAddedGkeystoE, addEdit2E)    
-
+  addE = appendtokeys(addE, dicUpdateorphans.values())      ## if orphans are modified, their new value must be added to the shelve
+  
   delfromE = appendtokeys(delfromE,ekeyschangedinG)
   alsoaddtheseNewlyAddedGkeystoE = appendtokeys(alsoaddtheseNewlyAddedGkeystoE, gkeyschangedinG)
+
+  addEinTermsofG   = appendtokeys( addEinTermsofG, flagRecurrenceUpdates)   ## if more orphans appear, then we have to change the original recurrence entry to reflect the new dates to not display in the diary
+  delfromE  = appendtokeys( delfromE , [g2ekeymap.get(key) for key in flagRecurrenceUpdates])   ## if more orphans appear, then we have to change the original recurrence entry to reflect the new dates to not display in the diary
+
+  addEinTermsofG = appendtokeys(addEinTermsofG, alsoaddtheseNewlyAddedGkeystoE)
 
   if len(alsoaddtheseNewlyAddedGkeystoE) > 0 or len(ekeyschangedinG) > 0: #google calendar doesnt change its 'modified' date when an entry is edited, but it does change the editlink, so we check for that here
     GcalWasModified = True
 
-  if len(delfromE) > 0 or len(addG) > 0 or len(addE) > 0 or len(alsoaddtheseNewlyAddedGkeystoE) > 0 or len(delfromG) > 0 or len(ekeyschangedinG) > 0:
+  if len(delfromE) > 0 or len(addG) > 0 or len(addE) > 0 or len(alsoaddtheseNewlyAddedGkeystoE) > 0 or len(delfromG) > 0 or len(ekeyschangedinG) > 0 or initialiseShelve == True or len(dicUpdateorphans)>0 or len(Deleteorphans) > 0:
     DeleteEntriesFromE(shelve,delfromE)
-    DeleteEntriesFromGcal(delfromG,delfromdbg,dbg,gcal,shelve,editlinksmap, g2ekeymap)
+    DeleteEntriesFromGcal(delfromG,delfromdbg,dbg,gcal,shelve,editlinksmap, g2ekeymap, Deleteorphans )
+  
+    UpdateOrphansInGcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2ekeymap, feed)
     if DiaryWasModified:
       InsertEntriesIntoGcal(addG,dbe,gcal,shelve)
       InsertEntriesEditedbyDiarytoE(addE,dbe,shelve)
-    if GcalWasModified:
+    if GcalWasModified or len(flagRecurrenceUpdates)> 0:  
       InsertEntriesIntoE(addEinTermsofG, shelve, dbg)
-      InsertEntriesIntoE(alsoaddtheseNewlyAddedGkeystoE,shelve,dbg)  
+    #  InsertEntriesIntoE(alsoaddtheseNewlyAddedGkeystoE,shelve,dbg)  
     WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader)
   else:  
    print "-- No Changes"
