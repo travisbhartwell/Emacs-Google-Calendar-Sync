@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 67
+# emacs-google-calendarsync revision 70
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -342,7 +342,7 @@ newlinehere \\\n
 e2gcase_table = """caseMonthdayyear	caseMDY
 caseMonthABBRdayyear	caseMDY
 caseMonthABBRdayyearwspace	caseMDY
-caseRecDailyAstericks	caseRecDaily
+caseRecDailyAsterisk	caseRecDaily
 caseRecDailyAsterix	caseRecDaily
 caseRecDailyAsterixException	caseRecDailyException
 caseRecDaily	caseRecDaily
@@ -1458,9 +1458,10 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
     db[recurrencekeys[i]]['STYEAR'] = dtstart[0:4]
     db[recurrencekeys[i]]['STMONTH'] = dtstart[4:6]
     db[recurrencekeys[i]]['STDAY'] = dtstart[6:8]
-    db[recurrencekeys[i]]['STYEAR2'] = dtstart[0:4]
+    db[recurrencekeys[i]]['STYEAR2'] = dtstart[0:4]      ### note: every time you add an enumerated variable to the cases_template you must make an entry for it here
     db[recurrencekeys[i]]['STMONTH2'] = dtstart[4:6]
     db[recurrencekeys[i]]['STDAY2'] = dtstart[6:8]
+    db[recurrencekeys[i]]['STYEAR3'] = dtstart[0:4]
     dtend= recGetField('DTEND',recurrence)
     db[recurrencekeys[i]]['dtend'] = dtend
     db[recurrencekeys[i]]['ENDYEAR'] = dtend[0:4]
