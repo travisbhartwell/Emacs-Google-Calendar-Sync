@@ -4,11 +4,17 @@ INTRODUCTION
 
 Emacs, because of its stability, portability and extensibility of features, remains a popular editor in todays age. Arguably, there exists no other file editor with such quantity and quality of features, supporting both GUI and terminal modes. Its calendar feature is simple and can be read and modified quickly and easily. Moreover, with the proliferation of portable pdas and netbook devices, it becomes convenient to be able to schedule Google calendar events when an internet connection is temporarily not available.
 
+This script is written in python 2.5. It also requires the GData-2.0.0 library for python, which can be downloaded from http://code.google.com/p/gdata-python-client/
+
+If you don't have Emacs yet, it can be downloaded from http://www.gnu.org/prep/ftp.html. If you are a windows user (no disrespect), the windows version of emacs can be found in a subdirectory of the emacs repository entitled windows. Linux users probably want to use a package manager such as Synaptic, Apt, Aptitude, Portage, or yum to install emacs, if its not already included in the OS distribution.
+
+This script will work for older versions of Emacs also.
+
 DETAILS
 
 This python script requires the email and password of the google calendar, either passed as arguments to the script, or entered as raw_input. GMT offset and Local timezone information must be provided by editing the script and changing globalvar_GMTOFFSET and globalvar_TZID, respectively. The path to the emacs diary file may also be provided in the same manner.  If it is not, ~/diary will be used, unless that doesnt exist, in which case the diary location will be fetched out of the ~/.emacs file. 
 
-Also, this script requires the installation of the GData library for python. 
+In addition, this script requires the installation of the GData-2.0.0 library for python. 
 
 FUNCTIONAL DEFINITION
 
@@ -18,9 +24,15 @@ If, before running this script, the same calendar entry has been edited by both 
 
 In a similar manner, if before running this script, edits or deletions are made to instances of a recurring event, then the script will interactively prompt you as to your intention, whether to delete or edit.  Again, the -n option eliminates these user interactions as well.  However, only deletions can be made to instances of recurring events when the -n option is invoked.
 
-The -i, or --init, option initializes the emacs diary and populate it from the Google Calendar, also clearing the last synced data from the shelve file. It will cause no modification to the Google calendar
+COMMAND LINE OPTIONS
 
-The -r, or --readgoogleonly, option is similar to the -i option in that it will not modify the Google Calendar. It acts as a one way sync from the Google calendar to the Emacs diary. It will display --No Changes, if the Google calendar content was unchanged from the last sync.
+-i , --init : Initializes the emacs diary and populate it from the Google Calendar, also clearing the last synced data from the shelve file. It will cause no modification to the Google calendar
+
+-r , --readgoogleonly : It's similar to the -i option in that it will not modify the Google Calendar. It acts as a one way sync from the Google calendar to the Emacs diary. It will display --No Changes, if the Google calendar content was unchanged from the last sync. NOTE: its highly recommended that after running the script with the -r option, that you run with the -i option once before resuming normal 2 way syncing.
+
+-p , --promptcontention : User will be prompted to interactively resolve scheduling conflicts.
+
+-n , --nocontention : In the event of contending calendar entries, let them both exist in harmony. This option takes away all user interaction.
 
 Options must precede the user name and password, if they are passed as arguments to the script. e.g. emacs-google-calendarsync.py -r username password
 
