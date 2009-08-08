@@ -1,7 +1,7 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 70
+# emacs-google-calendarsync revision 71
 # written and maintained by CiscoRx@gmail.com
-# DISCLAIMER: if this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
+# DISCLAIMER: If this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
 globalvar_GMTOFFSET = 6                       # 6=central timezone
 globalvar_TZID = 'America/Chicago'            # Time zone
@@ -114,11 +114,11 @@ cases_template = """<caseRecDailyAsterix>
 
 
 <caseRecWeeklyInterval>      
-<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
+<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date))(car date)(car (nthcdr 2 date)))))))(and (= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyInterval>
 
 <caseRecWeeklyIntervalException>      
-<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date)) (car date) (car (nthcdr 2 date)))))))(and (not (or (diary-date <EXCEPTIONSTRING>)))(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
+<VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date))(car date)(car (nthcdr 2 date)))))))(and (not (or (diary-date <EXCEPTIONSTRING>)))(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyIntervalException>
 
 
@@ -387,6 +387,209 @@ caseRecYearlyInterval	caseRecYearlyInterval
 caseRecYearlyIntervalException	caseRecYearlyInterval
 """
 
+
+### recurrence event descriptions
+recurrence_event_descriptions_template = """
+<caseMonthdayyear>
+Single Day Event
+</caseMonthdayyear>
+
+<caseMonthABBRdayyear>
+Single Day Event
+</caseMonthABBRdayyear>
+
+<caseMonthABBRdayyearwspace>
+Single Day Event
+</caseMonthABBRdayyearwspace>
+
+<caseRecDailyAsterisk>
+Recurs Daily
+</caseRecDailyAsterisk>
+
+<caseRecDailyAsterix>
+Recurs Daily
+</caseRecDailyAsterix>
+
+<caseRecDailyAsterixException>
+Recurs Daily
+</caseRecDailyAsterixException>
+
+<caseRecDaily>
+Recurs Daily
+</caseRecDaily>
+
+<caseRecDailyException>
+Recurs Daily, With Exceptions
+</caseRecDailyException>
+
+<caseRecDailyBlock>
+Recurs Daily, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecDailyBlock>
+
+<caseRecDailyBlockException>
+Recurs Daily, With Exceptions, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecDailyBlockException>
+
+<caseRecDailyInterval>
+Recurs Every <INTERVAL> Days 
+</caseRecDailyInterval>
+
+<caseRecDailyIntervalException>
+Recurs Every <INTERVAL> Days, With Exceptions
+</caseRecDailyIntervalException>
+
+<caseRecDailyIntervalBlock>
+Recurs Every <INTERVAL> Days, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecDailyIntervalBlock>
+
+<caseRecDailyIntervalBlockException>
+Recurs Every <INTERVAL> Days, With Exceptions, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecDailyIntervalBlockException>
+
+<caseRecWeeklyWeekname>
+Recurs Every Week
+</caseRecWeeklyWeekname>
+
+<caseRecWeeklyAbbr>
+Recurs Every Week
+</caseRecWeeklyAbbr>
+
+<caseRecWeekly>
+Recurs <ONWHATDAYS> Every Week
+</caseRecWeekly>
+
+<caseRecWeeklyException>
+Recurs <ONWHATDAYS> Every Week, With Exceptions
+</caseRecWeeklyException>
+
+<caseRecWeeklyBlock>
+Recurs <ONWHATDAYS>Every Week, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecWeeklyBlock>
+
+<caseRecWeeklyBlockException>
+Recurs <ONWHATDAYS>Every Week, With Exceptions, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecWeeklyBlockException>
+
+<caseRecWeeklyInterval>
+Recurs <ONWHATDAYS>Every <INTERVAL> Weeks
+</caseRecWeeklyInterval>
+
+<caseRecWeeklyIntervalException>
+Recurs <ONWHATDAYS>Every <INTERVAL> Weeks, With Exceptions
+</caseRecWeeklyIntervalException>
+
+<caseRecWeeklyIntervalBlock>
+Recurs <ONWHATDAYS>Every <INTERVAL> Weeks, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecWeeklyIntervalBlock>
+
+<caseRecWeeklyIntervalBlockException>
+Recurs <ONWHATDAYS>Every <INTERVAL> Weeks, With Exceptions, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecWeeklyIntervalBlockException>
+
+<caseRecMonthly>
+Recurs Monthly
+</caseRecMonthly>
+
+<caseRecMonthlyException>
+Recurs Monthly, With Exceptions
+</caseRecMonthlyException>
+
+<caseRecMonthlyBlock>
+Recurs Monthly, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecMonthlyBlock>
+
+<caseRecMonthlyBlockException>
+Recurs Monthly, With Exceptions, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecMonthlyBlockException>
+
+<caseRecMonthlyInterval>
+Recurs Every <INTERVAL> Months
+</caseRecMonthlyInterval>
+
+<caseRecMonthlyIntervalException>
+Recurs Every <INTERVAL> Months, With Exceptions
+</caseRecMonthlyIntervalException>
+
+<caseRecMonthlyIntervalBlock>
+Recurs Every <INTERVAL> Months, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecMonthlyIntervalBlock>
+
+<caseRecMonthlyIntervalBlockException>
+Recurs Every <INTERVAL> Months, With Exceptions, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecMonthlyIntervalBlockException>
+
+<caseRecMonthlybydayofweek>
+Recurs on the <WHICHWEEKORDINAL> <DAYOFWEEKD> of Each Month
+</caseRecMonthlybydayofweek>
+
+<caseRecMonthlybydayofweekException>
+Recurs on the <WHICHWEEKORDINAL> <DAYOFWEEKD> of Each Month, With Exceptions
+</caseRecMonthlybydayofweekException>
+
+<caseRecMonthlybydayofweekBlock>
+Recurs on the <WHICHWEEKORDINAL> <DAYOFWEEKD> of Each Month, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecMonthlybydayofweekBlock>
+
+<caseRecMonthlybydayofweekBlockException>
+Recurs on the <WHICHWEEKORDINAL> <DAYOFWEEKD> of Each Month, With Exceptions, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecMonthlybydayofweekBlockException>
+
+<caseRecMonthlybydayofweekInterval>
+Recurs on the <WHICHWEEKORDINAL> <DAYOFWEEKD> of Every <INTERVALORDINAL> Month
+</caseRecMonthlybydayofweekInterval>
+
+<caseRecMonthlybydayofweekIntervalException>
+Recurs on the <WHICHWEEKORDINAL> <DAYOFWEEKD> of Every <INTERVALORDINAL> Month, With Exceptions
+</caseRecMonthlybydayofweekIntervalException>
+
+<caseRecMonthlybydayofweekIntervalBlock>
+Recurs on the <WHICHWEEKORDINAL> <DAYOFWEEKD> of Every <INTERVALORDINAL> Month, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecMonthlybydayofweekIntervalBlock>
+
+<caseRecMonthlybydayofweekIntervalBlockException>
+Recurs on the <WHICHWEEKORDINAL> <DAYOFWEEKD> of Every <INTERVALORDINAL> Month, With Exceptions, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTILMONTH>/<UNTILDAY>/<UNTILYEAR>
+</caseRecMonthlybydayofweekIntervalBlockException>
+
+<caseRecYearly>
+Recurs Yearly
+</caseRecYearly>
+
+<caseRecYearlyException>
+Recurs Yearly, With Exceptions
+</caseRecYearlyException>
+
+<caseRecYearlyABBRB>
+Recurs Yearly
+</caseRecYearlyABBRB>
+
+<caseRecYearlyModern>
+Recurs Yearly
+</caseRecYearlyModern>
+
+<caseRecYearlyInterval>
+Recurs Every <INTERVAL> Years
+</caseRecYearlyInterval>
+
+<caseRecYearlyIntervalException>
+Recurs Every <INTERVAL> Years, With Exceptions
+</caseRecYearlyIntervalException>
+"""
+
+recurrence_event_descriptions_template_mtch ="""STDAY (/d/d)
+DAYORDINAL (.+?)
+DAYOFWEEKD (.+?)
+WHICHWEEKD (.+?)
+ONWHATDAYS (.+?)
+INTERVALORDINAL (.+?)
+INTERVAL (.+?)
+STMONTH (\d?\d)
+STDAY (\d?\d)
+STYEAR (\d\d\d\d)
+UNTILMONTH (\d?\d)
+UNTILDAY (\d?\d)
+UNTILYEAR (\d{4})
+WHICHWEEKORDINAL (.+?)
+"""
 ### gcases_template describes the total number of ways that a recursion entry can be formatted in a google calendar feed.  
 ### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, the regexps of which are contained in gcases_template_mtch.  Lowercase fields are place holders for literal strings as described in the gcases_template_mtch template, and do not act as variables.
 ### Each formatting case is delimited in an XML like manner.  .  
@@ -809,7 +1012,7 @@ def e2gbyday(byday):
   daysofweek = ['SU','MO','TU','WE','TH','FR','SA']
   lines = byday.split(' ')
   for line in lines:
-       bydayg = bydayg + daysofweek[int(line)] + ','
+    bydayg = bydayg + daysofweek[int(line)] + ','
   bydayg = bydayg[:-1]
   return bydayg
 
@@ -1004,11 +1207,13 @@ def HandleLooseEmacsEnds(db):
       untildatetimestr = untildatetimestr.replace(':','')
       untildatetimestr = untildatetimestr.replace('-','')
       db[dbkey]['UNTILDATETIME']= untildatetimestr[:8]
+
     gcase = db[dbkey]['gcase']
                                                   ## write recurrence string from gcases_template 
     if len(gcase) > 7 and gcase[:7] == 'caseRec':
       recurrencestring = gcases_template[gcase] % db[dbkey]
       db[dbkey]['recurrencestring'] = recurrencestring
+      db[dbkey]['caseRec'] = gcase
     
 
     
@@ -1019,11 +1224,87 @@ def printcontents(db):
     print db[keys].get('CONTENT')
     print " "
 
+def getpreviousline(file, pos):
+  current = pos - 2
+  
+  while current>0:
+    current -= 1
+    if file[current]=='\n':
+      return file[current:pos-1], current
+  return file[:pos], 0
+
+def ordinalIntervaltowhichweek(ordint):
+
+  if len(ordint) == 0:
+    return
+  ordint = ordint.lower()
+  interval = "".join([char for i, char in zip(xrange(len(ordint)),ordint) if char.isdigit()])
+  if interval != "":
+    return interval
+  weeksofmonth = { "last"           :"-1",
+                   "second to last" :"-2",
+                   "third to last"  :"-3",
+                   "fourth to last" :"-4",
+                   "first"          :"1",
+                   "second"         :"2",
+                   "third"          :"3",
+                   "fourth"         :"4",
+                   "fifth"          :"5",
+                   "other"          :"2",}
+  return weeksofmonth.setdefault('ordint','')
+
+  
+def copyDescriptiontodbrecord(dbrecord, desc):
+  return dbrecord  ### debug
+
+                   
+  desckeys = desc.keys()
+  if 'STDAY' in desckeys and 'STMONTH' in desckeys and 'STYEAR' in desckeys:
+    stday = desc.get('STDAY')
+    stmonth = desc.get('STMONTH')
+    styear = desc.get('STYEAR')
+    if stday != "" and stmonth != "" and styear != "":
+      dbrecord['STDAY'] = stday.zfill(2)
+      dbrecord['STMONTH'] = stmonth.zfill(2)
+      dbrecord['STYEAR'] = styear.zfill(2)
+  if 'UNTILDAY' in desckeys and 'UNTILMONTH' in desckeys and 'UNTILYEAR' in desckeys:
+    stday = desc.get('UNTILDAY')
+    stmonth = desc.get('UNTILMONTH')
+    styear = desc.get('UNTILYEAR')
+    if stday != "" and stmonth != "" and styear != "":
+      dbrecord['UNTILDAY'] = stday.zfill(2)
+      dbrecord['UNTILMONTH'] = stmonth.zfill(2)
+      dbrecord['UNTILYEAR'] = styear.zfill(2)
+  if 'INTERVALORDINAL' in desckeys:
+    intervalordinal = desc.get('INTERVALORDINAL')
+  if 'ONWHATDAYS' in desckeys:
+    daysofweek = { 'su': '0',
+                   'mo': '1',
+                   'tu': '2',
+                   'we': '3',
+                   'th': '4',
+                   'fr': '5',
+                   'sa': '6',}
+    byday = []
+    onwhatdays = desc.get('ONWHATDAYS').lower()
+    onwhatdays = onwhatdays.replace(',','')
+    onwhatdays = onwhatdays.replace(' and','')
+    for day in onwhatdays:
+      byday.append(daysofweek.setdefault(day[:2],""))
+    #dbrecord['BYDAY'] = " ".join(byday)  #debug
+    
+  return dbrecord
+
+    
 def getEmacsDiary(emacsDiaryLocation, initialiseShelve):
   db={}
+
   ap = loadTemplate('cases_template')
- 
   pat,sp = EvaluateTemplates(ap, 'cases_template_mtch')
+
+  descTemplate = loadTemplate('recurrence_event_descriptions_template')
+  descpat, descarray = EvaluateTemplates(descTemplate, 'recurrence_event_descriptions_template_mtch')
+
   f=open(emacsDiaryLocation, "r") 
   file=f.read()
   f.close()
@@ -1051,16 +1332,24 @@ def getEmacsDiary(emacsDiaryLocation, initialiseShelve):
       fullentry = StripExtraNewLines(file[mo.start(0):mo.end(0)]  )
       entry['fullentry'] = fullentry
       if fullentry.find(globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:  ## this is for a future feature
-        entrypid = str(hash(fullentry))
-        keys.append(entrypid)
         details.append(entry['DETAIL'])
-        entry['entrypid'] = entrypid
         entry['entrycase'] = idxCase
         entry['gcase'] = e2gcase_table[idxCase]
+        previousline, previouslinestartpos =  getpreviousline(file,mo.start(0))
+        previouslinemo = descpat[idxCase].search(previousline)
+        if previouslinemo != None:
+          descentry = {}
+          descentry = previouslinemo.groupdict()
+          matchstartpos = previouslinestartpos
+          #modifiedentry = copyDescriptiontodbrecord(entry, descentry)
+          #entry = modifiedentry.copy()
+        else:
+          matchstartpos = mo.start(0)
+        entrypid = str(hash(fullentry))
+        keys.append(entrypid)
+        entry['entrypid'] = entrypid
         db[entrypid] = entry
-        #print entry #debug
-        #sys.exit(0) #debug
-      file = file[:mo.start(0)] + file[mo.end(0):]
+      file = file[:matchstartpos] + file[mo.end(0):]
       mo= pat[idxCase].search(file)
   updateDetails(db, details, keys)
   HandleLooseEmacsEnds(db)
@@ -1311,7 +1600,71 @@ def handleExceptions( readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2
           
   return delfromG, addG, dicUpdateorphans, Deleteorphans, dbe
 
+def ordinalsuffix(day):
+  day = int(day)
+  if 4 <= day <= 20 or 24 <= day <= 30:
+    suffix = "th"
+  else:
+    suffix = ["st", "nd", "rd"][day % 10 - 1]
+  return str(day) + suffix
 
+def addRecurrenceDescriptions(dbg, dbe):
+  daysofweek =  ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+  weeksofmonth = { "-1":"Last",
+                   "-2":"Second to Last",
+                   "-3":"Third to Last",
+                   "-4":"Fourth to Last",
+                   "0":"Second to Last",
+                   "1":"First",
+                   "2":"Second",
+                   "3":"Third",
+                   "4":"Fourth",
+                   "5":"Fifth",}
+  
+
+  dbnames = ['dbg','dbe']
+  db = dbg
+  caseTemplate = loadTemplate('recurrence_event_descriptions_template', Escape=False)
+
+  for dbname in dbnames:
+    db = locals()[dbname]
+
+    dbkeys = [key for key in db.keys() if type(db[key]) == DictionaryDefinedType and 'caseRec' in db[key].keys()]  ## get only recurrence records
+    for key in dbkeys:
+      record = db.get(key)
+      recordkeys = record.keys()
+      caseRec = record.get('caseRec')
+
+      if caseRec.find('bydayofweek') != -1:
+        record['WHICHWEEKORDINAL'] = weeksofmonth[record.get('WHICHWEEK')]
+        record['DAYORDINAL'] = ordinalsuffix(record['NUMDAYOFWEEK'])
+        record['DAYOFWEEKD'] = daysofweek[int(record.get('NUMDAYOFWEEK'))]
+      if caseRec.find('Weekly') != -1:
+        bydayarray = record.setdefault('BYDAY','')
+        if  bydayarray != "":
+          bydayarray = [ daysofweek[int(kz)] for kz in bydayarray.split(" ")]
+          if len(bydayarray) > 2:
+            byday = ", ".join(bydayarray[:-1]) 
+            byday = byday + " and " + bydayarray[-1] + " "
+          elif len(bydayarray) == 2:
+            byday = " and ".join(bydayarray) + " "
+          elif len(bydayarray) == 1:
+            byday = " ".join(bydayarray) + " "
+          else:
+            byday = ""
+          record['ONWHATDAYS'] =  byday
+        else:
+          record['ONWHATDAYS'] = ''
+      if caseRec.find('Interval') != -1:
+        interval = record['INTERVAL']
+        intervalordinal = ordinalsuffix(interval)
+        if intervalordinal == "2nd":
+          intervalordinal = "Other"
+        record['INTERVALORDINAL'] = intervalordinal
+      record['recurrencedesc'] = "\n" + caseTemplate[caseRec] % record +"\n"
+      db[key] = record.copy()
+
+  return dbg, dbe
 
 def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
   Canceled = []
@@ -1861,7 +2214,7 @@ def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader):
   if diaryheader != "":
     f.write(diaryheader + '\n')
   for row in index: 
-    f.write(shelve[row[1]].get('fullentry') + '\n')  
+    f.write(shelve[row[1]].setdefault('recurrencedesc','') + shelve[row[1]].get('fullentry') + '\n')  
   f.close()
 
 def CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal):
@@ -2182,9 +2535,10 @@ rguments; if they are not, then they will be prompted upon execution."
 
   ekeyschangedinG, gkeyschangedinG, g2ekeymap, editlinksmap = updateEditLinks(dbg,shelve)   # ekeyschangedinG are edited gcal entries, not newly added ones
 
-  dbg, flagRecurrenceUpdates = addressExceptions(dbg,shelve, g2ekeymap, Orphaned + Canceled, TimesTemplate['caseTimeARange'], CasesTemplate)   ## the term 'exception' refers to recurrence exceptions, and not error exceptions
+  dbg, flagRecurrenceUpdates = addressExceptions(dbg,shelve, g2ekeymap, Orphaned + Canceled, TimesTemplate['caseTimeARange'], CasesTemplate)   ## change the casename of recurrence events that contain exceptions and add the exceptions to their EXCEPTIONSTRING.  note: the term 'exception', throughout the scope of this script, refers to recurrence exceptions, and not error exceptions
   
-
+  dbg, dbe = addRecurrenceDescriptions(dbg, dbe)
+  
   identicalkeys, delfromG, addG = getKeystomodifyfromE(dbe,shelve) # identicalkeys are hashkeys that are the same in both the shelve and dbe, meaning the entries are unchanged by emacs diary
 
  
