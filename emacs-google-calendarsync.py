@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 72
+# emacs-google-calendarsync revision 73
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: If this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -27,6 +27,7 @@ globalvar_READ_FROM_GOOGLE_ONLY = False       # True/False: True = no modificati
 
 globalvar_CHANGING_RECURRING_EVENT_DESCRIPTIONS_EDITS_THE_ENTRY = False    # True/False:  True = If the descriptions, that represent recurring event parameters, which are written above each recurrence entry in the diary file, have values that have been altered from editing the diary file, such as a changed UNTIL date or INTERVAL values, then their respective event entries are also changed as such.  False = Recurring event descriptions become read-only and modifying them will have no effect on the diary entry.
 
+globalvar_DISPLAY_COMMENTS = True            # True/False: True = Include comments taken from Google Calendar to each diary entry   False = No comments
 try:
   from xml.etree import ElementTree
 except ImportError:
@@ -821,6 +822,20 @@ def PadNewlinesWithSpace(source):
       target.append(' ' + line + '\n')
   return ''.join(target)
 
+def PadNewlinesWithNSpaces(source, N):
+  """ This function is used on the CONTENT field so that when written to the emacs diary, multiple lines of description can be recognized as pertaining to a single respective event.  """
+  lines = source.split('\n')
+  if len(lines) < 2:
+    return source
+  alllinesbutfirst = lines[1:]
+  target = []
+  target.append(lines[0] + '\n')
+  for line in alllinesbutfirst:
+    if len(line) > 0 and line[0] != ' ':
+      target.append(''.zfill(N).replace('0',' ') + line + '\n')
+  return ''.join(target)
+
+
 def PadAllNewlinesWithSpace(source):
   """ This function is used on CONTENT of parsed gcal entry.  """
   lines = source.split('\n')
@@ -872,13 +887,6 @@ def escstring(string):
       str.append('&')
     str.append(string[i])
 
-#  if string[0]=='&':
-#    str.insert(0,'&')
-#    str[1]='?'
-#  elif string[1]=='&':
-#    str.insert(1,'&')
-#    str[2]='?'
-  
   target=''.join(str)
   return target 
 
@@ -892,7 +900,7 @@ def rmwhtspc(sTarget):
  
 def loadMtchvars(filename): 
   """The _mtch file must end in a new line.  Uppercase entries are recognized as variable names for pattern patching.  Lowercase entries are not recognized as matching variables, and their values are substituted in verbatim.  Any variable appearing more than once in an entry must have a 1 digit ordinal number appende to the variable name, incremented for each occurrence"""
-  filecontent = globals()[locals()['filename']]        ## this coding convention is frowned upon but i dont care
+  filecontent = globals()[locals()['filename']]       
 
   ff= filecontent.splitlines(True)
   key = ''
@@ -912,7 +920,7 @@ def loadMtchvars(filename):
 
 def loadreftable(filename):
   """ loads simple one level dictionary from a file. The file must be tab separated and end in a new line.  There cannot be more than 1 newline at the end of the file or an error will result"""
-  filecontent = globals()[locals()['filename']]        ## this coding convention is frowned upon but i dont care
+  filecontent = globals()[locals()['filename']]       
 
   ff = filecontent.splitlines(True)
   key = ''
@@ -931,7 +939,7 @@ def loadTemplate(filename, Escape = True):
   """all whitespace thats longer than a single space is removed from template.  If whitespace is needed to be represented in a pattern, create a tag for it in lowercase letters, and create an entry in the _mtch file indicating what to sub in verbatim.
      note: the ^ may only be used in template to indicate beginning of string.  The EvaluateTemplate() function is used to create matching patterns using loadTemplates return value as an argument. 
     """
-  filecontent = globals()[locals()['filename']]        ## this coding convention is frowned upon but i dont care
+  filecontent = globals()[locals()['filename']]       
 
   test = filecontent.splitlines(True)
   test = stripallarray(test)
@@ -962,6 +970,7 @@ def EvaluateTemplates(atTemplate, matchvarfilename):
   dicEvaluatedTemplatesArray = {}
   stringpatterns = []
   for i in atTemplate.keys():
+    #pdb.set_trace() #debug
     p0 = atTemplate[i]%dicTypes
     stringpatterns.append(p0)
     dicEvaluatedTemplatesArray[i] = (re.compile(p0,re.M | re.S))
@@ -1104,6 +1113,14 @@ def sCurrentDatetime():
   nowstr = nowdatetime.isoformat()
   nowstr = striptime(nowstr)
   return nowstr
+
+def ISOtoORGtime( isotime):
+  """ taking account for GMT """
+  isodate = datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:5]) - datetime.timedelta(hours = globalvar_GMTOFFSET)
+  return isodate.strftime('[%Y-%m-%d %H:%M:%S]')
+  
+  #return datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:5]).strftime('[%Y-%m-%d %H:%M:%S]')
+
 
 def sdeltaDatetime(offsetdays):
   return datetime.datetime.now() + datetime.timedelta(offsetdays)
@@ -1347,8 +1364,48 @@ def copyDescriptiontodbrecord(dbrecord, desc, caseTemplate):
 
   return dbrecord, modified
 
+def strip_comments(fullentry):
+  pos = fullentry.find(' * EGCSync')
+  if pos == -1:
+    return fullentry, None
+  else:
+    return fullentry[:pos-1], fullentry[pos:]
+
+def parseCommentOwner(login, comments_text):
+  pos = comments_text.find(':email: ' + login)
+  pos = comments_text.find(':content:', pos)
+  pos2 = comments_text.find(':name:',pos)
+  return comments_text[pos:pos2]
+
+def parsedates(file):
+  dates = []
+  entry_start = []
+  date_end = []
+  entry_end = []
+  file = '\n' + file
+  found_date = False
+  found_entry_end = False
+  for i in xrange(1,len(file)):
+    c = file[i]
+    lastc = file[i-1]
+    if lastc == '\n' and found_date == True and found_date_end == False:
+      date_end.append(i)
+      dates.append(file[entry_start[len(entry_start)-1]:i])
+      found_date_end = True
+    if c != '\n' and lastc == '\n' and found_date == False:
+      entry_start.append(i)
+      found_date = True
+      found_entry_end = False
+      found_date_end = False
+    elif c != ' ' and lastc == '\n' and found_date == True:
+      entry_end.append(i)
+      found_date = False
+      found_entry_end = True
+  return dates, entry_start, date_end, entry_end  
     
-def getEmacsDiary(emacsDiaryLocation, initialiseShelve, TimesARangeTemplate, printingCase, shelve):
+
+  
+def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTemplate, printingCase, shelve):
   db={}
   ap = loadTemplate('cases_template')
 
@@ -1381,8 +1438,15 @@ def getEmacsDiary(emacsDiaryLocation, initialiseShelve, TimesARangeTemplate, pri
     while mo != None:
       entry = {}
       entry = mo.groupdict()
-      fullentry = StripExtraNewLines(file[mo.start(0):mo.end(0)]  )
+
+      fullentry = StripExtraNewLines(file[mo.start(0):mo.end(0)])
+      fullentry, comments_text = strip_comments(fullentry)
+      entry['DETAIL'], comments_text = strip_comments(entry.get('DETAIL'))
       entry['fullentry'] = fullentry
+      if comments_text != None:
+        entry['comments_text'] = comments_text
+        entry['comment_owner'] = parseCommentOwner(login, comments_text)
+
       if fullentry.find(globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:  ## this is for a future feature
         details.append(entry['DETAIL'])
         entry['entrycase'] = idxCase
@@ -1418,6 +1482,7 @@ def getEmacsDiary(emacsDiaryLocation, initialiseShelve, TimesARangeTemplate, pri
     unrecognized_diary_entries = ""
 
   return db, diaryheader, unrecognized_diary_entries
+   
    
 
 def recGetFieldTZID( recurrence):
@@ -1670,7 +1735,8 @@ def ordinalsuffix(day):
   return str(day) + suffix
 
 def addRecurrenceDescriptions(dbg, dbe):
-  daysofweek =  ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+  """ called from main() to add descriptions to dbe """
+  daysofweek =  ['Sundays','Mondays','Tuesdays','Wednesdays','Thursdays','Fridays','Saturdays']
   weeksofmonth = { "-1":"Last",
                    "-2":"Second to Last",
                    "-3":"Third to Last",
@@ -1710,10 +1776,10 @@ def addRecurrenceDescriptions(dbg, dbe):
           elif len(bydayarray) == 2:
             byday = " and ".join(bydayarray) + " "
           elif len(bydayarray) == 1:
-            byday = " " + " ".join(bydayarray) + " "
+            byday = " ".join(bydayarray) + " "
           else:
             byday = ""
-          record['ONWHATDAYS'] =  byday
+          record['ONWHATDAYS'] =  ' ' + byday
         else:
           record['ONWHATDAYS'] = ''
       if caseRec.find('Interval') != -1:
@@ -1726,6 +1792,16 @@ def addRecurrenceDescriptions(dbg, dbe):
       db[key] = record.copy()
 
   return dbg, dbe
+
+def get_commenthref(commentobj):
+  if commentobj == None:
+    return ""
+  commenthref = str(commentobj)
+  start = commenthref.find('href')
+  start += 6
+  end = commenthref.find('/>',start)
+  end -= 2
+  return commenthref[start:end]
 
 def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
   Canceled = []
@@ -1742,7 +1818,7 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
   gcal.ProgrammaticLogin()
 
   query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full')
-  commentquery = gdata.calendar.service.CalendarEventCommentQuery()
+  #commentquery = gdata.calendar.service.CalendarEventCommentQuery()
 
   #query.start_min = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time_min)
   #start_min = sdeltaDatetime(-globalvar_DELETE_OLD_ENTRIES_OFFSET)
@@ -1758,7 +1834,7 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
   for i, an_event in zip(xrange(len(feed.entry)), feed.entry):
     #print feed  #debug
     entrypid = an_event.id.text
-    eventStatus = get_eventStatus(an_event)  ### It would be nice if eventStatus was actually a visible property but its not:P (oops need to use event_status property)
+    eventStatus = get_eventStatus(an_event)  ### It would be nice if eventStatus was actually a visible property but its not:P (oops need to use event_status property, but thats ok since we must also identify orphaned entries)
     if eventStatus == "canceled":                                      # if event is part of a recurring event but was deleted as an instance the recurring event, then discard it
       Canceled.append(entrypid)
       continue
@@ -1767,18 +1843,45 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
     #pdb.set_trace() #debug
     #sys.exit(0) # debug       
     entry={}
-    commentobj = an_event.comments
-    commentquery = gdata.calendar.service.CalendarEventCommentQuery(commentobj)
+    #commentobj = an_event.comments
+    #commenthref = get_commenthref(commentobj)
+    #commentquery = gdata.calendar.service.CalendarEventCommentQuery(commentobj)
+    #commentquery = gdata.calendar.service.CalendarQuery(commentobj)
+    #commentquery.start_max = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime(time.time() + 28800000))
+    #commentquery.ctz = globalvar_TZID
+    #commentquery.max_results = 400
     #print commentobj
-    try:
-      commentfeed = gcal.CalendarQuery(commentquery)
+    if globalvar_DISPLAY_COMMENTS == True and an_event.comments != None:
+#      commentfeed = gcal.CalendarQuery(commentquery)
+      #pdb.set_trace()
+      newcomment = gdata.calendar.CalendarEventCommentEntry()
+      commentobj = an_event.comments
+      commenthref = get_commenthref(commentobj)
+      commentfeed = gcal.Query(commenthref)   ## cant get the CalendarEventCommentQuery to work so using this instead
       commententry = commentfeed.entry
-      #for comment in commententry:
-      #  print comment.author[0].email.text
-      #  print comment.content.text
-      #  print comment.updated.text
-    except:
-      pass
+      comments = []
+      comment_title = commentfeed.title.text
+
+      for comment in commententry:
+        comment_entry = {}
+        comment_entry['comment_entry'] = comment
+        comment_entry['author'] = comment.author[0]
+        comment_entry['email'] =  comment.author[0].email.text
+        comment_entry['name'] =  comment.author[0].name.text
+        comment_entry['content'] = comment.content.text
+        comment_entry['published'] = comment.published.text
+        comment_entry['updated'] = comment.updated.text
+        comment_entry['id'] = comment.id.text
+        if len(comment.link) > 1:
+          comment_entry['editlink'] = comment.link[1].href
+          comments.append(comment_entry)
+        email_id = comment_entry.get('email')
+        email_id = email_id.split('@')[0]
+        if email_id == username:
+          entry['comment_owner_editlink'] = comment_entry.get('editlink')
+          entry['comment_owner_entry'] = comment
+      entry['comment_title'] = comment_title
+      entry['comment_entries'] = comments
     entry['HYPHEN'] = ' - '
     entry['eventid'] = entrypid
     entry['where'] = blankforNoneType(an_event.where[0].text)
@@ -2291,7 +2394,21 @@ def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader,unrecognized_diary_e
   if diaryheader != "":
     f.write(diaryheader + '\n')
   for row in index: 
-    f.write(shelve[row[1]].setdefault('recurrencedesc','') + shelve[row[1]].get('fullentry') + '\n')  
+    f.write(shelve[row[1]].setdefault('recurrencedesc','') + shelve[row[1]].get('fullentry') + '\n')
+    if 'comment_entries' in shelve[row[1]] and len(shelve[row[1]].get('comment_entries')) > 0:
+      f.write(' * EGCSync ' + shelve[row[1]].get('comment_title') + '\n')
+      for commententry in shelve[row[1]].get('comment_entries'):
+        f.write(' ** ' + commententry.get('name') + "'s comments\n")
+        f.write('  :PROPERTIES:\n')
+        f.write('  :content: ' + PadNewlinesWithNSpaces(commententry.get('content'),4) + '\n')
+        f.write('  :name: ' + commententry.get('name') + '\n')
+        f.write('  :email: ' + commententry.get('email') + '\n')
+        f.write('  :published: ' + ISOtoORGtime(commententry.get('published')) + '\n')
+        f.write('  :updated:   ' + ISOtoORGtime(commententry.get('updated')) + '\n')
+
+
+      
+        
   f.close()
 
 def CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal):
@@ -2309,7 +2426,21 @@ def CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal):
   del gcal
   shelve.close()
 
-
+def UpdateCommentstoGcal(identicalkeys,dbe, dbg, shelve, gcal):
+  return  ## debug
+  commentkeys = [shelve.get('event_id') for key in identicalkeys if shelve[key].get('comment_owner') != dbe[key].get('comment_owner')]
+  for key in commentkeys:
+    comment_editlink = dbg[key].get('comment_owner_editlink')
+    #gcal.UpdateEvent(event.GetEditLink().href, event)
+    #pdb.set_trace() #debug
+    comment_entry = dbg[key].get('comment_owner_entry')
+    #author = gdata.atom.Author()
+    #author.name = comment_entry.get('name')
+    #newcomment = gdata.calendar.CalendarEventCommentEntry()
+    #newcomment.author
+    print "updated comment: ", comment_entry.content.text , " to " , dbe[key].get('comment_owner')
+    comment_entry.content.text = dbe[key].get('comment_owner')
+    gcal.UpdateEvent(comment_editlink, comment_entry)
 
 def updateEditLinks(dbg,shelve):
  
@@ -2588,7 +2719,7 @@ rguments; if they are not, then they will be prompted upon execution."
   TimesTemplate = loadTemplate('times_template', Escape = False)
   CasesTemplate = loadTemplate('cases_template', Escape = False)
 
-  dbe, diaryheader, unrecognized_diary_entries = getEmacsDiary(emacsDiaryLocation, initialiseShelve,TimesTemplate['caseTimeARange'], CasesTemplate, shelve )
+  dbe, diaryheader, unrecognized_diary_entries = getEmacsDiary(gmailuser, emacsDiaryLocation, initialiseShelve,TimesTemplate['caseTimeARange'], CasesTemplate, shelve )
 
 
 
@@ -2642,6 +2773,9 @@ rguments; if they are not, then they will be prompted upon execution."
 
   if len(alsoaddtheseNewlyAddedGkeystoE) > 0 or len(ekeyschangedinG) > 0: #google calendar doesnt change its 'modified' date when an entry is edited, but it does change the editlink, so we check for that here
     GcalWasModified = True
+
+  if readFromGoogleOnly == False:
+    UpdateCommentstoGcal(identicalkeys, dbe,dbg, shelve, gcal)
 
   if len(delfromE) > 0 or len(addG) > 0 or len(addE) > 0 or len(alsoaddtheseNewlyAddedGkeystoE) > 0 or len(delfromG) > 0 or len(ekeyschangedinG) > 0 or initialiseShelve == True or len(dicUpdateorphans)>0 or len(Deleteorphans) > 0:
     DeleteEntriesFromE(shelve,delfromE)
