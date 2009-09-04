@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 73
+# emacs-google-calendarsync revision 74
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: If this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -270,7 +270,7 @@ EXCEPTIONSTRING ([\ddiary\-ent\(\)' ]*?)
 WHICHWEEK (-?[0-3])
 STYEAR (\d?\d?\d\d)
 STMONTH ([01]?\d)
-STMONTHABBR (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec)
+STMONTHABBR ([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ept|[Oo]ct|[Nn]ov|[Dd]ec)
 ENDDAY ([0-3]?\d)
 ENDMONTH ([01]?\d)
 ENDYEAR (20[0-3]\d)
@@ -286,9 +286,9 @@ SOMEZING (.{4})
 SOMEZING2 (.{4})
 INTERVAL (\d+)
 NUMDAYOFWEEK ([0-6])
-DAYOFWEEK (Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)
-DAYOFWEEKABBR (Sun|Mon|Tue|Wed|Thu|Fri|Sat)
-MONTHABBR (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)
+DAYOFWEEK ([Ss]unday|[Mm]onday|[Tt]uesday|[Ww]ednesday|[Tt]hursday|[Ff]riday|[Ss]aturday)
+DAYOFWEEKABBR ([Ss]un|[Mm]on|[Tt]ue|[Ww]ed|[Tt]hu|[Ff]ri|[Ss]at)
+MONTHABBR ([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)
 STDAYNOTFOLLOWEDBYCOMMA ([0-3]?\d)(?!,)
 notfollowedbycomma (?!,) 
 VIS (&?)
@@ -823,7 +823,7 @@ def PadNewlinesWithSpace(source):
   return ''.join(target)
 
 def PadNewlinesWithNSpaces(source, N):
-  """ This function is used on the CONTENT field so that when written to the emacs diary, multiple lines of description can be recognized as pertaining to a single respective event.  """
+  """ This function is used on the CONTENT field so that when written to the emacs diary, multiple lines of description can be recognized as pertaining to a single respective event. N signifies margin space """
   lines = source.split('\n')
   if len(lines) < 2:
     return source
@@ -1034,7 +1034,7 @@ def getTimeRanges(db, keys):
   return timeranges 
 
 def updateDetails(db, details, keys): 
-  """ called from getEmacsDiary() """
+  """  """
   tDetails = loadTemplate('detail_template')
   patDetails, sd = EvaluateTemplates(tDetails, 'detail_template_mtch') 
   dbTmp = parseList2db(patDetails, details, keys)
@@ -1117,7 +1117,7 @@ def sCurrentDatetime():
 def ISOtoORGtime( isotime):
   """ taking account for GMT """
   isodate = datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:5]) - datetime.timedelta(hours = globalvar_GMTOFFSET)
-  return isodate.strftime('[%Y-%m-%d %H:%M:%S]')
+  return isodate.strftime('[%Y-%m-%d %a %H:%M:%S]')
   
   #return datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:5]).strftime('[%Y-%m-%d %H:%M:%S]')
 
@@ -1282,11 +1282,10 @@ def printcontents(db):
 
 def getpreviousline(file, pos):
   current = pos - 2
-  
   while current>0:
     current -= 1
     if file[current]=='\n':
-      return file[current+1:pos-1], current +1
+      return file[current+1:pos-1] + '\n\nend', current +1
   return file[:pos], 0
 
 def ordinalIntervaltonum(ordint):
@@ -1379,32 +1378,40 @@ def parseCommentOwner(login, comments_text):
 
 def parsedates(file):
   dates = []
+  entries = []
   entry_start = []
   date_end = []
   entry_end = []
   file = '\n' + file
   found_date = False
   found_entry_end = False
+  #pdb.set_trace() #debug
   for i in xrange(1,len(file)):
     c = file[i]
     lastc = file[i-1]
-    if lastc == '\n' and found_date == True and found_date_end == False:
-      date_end.append(i)
-      dates.append(file[entry_start[len(entry_start)-1]:i])
-      found_date_end = True
-    if c != '\n' and lastc == '\n' and found_date == False:
-      entry_start.append(i)
-      found_date = True
-      found_entry_end = False
-      found_date_end = False
-    elif c != ' ' and lastc == '\n' and found_date == True:
-      entry_end.append(i)
-      found_date = False
-      found_entry_end = True
-  return dates, entry_start, date_end, entry_end  
+    #print c
+    if lastc == '\n':
+      if  found_date == True and found_date_end == False:
+        date_end.append(i)
+        dates.append(file[entry_start[len(entry_start)-1]:i] + '\nend')  ## re.search will fail unless there is text after the newline, i.e. '\nend'
+        found_date_end = True
+
+      if c != ' '  and found_date == True:
+        entry_end.append(i-1)
+        entries.append(file[entry_start[len(entry_start)-1]:i] + '\nend')
+        found_date = False
+        found_entry_end = True
+      if c != '\n' and c != ' ' and found_date == False:
+        entry_start.append(i-1)
+        found_date = True
+        found_entry_end = False
+        found_date_end = False
+
+  if len(entry_start) > len(entry_end):
+    entry_start.pop()
+  return dates, entries, entry_start, date_end, entry_end  
     
 
-  
 def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTemplate, printingCase, shelve):
   db={}
   ap = loadTemplate('cases_template')
@@ -1419,6 +1426,7 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
   f.close()
   keys = []
   details = []
+  deletefromfile = []
   diaryheader = ""
   lookforheaders = True
   file = file + "\nend"            ## need this or last entry wont be read
@@ -1431,60 +1439,77 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
       lookforheaders = False
   if initialiseShelve == True:
     return db, diaryheader, ""                ## unrecognized_entries is "", the last return value
-  #pdb.set_trace() ##debug
+  
   e2gcase_table = loadreftable('e2gcase_table')
-  for idxCase in pat.keys():
-    mo =  pat[idxCase].search(file)
-    while mo != None:
-      entry = {}
-      entry = mo.groupdict()
+  datefields, entries, entry_start, date_end, entry_end = parsedates(file)
+  for idxDiary in xrange(len(datefields)):
+    for idxCase in pat.keys():
+      mo =  pat[idxCase].search(datefields[idxDiary])
+      if mo != None:
+        entry_start_pos = entry_start[idxDiary]
+        entry_end_pos = entry_end[idxDiary]
+        mo = pat[idxCase].search(entries[idxDiary])
+        entry = {}
+        entry = mo.groupdict()
+        fullentry = StripExtraNewLines(file[entry_start_pos:entry_end_pos])
+        fullentry, comments_text = strip_comments(fullentry)
+        entry['DETAIL'], comments_text = strip_comments(entry.get('DETAIL'))
+        entry['fullentry'] = fullentry
+        if comments_text != None:
+          entry['comments_text'] = comments_text
+          entry['comment_owner'] = parseCommentOwner(login, comments_text)
+        if fullentry.find(globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:  ## this is for a future feature
+          details.append(entry['DETAIL'])
+          entry['entrycase'] = idxCase
+          entry['gcase'] = e2gcase_table[idxCase]
+          desc_entry = {}
+          isModified = False
+          previousline, previouslinestartpos =  getpreviousline(file,entry_start_pos)
+          previouslinemo = descpat[idxCase].search(previousline)
+          if previouslinemo != None:                           ## if description doesnt match then run it against all possible desc templates, if no match either then mark for  delete, else run both against shelve to see which one was edited and then update record.   IF description does match but items are changed, then find out which is correct by running it against the shelve, then update the record
+            #pdb.set_trace() #debug
+            entry_start_pos = previouslinestartpos
+            desc_entry = previouslinemo.groupdict()
 
-      fullentry = StripExtraNewLines(file[mo.start(0):mo.end(0)])
-      fullentry, comments_text = strip_comments(fullentry)
-      entry['DETAIL'], comments_text = strip_comments(entry.get('DETAIL'))
-      entry['fullentry'] = fullentry
-      if comments_text != None:
-        entry['comments_text'] = comments_text
-        entry['comment_owner'] = parseCommentOwner(login, comments_text)
+          #entry, isModified = copyDescriptiontodbrecord(entry, desc_entry, printingCase[idxCase])
+            if isModified:
+              entry = update_full_entry_for_caseRec_record(dbrecord, caseTemplate, timeARangeTemplate)
 
-      if fullentry.find(globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:  ## this is for a future feature
-        details.append(entry['DETAIL'])
-        entry['entrycase'] = idxCase
-        entry['gcase'] = e2gcase_table[idxCase]
-        descentry = {}
-        isModified = False
-        previousline, previouslinestartpos =  getpreviousline(file,mo.start(0))
-        previouslinemo = descpat[idxCase].search(previousline)
-        if previouslinemo != None:                           ## if description doesnt match then run it against all possible desc templates, if no match either then mark for  delete, else run both against shelve to see which one was edited and then update record.   IF description does match but items are changed, then find out which is correct by running it against the shelve, then update the record
-          matchstartpos = previouslinestartpos
-          descentry = previouslinemo.groupdict()
-        else:
-          matchstartpos = mo.start(0)
-
-          #entry, isModified = copyDescriptiontodbrecord(entry, descentry, printingCase[idxCase])
-          if isModified:
-            entry = update_full_entry_for_caseRec_record(dbrecord, caseTemplate, timeARangeTemplate)
-
-        entrypid = str(hash(fullentry))
-        keys.append(entrypid)
-        entry['entrypid'] = entrypid
-        db[entrypid] = entry
-      file = file[:matchstartpos] + file[mo.end(0):]
-      mo= pat[idxCase].search(file)
+          entrypid = str(hash(fullentry))
+          keys.append(entrypid)
+          entry['entrypid'] = entrypid
+          db[entrypid] = entry
+        deletefromfile.append([entry_start_pos, entry_end_pos])
+        break                                                  ## find only first match for pat[idxCase] in datefields[idxDiary]
+  newfile = []
+  if len(deletefromfile) > 0:              ### preserve unrecognized entries and put them in newfile
+    deletefromfile.sort()
+    last_entrypos = 0
+    for entrypos in deletefromfile:
+      newfile.append(file[last_entrypos:entrypos[0]])
+      last_entrypos = entrypos[1]
+    newfile.append(file[last_entrypos:])
+    newfile = ''.join(newfile)
+  else:
+    newfile = ''
+  newfile = StripExtraNewLines(newfile)              
   updateDetails(db, details, keys)
   HandleLooseEmacsEnds(db)
+  #pdb.set_trace() #debug
   #sys.exit(0) #debug
-  if (len(file)>5):
+
+  if (len(newfile)>5):                  ### discard unrecognized entries if there are less than 6 chars worth of them
     print "-- UNRECOGNIZED ENTRIES:"
-    unrecognized_diary_entries = file[:-3]
+    unrecognized_diary_entries = newfile[:-3]
     print unrecognized_diary_entries
   else:
     unrecognized_diary_entries = ""
 
   return db, diaryheader, unrecognized_diary_entries
    
-   
+  
 
+   
 def recGetFieldTZID( recurrence):
   pos = recurrence.find('TZID')
   pos = recurrence.find('=',pos)
@@ -1767,7 +1792,9 @@ def addRecurrenceDescriptions(dbg, dbe):
         record['DAYORDINAL'] = ordinalsuffix(record['NUMDAYOFWEEK'])
         record['DAYOFWEEKD'] = daysofweek[int(record.get('NUMDAYOFWEEK'))]
       if caseRec.find('Weekly') != -1:
-        bydayarray = record.setdefault('BYDAY','')
+        bydayarray = record.get('BYDAY')
+        if bydayarray == None:
+          bydayarray = ''
         if  bydayarray != "":
           bydayarray = [ daysofweek[int(kz)] for kz in bydayarray.split(" ")]
           if len(bydayarray) > 2:
@@ -1781,7 +1808,7 @@ def addRecurrenceDescriptions(dbg, dbe):
             byday = ""
           record['ONWHATDAYS'] =  ' ' + byday
         else:
-          record['ONWHATDAYS'] = ''
+          record['ONWHATDAYS'] = ' '  ## this handles case for weekly without byday
       if caseRec.find('Interval') != -1:
         interval = record['INTERVAL']
         intervalordinal = ordinalsuffix(interval)
@@ -2124,7 +2151,7 @@ def getKeystomodifyfromG(dbg,delfromEalso,shelve,identicalkeys, glastsynctime):
   delfromE = [key for key in identicalkeys if shelve[key].get('eventid') not in gkeys]
 
   addE = [key for key in identicalkeys if key not in delfromE and dbg[shelve[key]['eventid']].get('modified') > glastsynctime]
-  #addE = [key for key in identicalkeys if key not in delfromE]
+  #addE = [key for key in identicalkeys if key not in delfromE]    ## debug.  
  
 
   addEinTermsofGkeys = [shelve[key]['eventid'] for key in identicalkeys if key not in delfromE and dbg[shelve[key]['eventid']].get('modified') > glastsynctime]
@@ -2388,11 +2415,11 @@ def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader,unrecognized_diary_e
   dict = {}
   dictype = type(dict) 
   index = createIndexFromShelve(shelve)
-  
   f = open(emacsDiaryLocation,'w')
   f.seek(0)
   if diaryheader != "":
     f.write(diaryheader + '\n')
+
   for row in index: 
     f.write(shelve[row[1]].setdefault('recurrencedesc','') + shelve[row[1]].get('fullentry') + '\n')
     if 'comment_entries' in shelve[row[1]] and len(shelve[row[1]].get('comment_entries')) > 0:
@@ -2400,15 +2427,12 @@ def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader,unrecognized_diary_e
       for commententry in shelve[row[1]].get('comment_entries'):
         f.write(' ** ' + commententry.get('name') + "'s comments\n")
         f.write('  :PROPERTIES:\n')
-        f.write('  :content: ' + PadNewlinesWithNSpaces(commententry.get('content'),4) + '\n')
+        f.write('  :content: ' + PadNewlinesWithNSpaces(commententry.get('content') + '\n',4))
         f.write('  :name: ' + commententry.get('name') + '\n')
         f.write('  :email: ' + commententry.get('email') + '\n')
         f.write('  :published: ' + ISOtoORGtime(commententry.get('published')) + '\n')
         f.write('  :updated:   ' + ISOtoORGtime(commententry.get('updated')) + '\n')
 
-
-      
-        
   f.close()
 
 def CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal):
