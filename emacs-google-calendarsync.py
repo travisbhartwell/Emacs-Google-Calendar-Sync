@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 74
+# emacs-google-calendarsync revision 75
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: If this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -853,7 +853,7 @@ def RemoveNewlinesSpacePadding(source):
   target = []
   for line in lines:
     target.append(line.strip() + '\n')
-  return ''.join(target)
+  return ''.join(target).strip()
 
 def removeallextraspaces(string):
   while  pos != -1:
@@ -970,7 +970,6 @@ def EvaluateTemplates(atTemplate, matchvarfilename):
   dicEvaluatedTemplatesArray = {}
   stringpatterns = []
   for i in atTemplate.keys():
-    #pdb.set_trace() #debug
     p0 = atTemplate[i]%dicTypes
     stringpatterns.append(p0)
     dicEvaluatedTemplatesArray[i] = (re.compile(p0,re.M | re.S))
@@ -1116,11 +1115,15 @@ def sCurrentDatetime():
 
 def ISOtoORGtime( isotime):
   """ taking account for GMT """
-  isodate = datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:5]) - datetime.timedelta(hours = globalvar_GMTOFFSET)
+  isodate = datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:6]) - datetime.timedelta(hours = globalvar_GMTOFFSET)
   return isodate.strftime('[%Y-%m-%d %a %H:%M:%S]')
   
   #return datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:5]).strftime('[%Y-%m-%d %H:%M:%S]')
 
+def ISOtoTimestamp(isotime):
+  return time.mktime(time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')) - 3600 * globalvar_GMTOFFSET
+
+  
 
 def sdeltaDatetime(offsetdays):
   return datetime.datetime.now() + datetime.timedelta(offsetdays)
@@ -1280,13 +1283,13 @@ def printcontents(db):
     print db[keys].get('CONTENT')
     print " "
 
-def getpreviousline(file, pos):
+def getpreviousline(filestrings, pos):
   current = pos - 2
   while current>0:
     current -= 1
-    if file[current]=='\n':
-      return file[current+1:pos-1] + '\n\nend', current +1
-  return file[:pos], 0
+    if filestrings[current]=='\n':
+      return filestrings[current+1:pos-1] + '\n\nend', current +1
+  return filestrings[:pos], 0
 
 def ordinalIntervaltonum(ordint):
 
@@ -1370,11 +1373,37 @@ def strip_comments(fullentry):
   else:
     return fullentry[:pos-1], fullentry[pos:]
 
+
 def parseCommentOwner(login, comments_text):
-  pos = comments_text.find(':email: ' + login)
-  pos = comments_text.find(':content:', pos)
-  pos2 = comments_text.find(':name:',pos)
-  return comments_text[pos:pos2]
+  """ the comments line looks like this (the content, published and updated fields are optional and only appear if there is a comment entry in the comment feed):
+ * EGCSync Comments for: picnic at Some Joe's House
+ ** Some Joe's comments
+  :PROPERTIES:
+  :status: INVITED
+  :email: someJoesemail@gmail.com
+  :name: Some Joe
+  :content: Yada yada yada why you coming to my house yada
+  :published: [2009-09-09]
+  :updated:   [2009-09-09]
+  """
+  pos_email = comments_text.find(':email: ' + login)
+  if pos_email == -1:
+    return '',''
+  statusline, pos_status = getpreviousline(comments_text, pos_email -1)
+  pos_status = statusline.find(':status:')
+  if pos_status != -1:
+    status = statusline[pos_status+8:pos_status+10].strip().upper()[0:1]
+  else:
+    status = ''
+  pos = comments_text.find(':content:', pos_email)
+  if pos != -1:
+    pos += 9
+    pos2 = comments_text.find(':published:',pos)
+    comment =  comments_text[pos:pos2]
+    comment = RemoveNewlinesSpacePadding(comment)
+  else:
+    comment = ''
+  return comment, status
 
 def parsedates(file):
   dates = []
@@ -1385,7 +1414,6 @@ def parsedates(file):
   file = '\n' + file
   found_date = False
   found_entry_end = False
-  #pdb.set_trace() #debug
   for i in xrange(1,len(file)):
     c = file[i]
     lastc = file[i-1]
@@ -1455,9 +1483,12 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
         fullentry, comments_text = strip_comments(fullentry)
         entry['DETAIL'], comments_text = strip_comments(entry.get('DETAIL'))
         entry['fullentry'] = fullentry
-        if comments_text != None:
+        if comments_text != None:   # in this case a attendeeStatus without a comment is still considered a comment
           entry['comments_text'] = comments_text
-          entry['comment_owner'] = parseCommentOwner(login, comments_text)
+          comment_owner_content, comment_owner_status = parseCommentOwner(login, comments_text)
+          entry['comment_owner_hash'] = hash( entry.get('comment_owner_content') )
+          entry['comment_owner_status'] = comment_owner_status
+         
         if fullentry.find(globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:  ## this is for a future feature
           details.append(entry['DETAIL'])
           entry['entrycase'] = idxCase
@@ -1467,7 +1498,6 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
           previousline, previouslinestartpos =  getpreviousline(file,entry_start_pos)
           previouslinemo = descpat[idxCase].search(previousline)
           if previouslinemo != None:                           ## if description doesnt match then run it against all possible desc templates, if no match either then mark for  delete, else run both against shelve to see which one was edited and then update record.   IF description does match but items are changed, then find out which is correct by running it against the shelve, then update the record
-            #pdb.set_trace() #debug
             entry_start_pos = previouslinestartpos
             desc_entry = previouslinemo.groupdict()
 
@@ -1830,6 +1860,18 @@ def get_commenthref(commentobj):
   end -= 2
   return commenthref[start:end]
 
+def get_attendeeStatus(an_event_who):
+  attendeeStatus = {}
+  attendeeName = {}
+  for idxWho in xrange(len(an_event_who)):
+    an_event_who_entry = an_event_who[idxWho]
+    attendeeName[an_event_who[idxWho].email] = an_event_who[idxWho].name
+    if str(an_event_who_entry).find('attendeeStatus') != -1:
+      attendeeStatus[an_event_who[idxWho].email] = an_event_who[idxWho].attendee_status.value[0:1]
+    else:
+      attendeeStatus[an_event_who[idxWho].email] = ''
+  return attendeeStatus, attendeeName
+
 def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
   Canceled = []
   Orphaned = []
@@ -1842,8 +1884,22 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
   gcal.email = username
   gcal.password = passwd
   gcal.source = 'Google-Emacs-Calendar-Sync-1.0'
-  gcal.ProgrammaticLogin()
-
+  try:
+    gcal.ProgrammaticLogin()
+  except Exception, err:
+    if err[0] == 'Incorrect username or password':
+      print err
+      shelve.close()
+      sys.exit(1)
+    print 'connection error'
+    errorstatus = err[0].get('status')
+    errorbody = err[0].get('body')
+    errorreason =  err[0].get('reason')
+    if errorstatus == 302:           ## 302= redirect
+      print errorbody, 'redirect to:', errorRedirectURI(errorbody)
+    shelve.close()
+    sys.exit(1)
+  
   query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full')
   #commentquery = gdata.calendar.service.CalendarEventCommentQuery()
 
@@ -1859,7 +1915,6 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
   feedupdatedtext = feedupdatedtext[:-5]
   db['updated-g']=  time.strptime(feedupdatedtext,'%Y-%m-%dT%H:%M:%S')
   for i, an_event in zip(xrange(len(feed.entry)), feed.entry):
-    #print feed  #debug
     entrypid = an_event.id.text
     eventStatus = get_eventStatus(an_event)  ### It would be nice if eventStatus was actually a visible property but its not:P (oops need to use event_status property, but thats ok since we must also identify orphaned entries)
     if eventStatus == "canceled":                                      # if event is part of a recurring event but was deleted as an instance the recurring event, then discard it
@@ -1867,9 +1922,9 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
       continue
     elif eventStatus == "orphaned":                                      # if event is part of a recurring event, but was edited as an instance of that event, process it as normal
       Orphaned.append(entrypid)
-    #pdb.set_trace() #debug
-    #sys.exit(0) # debug       
+
     entry={}
+
     #commentobj = an_event.comments
     #commenthref = get_commenthref(commentobj)
     #commentquery = gdata.calendar.service.CalendarEventCommentQuery(commentobj)
@@ -1878,37 +1933,64 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
     #commentquery.ctz = globalvar_TZID
     #commentquery.max_results = 400
     #print commentobj
-    if globalvar_DISPLAY_COMMENTS == True and an_event.comments != None:
+    #pdb.set_trace() #debug
+    comment_emails = []
+    commentsarray = []
+    if globalvar_DISPLAY_COMMENTS == True:
+      attendeeStatus, attendeeName = get_attendeeStatus(an_event.who)
+      if an_event.comments != None:
 #      commentfeed = gcal.CalendarQuery(commentquery)
-      #pdb.set_trace()
-      newcomment = gdata.calendar.CalendarEventCommentEntry()
-      commentobj = an_event.comments
-      commenthref = get_commenthref(commentobj)
-      commentfeed = gcal.Query(commenthref)   ## cant get the CalendarEventCommentQuery to work so using this instead
-      commententry = commentfeed.entry
-      comments = []
-      comment_title = commentfeed.title.text
-
-      for comment in commententry:
-        comment_entry = {}
-        comment_entry['comment_entry'] = comment
-        comment_entry['author'] = comment.author[0]
-        comment_entry['email'] =  comment.author[0].email.text
-        comment_entry['name'] =  comment.author[0].name.text
-        comment_entry['content'] = comment.content.text
-        comment_entry['published'] = comment.published.text
-        comment_entry['updated'] = comment.updated.text
-        comment_entry['id'] = comment.id.text
-        if len(comment.link) > 1:
-          comment_entry['editlink'] = comment.link[1].href
-          comments.append(comment_entry)
-        email_id = comment_entry.get('email')
-        email_id = email_id.split('@')[0]
-        if email_id == username:
-          entry['comment_owner_editlink'] = comment_entry.get('editlink')
-          entry['comment_owner_entry'] = comment
-      entry['comment_title'] = comment_title
-      entry['comment_entries'] = comments
+      #newcomment = gdata.calendar.CalendarEventCommentEntry()
+        commentobj = an_event.comments
+        commenthref = get_commenthref(commentobj)   
+        entry['calendarEventComment_href'] = commenthref
+        commentfeed = gcal.Query(commenthref)   ## cant get the CalendarEventCommentQuery to work so using this instead
+        commententry = commentfeed.entry
+        comment_title = commentfeed.title.text
+        for comment in commententry:
+          comment_entry = {}
+          comment_entry['comment_entry'] = comment
+          comment_entry['author'] = comment.author[0]
+          comment_entry['email'] =  comment.author[0].email.text
+          comment_emails.append(comment_entry.get('email'))
+          comment_entry['status'] = attendeeStatus.get(comment_entry['email'])
+          comment_entry['name'] =  comment.author[0].name.text
+          comment_entry['content'] =  RemoveNewlinesSpacePadding(comment.content.text)
+          comment_entry['published'] = comment.published.text
+          comment_entry['updated'] = comment.updated.text
+          comment_entry['id'] = comment.id.text
+          if len(comment.link) > 1:
+            comment_entry['editlink'] = comment.link[1]
+          commentsarray.append(comment_entry)
+          email_id = comment_entry.get('email')
+          email_id = email_id.split('@')[0]
+          if email_id == username:
+            entry['comment_owner_editlink'] = comment_entry.get('editlink')
+            entry['comment_owner_entry'] = comment
+            entry['comment_owner_status'] = comment_entry.get('status')
+            entry['comment_owner_content'] = comment_entry.get('content')
+            entry['comment_owner_hash'] = hash(comment_entry.get('content'))
+            entry['comment_owner_updated'] = ISOtoTimestamp(comment_entry.get('updated'))
+        entry['comment_title'] = comment_title
+        entry['comment_entries'] = commentsarray
+                                                                                          ### append attendeeStatus for those who did not leave comments to the commentsarray
+      attendees_without_comments = [key for key in attendeeStatus.keys() if key not in comment_emails]
+      if len(attendees_without_comments) > 0:
+        for email in attendees_without_comments:
+          comment_entry = {}
+          comment_entry['name'] = attendeeName.get(email)
+          comment_entry['email'] =  email
+          comment_status =  attendeeStatus.get(email)
+          if comment_status != '':
+            comment_entry['status'] = comment_status
+            email_id = email.split('@')[0]
+            if email_id == username:
+              entry['comment_owner_status'] = comment_status
+            commentsarray.append(comment_entry)
+        if len(commentsarray) >0:
+          entry.setdefault('comment_title','Attendees')
+          entry['comment_entries'] = commentsarray
+    entry['idxfeed'] = i
     entry['HYPHEN'] = ' - '
     entry['eventid'] = entrypid
     entry['where'] = blankforNoneType(an_event.where[0].text)
@@ -2339,6 +2421,27 @@ def DeleteEntriesFromE(shelve,delfromE):
       print "-- deleted from Diary: " + record.get('fullentry') 
       del shelve[key]
 
+
+def errorRedirectURI(body):
+  """ 404='Not Found'       302='Redirect received, but redirects_remaining <= 0'
+ERROR BODY looks like this:
+<HTML>
+<HEAD>
+<TITLE>Moved Temporarily</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000">
+<H1>Moved Temporarily</H1>
+The document has moved <A HREF="http://www.google.com/calendar/feeds/default/private/full/u393ghl85ht66jgq4kol1nf1fo/63388346242?gsessionid=V_6S0byo7eTYPKIorY-GAg">here</A>.
+</BODY>
+</HTML>
+  """
+  pos = body.find('here')
+  pos2 = body.find('HREF')
+  if pos == -1 or pos2 == -1:
+    return ''
+  else:
+    return body[pos2 + 6:pos - 2]
+
 def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeymap, DeleteOrphans):
  
   for key in delG:
@@ -2348,8 +2451,19 @@ def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeyma
       if eventid != None:
         editlink = editlinksmap.get(eventid)
         if editlink != None:
-          gcal.DeleteEvent(editlink)
-          print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
+          try:
+            gcal.DeleteEvent(editlink)
+            print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
+          except Exception, err:             ## 302=Redirect received, but redirects_remaining <= 0
+            errorstatus = err[0].get('status')
+            errorbody = err[0].get('body')
+            errorreason =  err[0].get('reason')
+            print "-- unable to delete " + shelve[key]['fullentry']
+            if errorstatus != 404:           ## 404 being Not Found, so if its not Not Found, then assume its redirect
+              print errorbody, 'redirect to:', errorRedirectURI(errorbody)
+              shelve.close()
+              sys.exit(1)
+      
           del shelve[key]
 
   for key in DeleteOrphans:
@@ -2419,19 +2533,23 @@ def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader,unrecognized_diary_e
   f.seek(0)
   if diaryheader != "":
     f.write(diaryheader + '\n')
-
-  for row in index: 
+  comment_status_enum = { 'A':'ACCEPTED', 'D':'DECLINED', 'I': 'INVITED', 'T': 'TENTATIVE'}
+  for row in index:   ### row[1] contains the ekeys and row[0] contains the order index
     f.write(shelve[row[1]].setdefault('recurrencedesc','') + shelve[row[1]].get('fullentry') + '\n')
-    if 'comment_entries' in shelve[row[1]] and len(shelve[row[1]].get('comment_entries')) > 0:
+    
+    if 'comment_entries' in shelve[row[1]] and len(shelve[row[1]].get('comment_entries')) > 0 and shelve[row[1]]['comment_entries'][0].get('status') != None and shelve[row[1]]['comment_entries'][0].get('status') != '':
       f.write(' * EGCSync ' + shelve[row[1]].get('comment_title') + '\n')
       for commententry in shelve[row[1]].get('comment_entries'):
         f.write(' ** ' + commententry.get('name') + "'s comments\n")
         f.write('  :PROPERTIES:\n')
-        f.write('  :content: ' + PadNewlinesWithNSpaces(commententry.get('content') + '\n',4))
-        f.write('  :name: ' + commententry.get('name') + '\n')
+        comment_status = commententry.get('status')
+        f.write('  :status: ' + comment_status_enum.setdefault(comment_status, '') + '\n')
         f.write('  :email: ' + commententry.get('email') + '\n')
-        f.write('  :published: ' + ISOtoORGtime(commententry.get('published')) + '\n')
-        f.write('  :updated:   ' + ISOtoORGtime(commententry.get('updated')) + '\n')
+        f.write('  :name: ' + commententry.get('name') + '\n')
+        if 'published' in commententry:
+          f.write('  :content: ' + PadNewlinesWithNSpaces(commententry.get('content') + '\n',4))
+          f.write('  :published: ' + ISOtoORGtime(commententry.get('published')) + '\n')
+          f.write('  :updated:   ' + ISOtoORGtime(commententry.get('updated')) + '\n')
 
   f.close()
 
@@ -2450,27 +2568,64 @@ def CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal):
   del gcal
   shelve.close()
 
-def UpdateCommentstoGcal(identicalkeys,dbe, dbg, shelve, gcal):
-  return  ## debug
-  commentkeys = [shelve.get('event_id') for key in identicalkeys if shelve[key].get('comment_owner') != dbe[key].get('comment_owner')]
-  for key in commentkeys:
-    comment_editlink = dbg[key].get('comment_owner_editlink')
-    #gcal.UpdateEvent(event.GetEditLink().href, event)
-    #pdb.set_trace() #debug
-    comment_entry = dbg[key].get('comment_owner_entry')
+def InsertCommentstoGcal(dbe,gcal):
+  return #debug
     #author = gdata.atom.Author()
     #author.name = comment_entry.get('name')
     #newcomment = gdata.calendar.CalendarEventCommentEntry()
     #newcomment.author
-    print "updated comment: ", comment_entry.content.text , " to " , dbe[key].get('comment_owner')
-    comment_entry.content.text = dbe[key].get('comment_owner')
-    gcal.UpdateEvent(comment_editlink, comment_entry)
+
+      #comment_entry.link[1] = comment_editlink
+
+
+def UpdateAttendeeStatustoGcal(username, identicalkeys,g2ekeymap, dbe, dbg, shelve, gcal, feed, editlinksmap):
+  #return shelve, gcal, feed
+  comment_status_enum = { 'A':'ACCEPTED', 'D':'DECLINED', 'I': 'INVITED', 'T': 'TENTATIVE'}
+  attendeestatus_modified_in_diary = [shelve[key].get('eventid') for key in identicalkeys if shelve[key].get('comment_owner_status') != dbe[key].get('comment_owner_status')]
+  for key in attendeestatus_modified_in_diary:
+    if key in dbg and 'comment_owner_status' in dbg[key] and shelve[g2ekeymap.get(key)].get('comment_owner_status') == dbg[key].get('comment_owner_status'):
+      shelvekey = g2ekeymap[key]
+      idxfeed = dbg[key].get('idxfeed')
+      entrywho = feed.entry[idxfeed].who
+      for idxentrywho in entrywho:
+        if idxentrywho.email.split('@')[0] == username:
+          printedstatus = comment_status_enum.get(dbe[shelvekey].get('comment_owner_status') )
+          idxentrywho.attendee_status.value = printedstatus
+      originalstatus = dbg[key].get('comment_owner_status')
+      if originalstatus != None:
+        originalstatus = comment_status_enum.get(originalstatus)
+      else:
+        originalstatus = ''
+      editlink = editlinksmap.get(key)
+      if printedstatus != None:
+        print "-- updated attendee status for", dbg[key].get('fullentry'), ":", dbg[key].get('comment_owner_status'), " CHANGED TO: ", printedstatus 
+        new_event = gcal.UpdateEvent(editlink, feed.entry[idxfeed])
+        new_editlink = new_event.GetEditLink()
+        editlinksmap[key] =              new_editlink
+        shelve[shelvekey]['editlink'] =  new_editlink
+
+  return shelve, gcal, feed, editlinksmap
+      
+def UpdateCommentstoGcal(identicalkeys,g2ekeymap, dbe, dbg, shelve, gcal):
+  """ this function will not work until google fixes its api.  The google calendar supplies a writable view of the comment feed to the api, but not the actual feed itself; updating the copy does not have any effect on the comments displayed in the google calendar web gui """
+  return shelve, gcal #debug
+  comments_modified_in_diary = [shelve[key].get('eventid') for key in identicalkeys if shelve[key].get('comment_owner_hash') != dbe[key].get('comment_owner_hash')]
+  for key in comments_modified_in_diary:
+    if key in dbg and shelve[g2ekeymap.get(key)].get('comment_owner_hash') == dbg[key].get('comment_owner_hash'):
+      shelvekey = g2ekeymap[key]
+      comment_editlink = dbg[key].get('comment_owner_editlink')
+      comment_entry = dbg[key].get('comment_owner_entry')
+      comment_entry.content.text = dbe[shelvekey].get('comment_owner_content')
+      print "-- updated comment for ", dbg[key].get('fullentry'), ":", dbg[key].get('comment_owner_content') , " CHANGED TO: " ,  comment_entry.content.text
+      new_commentEvent = gcal.UpdateEvent(comment_entry.GetEditLink().href, comment_entry)
+      shelve[shelvekey]['comment_owner_editlink'] = new_commentEvent.GetEditLink()
+  return shelve, gcal
 
 def updateEditLinks(dbg,shelve):
  
   ekeyschangedinG = []
   gkeyschangedinG = []
-  editlinksmap = {}
+  editlinksmap = {}               # editlinksmap maps gkey to eventid
   g2ekeymap = {}
   for key in shelve.keys():
     if type(shelve[key]) == DictionaryDefinedType:
@@ -2799,8 +2954,8 @@ rguments; if they are not, then they will be prompted upon execution."
     GcalWasModified = True
 
   if readFromGoogleOnly == False:
-    UpdateCommentstoGcal(identicalkeys, dbe,dbg, shelve, gcal)
-
+    shelve, gcal = UpdateCommentstoGcal(identicalkeys, g2ekeymap, dbe,dbg, shelve, gcal)
+    shelve, gcal, feed, editlinksmap = UpdateAttendeeStatustoGcal(gmailuser, identicalkeys, g2ekeymap, dbe,dbg, shelve, gcal, feed, editlinksmap)
   if len(delfromE) > 0 or len(addG) > 0 or len(addE) > 0 or len(alsoaddtheseNewlyAddedGkeystoE) > 0 or len(delfromG) > 0 or len(ekeyschangedinG) > 0 or initialiseShelve == True or len(dicUpdateorphans)>0 or len(Deleteorphans) > 0:
     DeleteEntriesFromE(shelve,delfromE)
     if readFromGoogleOnly == False:
