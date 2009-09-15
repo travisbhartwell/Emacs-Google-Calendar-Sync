@@ -1,5 +1,5 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 75
+# emacs-google-calendarsync revision 76
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: If this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
@@ -55,11 +55,6 @@ if globalvar_GMTOFFSET == None:
 globalvar_GMTOFFSET -= 1                      # set this to 1 when daylight savings time is NOT in efffect, starting in spring.  Set to 0 when daylight savings time is in effect, starting in autumn
 
 
-#%%(if (>= (car (cddr date)) 2009) (if (>= (car (cdr date)) 8) t nil) nil) each month except for its first 7 days
-
-#%%(if (>= (car (cddr date)) <STYEAR>)(if (>= (car date) <STMONTH>)(if (>= (car (cdr date)) <STDAY>) t (if (> (car date) <STMONTH>) t nil))(if (> (car (cddr date)) <STYEAR>) t nil))) hi   ## start date
-
-#(diary-cyclic 1 <STMONTH> <STDAY> <STYEAR>)   instead of the above 
 
 DictionaryDefinedType = type({})
 ### TEMPLATES
@@ -1378,31 +1373,32 @@ def parseCommentOwner(login, comments_text):
   """ the comments line looks like this (the content, published and updated fields are optional and only appear if there is a comment entry in the comment feed):
  * EGCSync Comments for: picnic at Some Joe's House
  ** Some Joe's comments
-  :PROPERTIES:
-  :status: INVITED
-  :email: someJoesemail@gmail.com
-  :name: Some Joe
-  :content: Yada yada yada why you coming to my house yada
-  :published: [2009-09-09]
-  :updated:   [2009-09-09]
+ *** status: INVITED
+ *** email: someJoesemail@gmail.com
+ *** name: Some Joe
+ *** content: Yada yada yada why you coming to my house yada
+ *** published: [2009-09-09]
+ *** updated:   [2009-09-09]
   """
-  pos_email = comments_text.find(':email: ' + login)
+  marginlength = 5
+  pos_email = comments_text.find('email: ' + login)
   if pos_email == -1:
     return '',''
-  statusline, pos_status = getpreviousline(comments_text, pos_email -1)
-  pos_status = statusline.find(':status:')
+  statusline, pos_status = getpreviousline(comments_text, pos_email - marginlength)
+  pos_status = statusline.find('status:')
   if pos_status != -1:
-    status = statusline[pos_status+8:pos_status+10].strip().upper()[0:1]
+    status = statusline[pos_status+7:pos_status+9].strip().upper()[0:1]
   else:
     status = ''
-  pos = comments_text.find(':content:', pos_email)
+  pos = comments_text.find('content:', pos_email)
   if pos != -1:
-    pos += 9
-    pos2 = comments_text.find(':published:',pos)
-    comment =  comments_text[pos:pos2]
+    pos += 8
+    pos2 = comments_text.find('published:',pos)
+    comment =  comments_text[pos:pos2 - marginlength + 1]
     comment = RemoveNewlinesSpacePadding(comment)
   else:
     comment = ''
+
   return comment, status
 
 def parsedates(file):
@@ -1988,7 +1984,7 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
               entry['comment_owner_status'] = comment_status
             commentsarray.append(comment_entry)
         if len(commentsarray) >0:
-          entry.setdefault('comment_title','Attendees')
+          entry.setdefault('comment_title','Attendees for: ' + blankforNoneType(an_event.title.text) )
           entry['comment_entries'] = commentsarray
     entry['idxfeed'] = i
     entry['HYPHEN'] = ' - '
@@ -2468,8 +2464,19 @@ def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeyma
 
   for key in DeleteOrphans:
     editlink = editlinksmap.get(key)
-    gcal.DeleteEvent(editlink)
-    print "-- deleted recurring event instance from Gcal and Diary:" + dbg[key].get('fullentry')
+    try:
+      gcal.DeleteEvent(editlink)
+      print "-- deleted recurring event instance from Gcal and Diary:" + dbg[key].get('fullentry')
+    except Exception, err:     
+      errorstatus = err[0].get('status')
+      errorbody = err[0].get('body')
+      errorreason =  err[0].get('reason')
+      print "-- unable to delete from gcal (probably already deleted): " +  dbg[key].get('fullentry')
+      if errorstatus != 404:           ## 404 being Not Found, so if its not Not Found, then assume its redirect
+        print errorbody, 'redirect to:', errorRedirectURI(errorbody)
+        shelve.close()
+        sys.exit(1)
+
     del shelve[g2ekeymap[key]]
 
 
@@ -2541,15 +2548,16 @@ def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader,unrecognized_diary_e
       f.write(' * EGCSync ' + shelve[row[1]].get('comment_title') + '\n')
       for commententry in shelve[row[1]].get('comment_entries'):
         f.write(' ** ' + commententry.get('name') + "'s comments\n")
-        f.write('  :PROPERTIES:\n')
+        #f.write('  :PROPERTIES:\n')
         comment_status = commententry.get('status')
-        f.write('  :status: ' + comment_status_enum.setdefault(comment_status, '') + '\n')
-        f.write('  :email: ' + commententry.get('email') + '\n')
-        f.write('  :name: ' + commententry.get('name') + '\n')
+        f.write(' *** status: ' + comment_status_enum.setdefault(comment_status, '') + '\n')
+        f.write(' *** email: ' + commententry.get('email') + '\n')
+        f.write(' *** name: ' + commententry.get('name') + '\n')
         if 'published' in commententry:
-          f.write('  :content: ' + PadNewlinesWithNSpaces(commententry.get('content') + '\n',4))
-          f.write('  :published: ' + ISOtoORGtime(commententry.get('published')) + '\n')
-          f.write('  :updated:   ' + ISOtoORGtime(commententry.get('updated')) + '\n')
+          f.write(' *** content: ' + PadNewlinesWithNSpaces(commententry.get('content') + '\n',4))
+          f.write(' *** published: ' + ISOtoORGtime(commententry.get('published')) + '\n')
+          f.write(' *** updated:   ' + ISOtoORGtime(commententry.get('updated')) + '\n')
+        #f.write('  :END:\n')
 
   f.close()
 
