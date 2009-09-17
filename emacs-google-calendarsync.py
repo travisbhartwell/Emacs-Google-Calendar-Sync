@@ -1,9 +1,11 @@
 #!/usr/bin/python 
-# emacs-google-calendarsync revision 76
+# emacs-google-calendarsync revision 77
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: If this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
-globalvar_GMTOFFSET = None                       # None = get gmtoffset from python time.timezone.  6=central timezone 
+globalvar_password = ''                       # optional password.  If this value is used, make sure to change the permissions on this script to execute only, i.e. chmod 111 emacs-google-calendarsync.  If this value is not supplied, the gmail password will be prompted upon execution.
+
+globalvar_GMTOFFSET = None                    # None = get gmtoffset from python time.timezone.  globalvar_GMTOFFSET = 6  refers to central timezone 
 
 globalvar_TZID = 'America/Chicago'            # Time zone
 
@@ -192,6 +194,11 @@ cases_template = """
 <caseRecMonthlybydayofweek>
 <VIS>%%(and (diary-cyclic 1 <STMONTH> <STDAY> <STYEAR>)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
 </caseRecMonthlybydayofweek>
+
+<caseRecMonthlybydayofweekBlock>
+<VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
+</caseRecMonthlybydayofweekBlock>
+
 
 <caseRecMonthlybydayofweekException>
 <VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-cyclic 1 <STMONTH> <STDAY> <STYEAR>)(diary-float t <NUMDAYOFWEEK> <WHICHWEEK>)) <DETAIL>
@@ -2893,8 +2900,12 @@ rguments; if they are not, then they will be prompted upon execution."
     gmailpasswd = args[1]
   elif len(args) == 1:
     gmailuser = args[0]
-    print('enter gmail passwd:'),
-    gmailpasswd = getpasswd()
+
+    if globalvar_password == None or globalvar_password.strip() == '':
+      print('enter gmail passwd:'),
+      gmailpasswd = getpasswd()
+    else:
+      gmailpasswd = globalvar_password
   else:
     gmailuser = raw_input('enter gmail username:')
     print('enter gmail passwd:'),
