@@ -12,52 +12,52 @@
 # permissions on this script to execute only, i.e. chmod 111
 # emacs-google-calendarsync.  If this value is not supplied, the gmail
 # password will be prompted upon execution.
-globalvar_password = ''
+PASSWORD = ''
 
 # None = get gmtoffset from python time.timezone.  globalvar_GMTOFFSET
 # = 6  refers to central timezone
-globalvar_GMTOFFSET = None
+GMT_OFFSET = None
 
 # Time zone
-globalvar_TZID = 'America/Chicago'
+TZID = 'America/Denver'
 
 # Location of emacs diary (if this is left blank, the location will be guessed)
-globalvar_DIARYFILE = ''
+DIARY_FILE = ''
 
 # Location to put the shelve.dat file, which contains the schedule
 # from the last sync. (if this is left blank, the location will be the
 # directory where this script resides.) The filename of the shelve
 # file will contain the google calendar username
-globalvar_SHELVEFILE = ''
+SHELVE_FILE = ''
 
 # If no end time is provided in diary entry, then default to this
 # specified event duration, which in this case is 60 min
-globalvar_DEFAULTEVENTDURATION = 60
+DEFAULT_EVENT_DURATION = 60
 
 # number of days prior to the current date before which entries get
 # deleted; they wont be deleted from the google calendar, just from
 # the emacs diary.  This feature is currently not implemented, and
 # changing this value has no effect.
-globalvar_DELETE_OLD_ENTRIES_OFFSET = 90
+DELETE_OLD_ENTRIES_OFFSET = 90
 
 # entry contention happens when the same diary and its respective
 # google calendar entries are both modified before a sync. 0=prompt
 # from list of contenders 1=automatic best guess, 0=prompt from list
 # of contenders, 2=do nothing; allowing for both entries to exist in
 # both gcal and diary
-globalvar_ENTRY_CONTENTION = 0
+ENTRY_CONTENTION = 0
 
 # this will allow for multiple read-only calendars to be viewed in the
 # same dairy.  The multiple calendar support is not yet implemented
-globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE = '#@!z8#'
+DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE = '#@!z8#'
 
 # which format to use for entries synced from gcal to diary?: 0 =
 # monthabbreviated day, year      1 = month/day/year
-globalvar_DEFAULT_NON_RECURRING_FORMAT = 0
+DEFAULT_NON_RECURRING_FORMAT = 0
 
 # True/False: do we want entries synced from gcal to diary to be
 # written with time first then title, or vice versa
-globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY = True
+FORMAT_TIME_BEFORE_TITLE_IN_DIARY = True
 
 # True/False: True = no modifications will be made to the google
 # calendar at all, but will tell you if changes have been made,  False
@@ -65,7 +65,7 @@ globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY = True
 # This global variable can be set by the -r option.  This is much like
 # option -i, --init, only it tells you  -- No Changes if the Google
 # Calendar content was the same as it was last sync
-globalvar_READ_FROM_GOOGLE_ONLY = False
+READ_FROM_GOOGLE_ONLY = False
 
 # True/False:  True = If the descriptions, that represent recurring
 # event parameters, which are written above each recurrence entry in
@@ -74,11 +74,11 @@ globalvar_READ_FROM_GOOGLE_ONLY = False
 # their respective event entries are also changed as such.  False =
 # Recurring event descriptions become read-only and modifying them
 # will have no effect on the diary entry.
-globalvar_CHANGING_RECURRING_EVENT_DESCRIPTIONS_EDITS_THE_ENTRY = False
+CHANGING_RECURRING_EVENT_DESCRIPTIONS_EDITS_THE_ENTRY = False
 
 # True/False: True = Include comments taken from Google Calendar to
 # each diary entry   False = No comments
-globalvar_DISPLAY_COMMENTS = True
+DISPLAY_COMMENTS = True
 
 import gdata.calendar.service
 import gdata.service
@@ -93,14 +93,13 @@ import re
 import os
 import shelve
 
-if globalvar_GMTOFFSET is None:
-    globalvar_GMTOFFSET = time.timezone / 60 / 60
+if GMT_OFFSET is None:
+    GMT_OFFSET = time.timezone / 60 / 60
 
 # set this to 1 when daylight savings time is NOT in efffect, starting
 # in spring.  Set to 0 when daylight savings time is in effect,
 # starting in autumn
-globalvar_GMTOFFSET -= 1
-
+GMT_OFFSET -= 1
 
 DictionaryDefinedType = type({})
 ### TEMPLATES
@@ -1184,14 +1183,14 @@ def sCurrentDatetime():
 
 def ISOtoORGtime(isotime):
     """ taking account for GMT """
-    isodate = datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:6]) - datetime.timedelta(hours=globalvar_GMTOFFSET)
+    isodate = datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:6]) - datetime.timedelta(hours=GMT_OFFSET)
     return isodate.strftime('[%Y-%m-%d %a %H:%M:%S]')
 
     #return datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:5]).strftime('[%Y-%m-%d %H:%M:%S]')
 
 
 def ISOtoTimestamp(isotime):
-    return time.mktime(time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')) - 3600 * globalvar_GMTOFFSET
+    return time.mktime(time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')) - 3600 * GMT_OFFSET
 
 
 def sdeltaDatetime(offsetdays):
@@ -1209,8 +1208,8 @@ def HandleLooseEmacsEnds(db):
     for dbkey in db.keys():
         alldayevent = False
         reckeys = db[dbkey].keys()
-        db[dbkey]['TZID'] = globalvar_TZID
-        db[dbkey]['TZID2'] = globalvar_TZID
+        db[dbkey]['TZID'] = TZID
+        db[dbkey]['TZID2'] = TZID
         db[dbkey]['newline'] = '\r\n'
         db[dbkey]['STMONTH'] = db[dbkey].setdefault('STMONTH', str(nowmonth)).zfill(2)
         db[dbkey]['STDAY'] = db[dbkey].setdefault('STDAY', str(nowday)).zfill(2)
@@ -1263,7 +1262,7 @@ def HandleLooseEmacsEnds(db):
         stdatetimestr = stdatetimestr.replace(':', '')
         stdatetimestr = stdatetimestr.replace('-', '')
 
-        defaultenddatetime = stdatetime + datetime.timedelta(minutes=globalvar_DEFAULTEVENTDURATION)
+        defaultenddatetime = stdatetime + datetime.timedelta(minutes=DEFAULT_EVENT_DURATION)
         defaultenddatetimetuple = defaultenddatetime.timetuple()
         if 'ENDYEAR' not in reckeys:
             db[dbkey]['ENDYEAR'] = str(defaultenddatetimetuple[0]).zfill(4)
@@ -1285,7 +1284,7 @@ def HandleLooseEmacsEnds(db):
         endhour = int(db[dbkey]['ENDHOUR'])
         endminute = int(db[dbkey]['ENDMINUTE'])
 
-        if 'ENDAMPM' not in reckeys:       ## assume default event duration, as provided from globalvar_DEFAULTEVENTDURATION, if one is not given
+        if 'ENDAMPM' not in reckeys:       ## assume default event duration, as provided from DEFAULT_EVENT_DURATION, if one is not given
             db[dbkey]['ENDAMPM'] = time.strftime('%p', defaultenddatetimetuple)
             db[dbkey]['ENDHOUR'] = time.strftime('%I', defaultenddatetimetuple)
         if db[dbkey]['ENDAMPM'].upper()[0] == 'P' and endhour < 12:
@@ -1555,7 +1554,7 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
                     entry['comment_owner_hash'] = hash(entry.get('comment_owner_content'))
                     entry['comment_owner_status'] = comment_owner_status
 
-                if fullentry.find(globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:  ## this is for a future feature
+                if fullentry.find(DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:  ## this is for a future feature
                     details.append(entry['DETAIL'])
                     entry['entrycase'] = idxCase
                     entry['gcase'] = e2gcase_table[idxCase]
@@ -1973,11 +1972,11 @@ def getGoogleCalendar(username, passwd, time_min, casetimeARangeString, ap):
     #commentquery = gdata.calendar.service.CalendarEventCommentQuery()
 
     #query.start_min = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time_min)
-    #start_min = sdeltaDatetime(-globalvar_DELETE_OLD_ENTRIES_OFFSET)
+    #start_min = sdeltaDatetime(-DELETE_OLD_ENTRIES_OFFSET)
     #query.start_min= start_min.strftime('%Y-%m-%dT%H:%M:%S.00Z')
     query.start_max = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime(time.time() + 28800000))
     #query.updated_min = start_date
-    query.ctz = globalvar_TZID
+    query.ctz = TZID
     query.max_results = 400
     feed = gcal.CalendarQuery(query)
     feedupdatedtext = feed.updated.text
@@ -1999,13 +1998,13 @@ def getGoogleCalendar(username, passwd, time_min, casetimeARangeString, ap):
         #commentquery = gdata.calendar.service.CalendarEventCommentQuery(commentobj)
         #commentquery = gdata.calendar.service.CalendarQuery(commentobj)
         #commentquery.start_max = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime(time.time() + 28800000))
-        #commentquery.ctz = globalvar_TZID
+        #commentquery.ctz = TZID
         #commentquery.max_results = 400
         #print commentobj
         #pdb.set_trace() #debug
         comment_emails = []
         commentsarray = []
-        if globalvar_DISPLAY_COMMENTS is True:
+        if DISPLAY_COMMENTS is True:
             attendeeStatus, attendeeName = get_attendeeStatus(an_event.who)
             if an_event.comments != None:
 #      commentfeed = gcal.CalendarQuery(commentquery)
@@ -2077,7 +2076,7 @@ def getGoogleCalendar(username, passwd, time_min, casetimeARangeString, ap):
 ###                                                                                     ### get extended_properties here
         formatTimeBeforeTitle = findExtendedProperty(an_event.extended_property, 'formatTimeBeforeTitle') #  time before title?
         if formatTimeBeforeTitle == "":
-            formatTimeBeforeTitle = globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY
+            formatTimeBeforeTitle = FORMAT_TIME_BEFORE_TITLE_IN_DIARY
         elif formatTimeBeforeTitle == "1":
             formatTimeBeforeTitle = True
         else:
@@ -2086,7 +2085,7 @@ def getGoogleCalendar(username, passwd, time_min, casetimeARangeString, ap):
         entry['VIS'] = findExtendedProperty(an_event.extended_property, 'VIS')                             # entry visibility inhibiter?
         nonrecurringformat = findExtendedProperty(an_event.extended_property, 'nonrecurringformat')        # non recurring format : mm/dd/yyyy or Jul 4, 2009 style?
         if nonrecurringformat == "":
-            nonrecurringformat = globalvar_DEFAULT_NON_RECURRING_FORMAT
+            nonrecurringformat = DEFAULT_NON_RECURRING_FORMAT
         else:
             nonrecurringformat = int(nonrecurringformat)
         entry['nonrecurringformat'] = nonrecurringformat
@@ -2322,7 +2321,7 @@ def getKeystomodifyfromG(dbg, delfromEalso, shelve, identicalkeys, glastsynctime
 def getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve):
     lastmodifiedg = time.strptime('1995-1-1T12:00:00', '%Y-%m-%dT%H:%M:%S')
     lastmodifiede = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)
-    shelvepath = globalvar_SHELVEFILE
+    shelvepath = SHELVE_FILE
     postfix = str(abs(hash(gmailuser)))
     shelvenamefq = shelvepath + 'egcsyncshelve' + postfix + '.dat'
     f = shelve.open(shelvenamefq)
@@ -2339,7 +2338,7 @@ def getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve):
 
 def convertTimetuple2GMT(tt):
     a = datetime.datetime(tt[0], tt[1], tt[2], tt[3], tt[4])
-    a += datetime.timedelta(hours=globalvar_GMTOFFSET)
+    a += datetime.timedelta(hours=GMT_OFFSET)
     return a.timetuple()
 
 
@@ -2763,7 +2762,7 @@ def handleContentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delfr
     There is no way to precisely tell which diary entry was modified
     so all we can do is display the modified gcal entry along with
     perhaps a list of possibilities.  If the
-    globalvar_ENTRY_CONTENTION variable is set to 2 we will do nothing
+    ENTRY_CONTENTION variable is set to 2 we will do nothing
     and just add both entries"""
     if readFromGoogleOnly is True:
         ENTRY_CONTENTION = 2
@@ -2910,7 +2909,7 @@ def gethomedir():   ## should work for windows and linux but not mac   ## OS Dep
 
 def locateEmacsDiaryLinux(homedir):
     """ find the location of the diary file by first looking for ~/diary, then try looking for the diary file location in the ~/.emacs file.  If we cant find it return None.  ## OS Dependent.  """
-    defaultlocation = globalvar_DIARYFILE
+    defaultlocation = DIARY_FILE
     if os.path.exists(defaultlocation):
         return defaultlocation
     elif os.path.exists(homedir + '/diary'):
@@ -2948,22 +2947,26 @@ def main(argv=None):
     if emacsDiaryLocation is None:
         print "Unable to locate the emacs diary.  Please create a file in your home directory called diary"
         return 1
-    ENTRY_CONTENTION = globalvar_ENTRY_CONTENTION
-    opts, args = getopt.getopt(argv[1:], "hianpr", ["help", "init", "autocontention", "nocontention", "promptcontention", "readfromgoogleonly"])
+
+    entry_contention = ENTRY_CONTENTION
+    read_from_google_only = READ_FROM_GOOGLE_ONLY
     initialiseShelve = False
-    readFromGoogleOnly = globalvar_READ_FROM_GOOGLE_ONLY
+
+    opts, args = getopt.getopt(argv[1:], "hianpr", ["help", "init", "autocontention", "nocontention", "promptcontention", "readfromgoogleonly"])
+
+
     if len(opts) > 0:
         option = opts[0][0]
         if option == "--init" or option == "-i":
             initialiseShelve = True
         if option == "--readgoogleonly" or option == "-r":
-            readFromGoogleOnly = True
+            read_from_google_only = True
         elif option == "--autocontention" or option == "-a":
-            ENTRY_CONTENTION = 1
+            entry_contention = 1
         elif option == "--nocontention" or option == "-n":
-            ENTRY_CONTENTION = 2
+            entry_contention = 2
         elif option == "--promptcontention" or option == "-p":
-            ENTRY_CONTENTION = 0
+            entry_contention = 0
 
         elif option == "--help" or option == "-h":
             print "Using this script without any options or arguments will syncronizes the emacs\
@@ -2986,11 +2989,11 @@ def main(argv=None):
     elif len(args) == 1:
         gmailuser = args[0]
 
-        if globalvar_password is None or globalvar_password.strip() == '':
+        if PASSWORD is None or PASSWORD.strip() == '':
             print('enter gmail passwd:'),
             gmailpasswd = getpasswd()
         else:
-            gmailpasswd = globalvar_password
+            gmailpasswd = PASSWORD
     else:
         gmailuser = raw_input('enter gmail username:')
         print('enter gmail passwd:'),
