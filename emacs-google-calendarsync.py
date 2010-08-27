@@ -2967,7 +2967,7 @@ crond scheduler."""
 def main(argv=None):
     """ Using this script without any options or arguments will
    syncronizes the emacs and google calendars.  Optionally, the gmail
-   user name and password may be specified as a rguments; if they are
+   user name and password may be specified as arguments; if they are
    not, then they will be prompted upon execution.  Use option -i to
    delete the shelve when you want to initialize the emacs calendar """
 
