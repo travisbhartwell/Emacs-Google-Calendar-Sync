@@ -125,11 +125,8 @@ COMMENT_STATUS_ENUM = {'A': 'ACCEPTED',
 # Templates (OKAY, messy, but will clean up later)
 from templates import *
 
-def stripallarray(aTarget):
-    for i in range(len(aTarget)):
-        aTarget[i] = aTarget[i].strip()
-    return aTarget
-
+def strip_list(lst):
+    return [s.strip() for s in lst]
 
 def PadNewlinesWithSpace(source):
     """ This function is used on the CONTENT field so that when
@@ -218,9 +215,9 @@ def escstring(a_string):
             a_str.append('%')
         elif a_string[i] == "&":
             a_str.append('&')
-        a_str.append(string[i])
+        a_str.append(a_string[i])
 
-    target = ''.join(str)
+    target = ''.join(a_str)
     return target
 
 
@@ -296,7 +293,7 @@ def load_template(filename, escape=True):
     filecontent = globals()[locals()['filename']]
 
     test = filecontent.splitlines(True)
-    test = stripallarray(test)
+    test = strip_list(test)
     casestring = ''.join(test)
     casepat = re.compile(r'<(.+?)>(.+?)</')
     tpCases = casepat.findall(casestring)
