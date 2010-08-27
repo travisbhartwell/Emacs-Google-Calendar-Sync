@@ -1760,7 +1760,7 @@ def add_exceptions_to_record(dbgrecord, exceptions):
     return dbgrecord
 
 
-def address_exceptions(dbg, shelve, g2ekeymap, Exceptions, timeARangeString, CasesTemplate):
+def address_exceptions(dbg, shelve_data, g2ekeymap, Exceptions, timeARangeString, CasesTemplate):
     """ adds exception strings to recurring events with exceptions.  Also, changes the recurrence case if need be """
                            ###  This function depends on the preservation of event ids for recurrence exception instance records, and that their eventStatus is marked deleted in lieu of actually being deleted.
     flagRecurrenceUpdates = []
@@ -1778,14 +1778,14 @@ def address_exceptions(dbg, shelve, g2ekeymap, Exceptions, timeARangeString, Cas
             dbgrecord = add_exceptions_to_record(dbgrecord, dicExceptions[eventid])
             dbgrecord = update_full_entry_for_caseRec_record(dbgrecord, timeARangeString, CasesTemplate[caseRecname])
 
-            shelverecord = shelve.get(g2ekeymap.get(eventid))
+            shelverecord = shelve_data.get(g2ekeymap.get(eventid))
             if shelverecord != None and dbgrecord['EXCEPTIONSTRING'] != shelverecord.get('EXCEPTIONSTRING'):
                 flagRecurrenceUpdates = appendkey(flagRecurrenceUpdates, eventid)
             dbg[eventid] = dbgrecord.copy()
     return dbg, flagRecurrenceUpdates
 
 
-def handle_exceptions(readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap):
+def handle_exceptions(readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve_data, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap):
     """ this function interactively prompts the user to determine if an altered orphan was intented to be edited or deleted.  if the -n option was invoked, assume deleting in lieu of editing """
 
     if len(Orphaned) == 0 or readFromGoogleOnly:
@@ -1797,7 +1797,7 @@ def handle_exceptions(readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2
     dicUpdateorphans = {}
 
     modifiedorphans = [key for key in Orphaned if g2ekeymap.get(key) in delfromG]
-    delfromG = [key for key in delfromG if shelve[key]['eventid'] not in modifiedorphans]  ## delfromG cannot contain orphaned event ids
+    delfromG = [key for key in delfromG if shelve_data[key]['eventid'] not in modifiedorphans]  ## delfromG cannot contain orphaned event ids
                          ### check modifiedorphans against addG
     modifiedorphans = sortkeysbydate(dbg, modifiedorphans)
     addG = sortkeysbydate(dbe, addG)
@@ -1806,7 +1806,7 @@ def handle_exceptions(readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2
     for instancenum, orphan in zip(xrange(0, len(modifiedorphans)), modifiedorphans):
         if len(addG) != 0:
             if ENTRY_CONTENTION != 2:
-                print "Instance #", instancenum, ":", shelve[g2ekeymap[orphan]].get('fullentry')
+                print "Instance #", instancenum, ":", shelve_data[g2ekeymap[orphan]].get('fullentry')
                 answervalidated = False
 
                 while not answervalidated:
@@ -1960,14 +1960,17 @@ def get_google_calendar(username, passwd, time_min, casetimeARangeString, ap):
     except Exception, err:
         if err[0] == 'Incorrect username or password':
             print err
-            shelve.close()
+            # no shelve object passed in and shelve.close() is not a function
+            # shelve.close()
             sys.exit(1)
         print 'connection error'
         errorstatus = err[0].get('status')
         errorbody = err[0].get('body')
         if errorstatus == 302:           ## 302= redirect
             print errorbody, 'redirect to:', errorRedirectURI(errorbody)
-        shelve.close()
+
+        # no shelve object passed in and shelve.close() is not a function
+        # shelve.close()
         sys.exit(1)
 
     query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full')
@@ -2295,21 +2298,21 @@ def getKeystomodifyfromGREDACTED(dbg, dbshelf, identicalkeys, glastsynctime):
     return delfromE, addE, addEinTermsofGkeys, alsoaddtheseGkeystoE
 
 
-def get_keys_to_modify_from_g(dbg, delfromEalso, shelve, identicalkeys, glastsynctime):
+def get_keys_to_modify_from_g(dbg, delfromEalso, shelve_data, identicalkeys, glastsynctime):
     """ Returns some arrays of keys that are to be inserted into or deleted from the emacs Diary.  Any edited entries are deleted and reinserted """
                                                                     # identicalkeys are hashkeys that are the same in both the shelve and dbe
     dict = {}
     dictype = type(dict)
     gkeys = [key for key in dbg.keys() if type(dbg[key]) == dictype]
-    skeys = [key for key in shelve.keys() if type(shelve[key]) == dictype]
-    skeyeventids = [shelve[key].get('eventid') for key in skeys]
-    delfromE = [key for key in identicalkeys if shelve[key].get('eventid') not in gkeys]
+    skeys = [key for key in shelve_data.keys() if type(shelve_data[key]) == dictype]
+    skeyeventids = [shelve_data[key].get('eventid') for key in skeys]
+    delfromE = [key for key in identicalkeys if shelve_data[key].get('eventid') not in gkeys]
 
-    addE = [key for key in identicalkeys if key not in delfromE and dbg[shelve[key]['eventid']].get('modified') > glastsynctime]
+    addE = [key for key in identicalkeys if key not in delfromE and dbg[shelve_data[key]['eventid']].get('modified') > glastsynctime]
     #addE = [key for key in identicalkeys if key not in delfromE]    ## debug.
 
 
-    addEinTermsofGkeys = [shelve[key]['eventid'] for key in identicalkeys if key not in delfromE and dbg[shelve[key]['eventid']].get('modified') > glastsynctime]
+    addEinTermsofGkeys = [shelve_data[key]['eventid'] for key in identicalkeys if key not in delfromE and dbg[shelve_data[key]['eventid']].get('modified') > glastsynctime]
     #addEinTermsofGkeys = [dbshelf[key]['eventid'] for key in identicalkeys if key not in delfromE]
 
     #delfromE += addE                    #instead of editing simply delete and create a new entry
@@ -2344,7 +2347,7 @@ def convertTimetuple2GMT(tt):
     return a.timetuple()
 
 
-def update_orphans_in_gcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2ekeymap, feed):
+def update_orphans_in_gcal(dicUpdateorphans, dbe, shelve_data, gcal, editlinksmap, g2ekeymap, feed):
     ## all non-recurring events must be entered in terms of GMT
     dicFindTimeBeforeTitle = mapTimeBeforeTitles()
 
@@ -2407,7 +2410,7 @@ def update_orphans_in_gcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2
         print "-- Updated recurring event instance in Gcal to:", dbe[dicUpdateorphans[orphan]].get('fullentry')
         new_event = gcal.UpdateEvent(event.GetEditLink().href, event)
         dbe[dicUpdateorphans[orphan]]['editlink'] = new_event.GetEditLink().href
-        del shelve[g2ekeymap[orphan]]
+        del shelve_data[g2ekeymap[orphan]]
 
 
     return
@@ -2469,23 +2472,23 @@ def InsertEntryIntoGcal(entry, gcal, dicFindTimeBeforeTitle):
     return new_event.id.text, new_event.GetEditLink().href
 
 
-def insert_entries_into_gcal(addG, dbe, gcal, shelve):
+def insert_entries_into_gcal(addG, dbe, gcal, shelve_data):
     dicFindTimeBeforeTitle = mapTimeBeforeTitles()
     for key in addG:
         eventid, editlink = InsertEntryIntoGcal(dbe[key], gcal, dicFindTimeBeforeTitle)
         dbe[key]['eventid'] = eventid
         dbe[key]['editlink'] = editlink
-        shelve[key] = dbe[key].copy()
-        print "-- inserted from Diary to Gcal: " + shelve[key]['fullentry']
+        shelve_data[key] = dbe[key].copy()
+        print "-- inserted from Diary to Gcal: " + shelve_data[key]['fullentry']
         print
 
 
-def delete_entries_from_e(shelve, delfromE):
+def delete_entries_from_e(shelve_data, delfromE):
     for key in delfromE:
-        record = shelve.get(key)
+        record = shelve_data.get(key)
         if record != None:
             print "-- deleted from Diary: " + record.get('fullentry')
-            del shelve[key]
+            del shelve_data[key]
 
 
 def errorRedirectURI(body):
@@ -2509,10 +2512,10 @@ def errorRedirectURI(body):
         return body[pos2 + 6:pos - 2]
 
 
-def delete_entries_from_gcal(delG, delfromdbg, dbg, gcal, shelve, editlinksmap, g2ekeymap, DeleteOrphans):
+def delete_entries_from_gcal(delG, delfromdbg, dbg, gcal, shelve_data, editlinksmap, g2ekeymap, DeleteOrphans):
 
     for key in delG:
-        record = shelve.get(key)
+        record = shelve_data.get(key)
         if record != None:
             eventid = record.get('eventid')
             if eventid != None:
@@ -2520,17 +2523,17 @@ def delete_entries_from_gcal(delG, delfromdbg, dbg, gcal, shelve, editlinksmap, 
                 if editlink != None:
                     try:
                         gcal.DeleteEvent(editlink)
-                        print "-- deleted from Gcal and Diary: " + shelve[key]['fullentry']
+                        print "-- deleted from Gcal and Diary: " + shelve_data[key]['fullentry']
                     except Exception, err:             ## 302=Redirect received, but redirects_remaining <= 0
                         errorstatus = err[0].get('status')
                         errorbody = err[0].get('body')
-                        print "-- unable to delete " + shelve[key]['fullentry']
+                        print "-- unable to delete " + shelve_data[key]['fullentry']
                         if errorstatus != 404:           ## 404 being Not Found, so if its not Not Found, then assume its redirect
                             print errorbody, 'redirect to:', errorRedirectURI(errorbody)
-                            shelve.close()
+                            shelve_data.close()
                             sys.exit(1)
 
-                    del shelve[key]
+                    del shelve_data[key]
 
     for key in DeleteOrphans:
         editlink = editlinksmap.get(key)
@@ -2543,23 +2546,23 @@ def delete_entries_from_gcal(delG, delfromdbg, dbg, gcal, shelve, editlinksmap, 
             print "-- unable to delete from gcal (probably already deleted): " + dbg[key].get('fullentry')
             if errorstatus != 404:           ## 404 being Not Found, so if its not Not Found, then assume its redirect
                 print errorbody, 'redirect to:', errorRedirectURI(errorbody)
-                shelve.close()
+                shelve_data.close()
                 sys.exit(1)
 
-        del shelve[g2ekeymap[key]]
+        del shelve_data[g2ekeymap[key]]
 
 
-def insert_entries_edited_by_diary_to_e(addE, dbe, shelve):
+def insert_entries_edited_by_diary_to_e(addE, dbe, shelve_data):
     for key in addE:
-        shelve[key] = dbe[key].copy()
-        print "-- insert edit into Diary: " + shelve[key]['fullentry']
+        shelve_data[key] = dbe[key].copy()
+        print "-- insert edit into Diary: " + shelve_data[key]['fullentry']
 
 
-def insert_entries_into_e(addGkeystoE, shelve, dbg):
+def insert_entries_into_e(addGkeystoE, shelve_data, dbg):
     for gkey in addGkeystoE:
         entrypid = str(hash(dbg[gkey]['fullentry']))
         dbg['entrypid'] = entrypid
-        shelve[entrypid] = dbg[gkey].copy()
+        shelve_data[entrypid] = dbg[gkey].copy()
         print "-- inserted to Diary: " + dbg[gkey]['fullentry']
 
 
@@ -2605,19 +2608,19 @@ def sortkeysbydate(db, keys):
     return target
 
 
-def write_emacs_diary(emacsDiaryLocation, shelve, diaryheader, unrecognized_diary_entries):
-    index = createIndexFromShelve(shelve)
+def write_emacs_diary(emacsDiaryLocation, shelve_data, diaryheader, unrecognized_diary_entries):
+    index = createIndexFromShelve(shelve_data)
     f = open(emacsDiaryLocation, 'w')
     f.seek(0)
     if diaryheader != "":
         f.write(diaryheader + '\n')
     comment_status_enum = {'A': 'ACCEPTED', 'D': 'DECLINED', 'I': 'INVITED', 'T': 'TENTATIVE'}
     for row in index:   ### row[1] contains the ekeys and row[0] contains the order index
-        f.write(shelve[row[1]].setdefault('recurrencedesc', '') + shelve[row[1]].get('fullentry') + '\n')
+        f.write(shelve_data[row[1]].setdefault('recurrencedesc', '') + shelve_data[row[1]].get('fullentry') + '\n')
 
-        if 'comment_entries' in shelve[row[1]] and len(shelve[row[1]].get('comment_entries')) > 0 and shelve[row[1]]['comment_entries'][0].get('status') != None and shelve[row[1]]['comment_entries'][0].get('status') != '':
-            f.write(' * EGCSync ' + shelve[row[1]].get('comment_title') + '\n')
-            for commententry in shelve[row[1]].get('comment_entries'):
+        if 'comment_entries' in shelve_data[row[1]] and len(shelve_data[row[1]].get('comment_entries')) > 0 and shelve_data[row[1]]['comment_entries'][0].get('status') != None and shelve_data[row[1]]['comment_entries'][0].get('status') != '':
+            f.write(' * EGCSync ' + shelve_data[row[1]].get('comment_title') + '\n')
+            for commententry in shelve_data[row[1]].get('comment_entries'):
                 f.write(' ** ' + commententry.get('name') + "'s comments\n")
                 #f.write('  :PROPERTIES:\n')
                 comment_status = commententry.get('status')
@@ -2633,7 +2636,7 @@ def write_emacs_diary(emacsDiaryLocation, shelve, diaryheader, unrecognized_diar
     f.close()
 
 
-def close_shelve_and_mark_sync_times(emacsDiaryLocation, shelve, gcal):
+def close_shelve_and_mark_sync_times(emacsDiaryLocation, shelve_data, gcal):
     query = gdata.calendar.service.CalendarEventQuery('default', 'private',
           'full')
     query.start_min = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime())
@@ -2641,11 +2644,11 @@ def close_shelve_and_mark_sync_times(emacsDiaryLocation, shelve, gcal):
     #query.updated_min = start_date
     feed = gcal.CalendarQuery(query)
 
-    shelve['updated-e'] = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)
-    shelve['updated-g'] = time.strptime(feed.updated.text, '%Y-%m-%dT%H:%M:%S.000Z')
+    shelve_data['updated-e'] = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)
+    shelve_data['updated-g'] = time.strptime(feed.updated.text, '%Y-%m-%dT%H:%M:%S.000Z')
 
     del gcal
-    shelve.close()
+    shelve_data.close()
 
 
 def InsertCommentstoGcal(dbe, gcal):
@@ -2658,12 +2661,12 @@ def InsertCommentstoGcal(dbe, gcal):
             #comment_entry.link[1] = comment_editlink
 
 
-def update_attendee_status_to_gcal(username, identicalkeys, g2ekeymap, dbe, dbg, shelve, gcal, feed, editlinksmap):
+def update_attendee_status_to_gcal(username, identicalkeys, g2ekeymap, dbe, dbg, shelve_data, gcal, feed, editlinksmap):
     #return shelve, gcal, feed
     comment_status_enum = {'A': 'ACCEPTED', 'D': 'DECLINED', 'I': 'INVITED', 'T': 'TENTATIVE'}
-    attendeestatus_modified_in_diary = [shelve[key].get('eventid') for key in identicalkeys if shelve[key].get('comment_owner_status') != dbe[key].get('comment_owner_status')]
+    attendeestatus_modified_in_diary = [shelve_data[key].get('eventid') for key in identicalkeys if shelve_data[key].get('comment_owner_status') != dbe[key].get('comment_owner_status')]
     for key in attendeestatus_modified_in_diary:
-        if key in dbg and 'comment_owner_status' in dbg[key] and shelve[g2ekeymap.get(key)].get('comment_owner_status') == dbg[key].get('comment_owner_status'):
+        if key in dbg and 'comment_owner_status' in dbg[key] and shelve_data[g2ekeymap.get(key)].get('comment_owner_status') == dbg[key].get('comment_owner_status'):
             shelvekey = g2ekeymap[key]
             idxfeed = dbg[key].get('idxfeed')
             entrywho = feed.entry[idxfeed].who
@@ -2682,43 +2685,43 @@ def update_attendee_status_to_gcal(username, identicalkeys, g2ekeymap, dbe, dbg,
                 new_event = gcal.UpdateEvent(editlink, feed.entry[idxfeed])
                 new_editlink = new_event.GetEditLink()
                 editlinksmap[key] = new_editlink
-                shelve[shelvekey]['editlink'] = new_editlink
+                shelve_data[shelvekey]['editlink'] = new_editlink
 
-    return shelve, gcal, feed, editlinksmap
+    return shelve_data, gcal, feed, editlinksmap
 
 
-def update_comments_to_gcal(identicalkeys, g2ekeymap, dbe, dbg, shelve, gcal):
+def update_comments_to_gcal(identicalkeys, g2ekeymap, dbe, dbg, shelve_data, gcal):
     """ this function will not work until google fixes its api.  The google calendar supplies a writable view of the comment feed to the api, but not the actual feed itself; updating the copy does not have any effect on the comments displayed in the google calendar web gui """
-    return shelve, gcal #debug
-    comments_modified_in_diary = [shelve[key].get('eventid') for key in identicalkeys if shelve[key].get('comment_owner_hash') != dbe[key].get('comment_owner_hash')]
+    return shelve_data, gcal #debug
+    comments_modified_in_diary = [shelve_data[key].get('eventid') for key in identicalkeys if shelve_data[key].get('comment_owner_hash') != dbe[key].get('comment_owner_hash')]
     for key in comments_modified_in_diary:
-        if key in dbg and shelve[g2ekeymap.get(key)].get('comment_owner_hash') == dbg[key].get('comment_owner_hash'):
+        if key in dbg and shelve_data[g2ekeymap.get(key)].get('comment_owner_hash') == dbg[key].get('comment_owner_hash'):
             shelvekey = g2ekeymap[key]
             comment_entry = dbg[key].get('comment_owner_entry')
             comment_entry.content.text = dbe[shelvekey].get('comment_owner_content')
             print "-- updated comment for ", dbg[key].get('fullentry'), ":", dbg[key].get('comment_owner_content'), " CHANGED TO: ", comment_entry.content.text
             new_commentEvent = gcal.UpdateEvent(comment_entry.GetEditLink().href, comment_entry)
-            shelve[shelvekey]['comment_owner_editlink'] = new_commentEvent.GetEditLink()
-    return shelve, gcal
+            shelve_data[shelvekey]['comment_owner_editlink'] = new_commentEvent.GetEditLink()
+    return shelve_data, gcal
 
 
-def update_edit_links(dbg, shelve):
+def update_edit_links(dbg, shelve_data):
     ekeyschangedinG = []
     gkeyschangedinG = []
     editlinksmap = {}               # editlinksmap maps gkey to eventid
     g2ekeymap = {}
-    for key in shelve.keys():
-        if type(shelve[key]) == DictionaryDefinedType:
-            dbgrecord = dbg.get(shelve[key]['eventid'])
+    for key in shelve_data.keys():
+        if type(shelve_data[key]) == DictionaryDefinedType:
+            dbgrecord = dbg.get(shelve_data[key]['eventid'])
             if dbgrecord != None:
                 eventid = dbgrecord.get('eventid')
                 editlinkg = dbgrecord.get('editlink')
                 editlinksmap[eventid] = editlinkg     #create a keymap for editlinks from g keys
                 g2ekeymap[eventid] = key              #create a keymap from g keys to e keys also
-                if editlinkg != shelve[key]['editlink']:
+                if editlinkg != shelve_data[key]['editlink']:
 
                     ekeyschangedinG.append(key)
-                    gkeyschangedinG.append(shelve[key]['eventid'])
+                    gkeyschangedinG.append(shelve_data[key]['eventid'])
 
 
     for key in dbg.keys():
@@ -2758,7 +2761,7 @@ def removekey(keylist, keytoremove):
     return keylist2
 
 
-def handle_contentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG, gkeyschangedinG, shelve, dbg, dbe, g2ekeymap):
+def handle_contentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG, gkeyschangedinG, shelve_data, dbg, dbe, g2ekeymap):
     """entry contention happens when both a diary entry and its
     respective google calendar entry are modified before a sync.
     There is no way to precisely tell which diary entry was modified
@@ -2770,7 +2773,7 @@ def handle_contentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delf
         ENTRY_CONTENTION = 2
     dict = {}
     dictype = type(dict)
-    contendingE = [shelve[key].get('eventid') for key in ekeyschangedinG if key in delfromG]
+    contendingE = [shelve_data[key].get('eventid') for key in ekeyschangedinG if key in delfromG]
 
     dbekeys = [key for key in dbe.keys() if type(dbe[key] == dictype)]
     contendingdbe = [key for key in dbekeys if key not in identicalkeys]    ### contending entries from dbe will not appear in the identicalkeys list
@@ -3042,7 +3045,7 @@ in your home directory called diary"
         print('enter gmail passwd:'),
         gmail_passwd = get_passwd()
 
-    shelve, last_sync_google, last_sync_emacs = \
+    shelve_data, last_sync_google, last_sync_emacs = \
         get_shelve_and_last_sync_times(emacs_diary_location,
                                        gmail_user,
                                        initialise_shelve)
@@ -3058,7 +3061,7 @@ in your home directory called diary"
                         initialise_shelve,
                         times_template['caseTimeARange'],
                         cases_template,
-                        shelve)
+                        shelve_data)
 
     google_db, gcal, canceled, orphaned, feed = \
         get_google_calendar(gmail_user,
@@ -3083,7 +3086,7 @@ in your home directory called diary"
     e_keys_changed_in_g, \
         g_keys_changed_in_g, \
         g_to_e_key_map, \
-        edit_links_map = update_edit_links(google_db, shelve)
+        edit_links_map = update_edit_links(google_db, shelve_data)
 
    # change the casename of recurrence events that contain exceptions
    # and add the exceptions to their EXCEPTIONSTRING.  note: the term
@@ -3091,7 +3094,7 @@ in your home directory called diary"
    # recurrence exceptions, and not error exceptions
     google_db, flag_recurrence_updates = \
         address_exceptions(google_db,
-                           shelve,
+                           shelve_data,
                            g_to_e_key_map,
                            orphaned + canceled,
                            times_template['caseTimeARange'],
@@ -3102,7 +3105,7 @@ in your home directory called diary"
     # identical_keys are hashkeys that are the same in both the shelve
     # and emacs_db, meaning the entries are unchanged by emacs diary
     identical_keys, del_from_g, add_to_g = \
-        get_keys_to_modify_from_e(emacs_db, shelve)
+        get_keys_to_modify_from_e(emacs_db, shelve_data)
 
     del_from_g, \
         add_to_g, \
@@ -3111,7 +3114,7 @@ in your home directory called diary"
         emacs_db = handle_exceptions(read_from_google_only,
                                      entry_contention,
                                      google_db,
-                                     shelve,
+                                     shelve_data,
                                      emacs_db,
                                      g_to_e_key_map,
                                      orphaned,
@@ -3136,7 +3139,7 @@ in your home directory called diary"
                                                  add_to_g,
                                                  e_keys_changed_in_g,
                                                  g_keys_changed_in_g,
-                                                 shelve,
+                                                 shelve_data,
                                                  google_db,
                                                  emacs_db,
                                                  g_to_e_key_map)
@@ -3147,7 +3150,7 @@ in your home directory called diary"
         newly_added_g_keys_to_add_to_e = \
         get_keys_to_modify_from_g(google_db,
                                   del_from_e,
-                                  shelve,
+                                  shelve_data,
                                   identical_keys,
                                   last_sync_google)
 
@@ -3158,7 +3161,7 @@ in your home directory called diary"
         append_to_keys(newly_added_g_keys_to_add_to_e,
                        add_edit_to_e)
 
-    # if orphans are modified, their new value must be added to the shelve
+    # if orphans are modified, their new value must be added to the shelve_data
     add_e = append_to_keys(add_e, dict_update_orphans.values())
 
     del_from_e = append_to_keys(del_from_e, e_keys_changed_in_g)
@@ -3188,19 +3191,19 @@ in your home directory called diary"
         gcal_was_modified = True
 
     if not read_from_google_only:
-        shelve, gcal = update_comments_to_gcal(identical_keys,
+        shelve_data, gcal = update_comments_to_gcal(identical_keys,
                                                g_to_e_key_map,
                                                emacs_db,
                                                google_db,
-                                               shelve,
+                                               shelve_data,
                                                gcal)
-        shelve, gcal, feed, edit_links_map = \
+        shelve_data, gcal, feed, edit_links_map = \
             update_attendee_status_to_gcal(gmail_user,
                                            identical_keys,
                                            g_to_e_key_map,
                                            emacs_db,
                                            google_db,
-                                           shelve,
+                                           shelve_data,
                                            gcal,
                                            feed,
                                            edit_links_map)
@@ -3214,20 +3217,20 @@ in your home directory called diary"
             initialise_shelve \
             or len(dict_update_orphans) > 0 or \
             len(delete_orphans) > 0:
-        delete_entries_from_e(shelve, del_from_e)
+        delete_entries_from_e(shelve_data, del_from_e)
 
         if not read_from_google_only:
             delete_entries_from_gcal(del_from_g,
                                      del_from_google_db,
                                      google_db,
                                      gcal,
-                                     shelve,
+                                     shelve_data,
                                      edit_links_map,
                                      g_to_e_key_map,
                                      delete_orphans)
             update_orphans_in_gcal(dict_update_orphans,
                                    emacs_db,
-                                   shelve,
+                                   shelve_data,
                                    gcal,
                                    edit_links_map,
                                    g_to_e_key_map,
@@ -3235,20 +3238,20 @@ in your home directory called diary"
 
         if diary_was_modified:
             if not read_from_google_only:
-                insert_entries_into_gcal(add_to_g, emacs_db, gcal, shelve)
-            insert_entries_edited_by_diary_to_e(add_e, emacs_db, shelve)
+                insert_entries_into_gcal(add_to_g, emacs_db, gcal, shelve_data)
+            insert_entries_edited_by_diary_to_e(add_e, emacs_db, shelve_data)
 
         if gcal_was_modified or len(flag_recurrence_updates) > 0:
-            insert_entries_into_e(add_e_in_terms_of_g, shelve, google_db)
+            insert_entries_into_e(add_e_in_terms_of_g, shelve_data, google_db)
 
         write_emacs_diary(emacs_diary_location,
-                          shelve,
+                          shelve_data,
                           diary_header,
                           unrecognized_diary_entries)
     else:
         print "-- No Changes"
 
-    close_shelve_and_mark_sync_times(emacs_diary_location, shelve, gcal)
+    close_shelve_and_mark_sync_times(emacs_diary_location, shelve_data, gcal)
 
 
 if __name__ == '__main__':
