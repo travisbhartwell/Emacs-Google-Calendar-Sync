@@ -6,6 +6,18 @@
 # every penny I've got, the number of pennies of which should be just
 # enough to fit into a small envelope to mail to you.  Hopefully, it
 # will also cover postage.
+import datetime
+import getopt
+import os
+import re
+import shelve
+import sys
+import time
+
+import atom.service
+import gdata.calendar.service
+
+from templates import *
 
 # optional password.
 # If this value is used, make sure to change the
@@ -49,7 +61,7 @@ ENTRY_CONTENTION = 0
 
 # this will allow for multiple read-only calendars to be viewed in the
 # same dairy.  The multiple calendar support is not yet implemented
-DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE = '#@!z8#'
+DISCARD_ENTRY_FLAG = '#@!z8#'
 
 # which format to use for entries synced from gcal to diary?: 0 =
 # monthabbreviated day, year      1 = month/day/year
@@ -80,19 +92,6 @@ CHANGING_RECURRING_EVENT_DESCRIPTIONS_EDITS_THE_ENTRY = False
 # each diary entry   False = No comments
 DISPLAY_COMMENTS = True
 
-import gdata.calendar.service
-import gdata.service
-import atom.service
-import gdata.calendar
-import atom
-import getopt
-import sys
-import time
-import datetime
-import re
-import os
-import shelve
-
 if GMT_OFFSET is None:
     GMT_OFFSET = time.timezone / 60 / 60
 
@@ -105,7 +104,7 @@ DICTIONARY_DEFINED_TYPE = type({})
 
 # Date and Time Format Constants
 ISO_DATE_FMT = '%Y-%m-%dT%H:%M:%S.000Z'
-TIMESTAMP_FMT =  '%Y-%m-%dT%H:%M:%S'
+TIMESTAMP_FMT = '%Y-%m-%dT%H:%M:%S'
 ORG_DATE_FMT = '[%Y-%m-%d %a %H:%M:%S]'
 
 # General String Constants
@@ -123,10 +122,11 @@ COMMENT_STATUS_ENUM = {'A': 'ACCEPTED',
                        'T': 'TENTATIVE'}
 
 # Templates (OKAY, messy, but will clean up later)
-from templates import *
+
 
 def strip_list(lst):
     return [s.strip() for s in lst]
+
 
 def PadNewlinesWithSpace(source):
     """ This function is used on the CONTENT field so that when
@@ -480,7 +480,8 @@ def ISOtoORGtime(isotime):
 
 
 def ISOtoTimestamp(isotime):
-    return time.mktime(time.strptime(isotime, ISO_DATE_FMT)) - 3600 * GMT_OFFSET
+    return time.mktime(time.strptime(isotime, ISO_DATE_FMT)) - \
+        3600 * GMT_OFFSET
 
 
 def sdeltaDatetime(offsetdays):
@@ -550,7 +551,11 @@ def HandleLooseEmacsEnds(db):
         if db[dbkey]['STAMPM'].upper()[0] == 'A' and sthour == 12:
             sthour = 0
             db[dbkey]['STHOUR'] = '12'
-        stdatetime = datetime.datetime(styear, stmonth, stday, sthour, stminute)
+        stdatetime = datetime.datetime(styear,
+                                       stmonth,
+                                       stday,
+                                       sthour,
+                                       stminute)
         stdatetimestr = stdatetime.isoformat()
         stdatetimestr = stdatetimestr.replace(':', '')
         stdatetimestr = stdatetimestr.replace('-', '')
@@ -904,7 +909,7 @@ def get_emacs_diary(login,
                     entry['comment_owner_status'] = comment_owner_status
 
                 # this is for a future feature
-                if fullentry.find(DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:
+                if fullentry.find(DISCARD_ENTRY_FLAG) == -1:
                     details.append(entry['DETAIL'])
                     entry['entrycase'] = idxCase
                     entry['gcase'] = e2gcase_table[idxCase]
@@ -929,7 +934,8 @@ def get_emacs_diary(login,
                     entry['entrypid'] = entrypid
                     db[entrypid] = entry
                 deletefromfile.append([entry_start_pos, entry_end_pos])
-                # find only first match for pat[idxCase] in datefields[idxDiary]
+                # find only first match for pat[idxCase] in
+                # datefields[idxDiary]
                 break
     newfile = []
     # preserve unrecognized entries and put them in newfile
@@ -2269,6 +2275,7 @@ def close_shelve_and_mark_sync_times(emacs_diary_location,
 def InsertCommentstoGcal(emacs_db, gcal):
     return
 
+
 def update_attendee_status_to_gcal(user_name,
                                    identical_keys,
                                    g_to_e_key_map,
@@ -2520,7 +2527,7 @@ def handle_contentions(read_from_google_only,
         delfromgoogle_db, \
         addEdit2E, \
         e_keys_changed_in_g, \
-        g_keys_changed_in_g \
+        g_keys_changed_in_g
 
 
 class _Getch:
@@ -2582,8 +2589,6 @@ def get_passwd():
     return passwd[0:len(passwd) - 1]
 
 
-# should work for windows and linux but not mac
-# OS Dependent
 def get_home_dir():
     try:
         from win32com.shell import shellcon, shell
