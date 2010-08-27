@@ -108,7 +108,7 @@ TIMESTAMP_FMT = '%Y-%m-%dT%H:%M:%S'
 ORG_DATE_FMT = '[%Y-%m-%d %a %H:%M:%S]'
 
 # General String Constants
-NEWLINE = "\n"
+NEWLINE = '\n'
 NEWLINE_AND_END = NEWLINE + 'end'
 
 # General date and time constants
@@ -128,58 +128,49 @@ def strip_list(lst):
     return [s.strip() for s in lst]
 
 
-def PadNewlinesWithSpace(source):
+def pad_newlines_with_space(source):
     """ This function is used on the CONTENT field so that when
     written to the emacs diary, multiple lines of description can be
     recognized as pertaining to a single respective event."""
-    lines = source.split('\n')
-    if len(lines) < 2:
-        return source
-    alllinesbutfirst = lines[1:]
-    target = []
-    target.append(lines[0] + '\n')
-    for line in alllinesbutfirst:
-        if len(line) > 0 and line[0] != ' ':
-            target.append(' ' + line + '\n')
-    return ''.join(target)
+    return pad_newlines_with_n_spaces(source, 1)
 
 
-def PadNewlinesWithNSpaces(source, N):
+def pad_newlines_with_n_spaces(source, n):
     """ This function is used on the CONTENT field so that when
     written to the emacs diary, multiple lines of description can be
     recognized as pertaining to a single respective event. N signifies
     margin space """
-    lines = source.split('\n')
+    lines = source.split(NEWLINE)
     if len(lines) < 2:
         return source
-    alllinesbutfirst = lines[1:]
+    rest = lines[1:]
     target = []
-    target.append(lines[0] + '\n')
-    for line in alllinesbutfirst:
+    target.append(lines[0] + NEWLINE)
+    for line in rest:
         if len(line) > 0 and line[0] != ' ':
-            target.append(''.zfill(N).replace('0', ' ') + line + '\n')
+            target.append(''.zfill(n).replace('0', ' ') + line + NEWLINE)
     return ''.join(target)
 
 
 def PadAllNewlinesWithSpace(source):
     """ This function is used on CONTENT of parsed gcal entry.  """
-    lines = source.split('\n')
+    lines = source.split(NEWLINE)
     target = []
     for line in lines:
         if len(line) > 0:
-            target.append(' ' + line.strip() + '\n')
+            target.append(' ' + line.strip() + NEWLINE)
     return ''.join(target)
 
 
 def RemoveNewlinesSpacePadding(source):
     """ This function is used on the CONTENT field of an entry being
     sent to gcal."""
-    lines = source.split('\n')
+    lines = source.split(NEWLINE)
     if len(source) == 0:
         return ""
     target = []
     for line in lines:
-        target.append(line.strip() + '\n')
+        target.append(line.strip() + NEWLINE)
     return ''.join(target).strip()
 
 
@@ -193,11 +184,11 @@ def StripExtraNewLines(string):
     up the hash."""
     pos = string.find('\n\n')
     while  pos != -1:
-        string = string.replace('\n\n', '\n')
+        string = string.replace('\n\n', NEWLINE)
         pos = string.find('\n\n')
-    if string == '\n':
+    if string == NEWLINE:
         string = " "
-    elif len(string) > 1 and string[-1] == '\n':
+    elif len(string) > 1 and string[-1] == NEWLINE:
         string = string[0:-1]
     return string
 
@@ -671,7 +662,7 @@ def getpreviousline(filestrings, pos):
     current = pos - 2
     while current > 0:
         current -= 1
-        if filestrings[current] == '\n':
+        if filestrings[current] == NEWLINE:
             return filestrings[current + 1:pos - 1] + '\n\nend', current + 1
     return filestrings[:pos], 0
 
@@ -811,14 +802,14 @@ def parsedates(f):
     entry_start = []
     date_end = []
     entry_end = []
-    f = '\n' + f
+    f = NEWLINE + f
     found_date = False
     found_date_end = False
     for i in xrange(1, len(f)):
         c = f[i]
         lastc = f[i-1]
         #print c
-        if lastc == '\n':
+        if lastc == NEWLINE:
             if found_date and not found_date_end:
                 date_end.append(i)
                 # re.search will fail unless there is text after the
@@ -832,7 +823,7 @@ def parsedates(f):
                 entries.append(f[entry_start[len(entry_start)-1]:i] +
                                NEWLINE_AND_END)
                 found_date = False
-            if c != '\n' and c != ' ' and not found_date:
+            if c != NEWLINE and c != ' ' and not found_date:
                 entry_start.append(i-1)
                 found_date = True
                 found_date_end = False
@@ -872,8 +863,8 @@ def get_emacs_diary(login,
     # preserve any header information in the diary
     while len(a_file) > 13 and lookforheaders:
         if a_file[:13] == "&%%(org-diary" or a_file[:12] == "%%(org-diary":
-            newlinepos = a_file.find('\n')
-            diaryheader = diaryheader + a_file[:newlinepos] + '\n'
+            newlinepos = a_file.find(NEWLINE)
+            diaryheader = diaryheader + a_file[:newlinepos] + NEWLINE
             a_file = a_file[newlinepos + 1:]
         else:
             lookforheaders = False
@@ -974,7 +965,7 @@ def recGetFieldTZID(recurrence):
 def recGetField(fieldname, recurrence):
     pos = recurrence.find(fieldname)
     pos = recurrence.find(':', pos)
-    posend = recurrence.find('\n', pos)
+    posend = recurrence.find(NEWLINE, pos)
     return recurrence[pos + 1:posend]
 
 
@@ -1087,7 +1078,7 @@ def update_full_entry_for_caseRec_record(record,
     content = record.get('CONTENT')
     title = record.get('TITLE')
     if content != "":
-        content = '\n' + content
+        content = NEWLINE + content
     if record.get('alldayevent'):
         detail = title + content
     elif formatTimeBeforeTitle:
@@ -2239,7 +2230,7 @@ def write_emacs_diary(emacs_diary_location,
                         NEWLINE)
                 if 'published' in commententry:
                     f.write(' *** content: ' +
-                            PadNewlinesWithNSpaces(commententry.get('content') +
+                            pad_newlines_with_n_spaces(commententry.get('content') +
                                                    NEWLINE, 4))
                     f.write(' *** published: ' +
                             ISOtoORGtime(commententry.get('published')) +
