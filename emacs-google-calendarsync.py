@@ -1018,7 +1018,7 @@ def load_template(filename, escape=True):
     escapedstring = ''
     for i in range(len(tpCases)):
         casename = tpCases[i][0]
-        if escape is True:
+        if escape:
             escapedstring = escstring(tpCases[i][1])  #escape (,),%, &
         else:
             escapedstring = tpCases[i][1]
@@ -1308,7 +1308,7 @@ def HandleLooseEmacsEnds(db):
         enddatetimestr = enddatetimestr.replace(':', '')
         enddatetimestr = enddatetimestr.replace('-', '')
 
-        if alldayevent is True:
+        if alldayevent:
             db[dbkey]['alldayevent'] = True
             enddatetimestr = enddatetimestr[:8]
             stdatetimestr = stdatetimestr[:8]
@@ -1488,16 +1488,16 @@ def parsedates(file):
         lastc = file[i-1]
         #print c
         if lastc == '\n':
-            if found_date is True and found_date_end is False:
+            if found_date and not found_date_end:
                 date_end.append(i)
                 dates.append(file[entry_start[len(entry_start)-1]:i] + '\nend')  ## re.search will fail unless there is text after the newline, i.e. '\nend'
                 found_date_end = True
 
-            if c != ' '  and found_date is True:
+            if c != ' ' and found_date:
                 entry_end.append(i-1)
                 entries.append(file[entry_start[len(entry_start)-1]:i] + '\nend')
                 found_date = False
-            if c != '\n' and c != ' ' and found_date is False:
+            if c != '\n' and c != ' ' and not found_date:
                 entry_start.append(i-1)
                 found_date = True
                 found_date_end = False
@@ -1525,14 +1525,14 @@ def get_emacs_diary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTemp
     diaryheader = ""
     lookforheaders = True
     file = file + "\nend"            ## need this or last entry wont be read
-    while len(file) > 13 and lookforheaders is True:   ## preserve any header information in the diary
+    while len(file) > 13 and lookforheaders:   ## preserve any header information in the diary
         if file[:13] == "&%%(org-diary" or file[:12] == "%%(org-diary":
             newlinepos = file.find('\n')
             diaryheader = diaryheader + file[:newlinepos] + '\n'
             file = file[newlinepos + 1:]
         else:
             lookforheaders = False
-    if initialiseShelve is True:
+    if initialiseShelve:
         return db, diaryheader, ""                ## unrecognized_entries is "", the last return value
 
     e2gcase_table = load_ref_table('e2gcase_table')
@@ -1713,9 +1713,9 @@ def update_full_entry_for_caseRec_record(record, TimeARangeString, CaseTemplateS
     title = record.get('TITLE')
     if content != "":
         content = '\n' + content
-    if record.get('alldayevent') is True:
+    if record.get('alldayevent'):
         detail = title + content
-    elif  formatTimeBeforeTitle is True:
+    elif formatTimeBeforeTitle:
         detail = TimeARangeString % record + ' ' + title + content
     else:
         detail = title + ' ' + TimeARangeString % record + content
@@ -1788,7 +1788,7 @@ def address_exceptions(dbg, shelve, g2ekeymap, Exceptions, timeARangeString, Cas
 def handle_exceptions(readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap):
     """ this function interactively prompts the user to determine if an altered orphan was intented to be edited or deleted.  if the -n option was invoked, assume deleting in lieu of editing """
 
-    if len(Orphaned) == 0 or readFromGoogleOnly is True:
+    if len(Orphaned) == 0 or readFromGoogleOnly:
         return delfromG, addG, {}, [], dbe
 #  if len(Canceled)> 0:
 #    for cancel in Canceled:
@@ -1809,7 +1809,7 @@ def handle_exceptions(readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2
                 print "Instance #", instancenum, ":", shelve[g2ekeymap[orphan]].get('fullentry')
                 answervalidated = False
 
-                while answervalidated is False:
+                while not answervalidated:
                     answer = raw_input("Were you intending on Updating or Deleting this gcal entry?  U for Update, D for Delete, S for show related recurrence event:")
                     answer = answer.upper()
                     if answer == 'D':
@@ -1828,7 +1828,7 @@ def handle_exceptions(readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2
                 for i, key in zip(xrange(len(addG)), addG):
                     print "entry", i, ":", dbe[key].get('fullentry')
                 answervalidated = False
-                while answervalidated is False:
+                while not answervalidated:
                     answer = raw_input("Which of the above diary entries represents the update? S for show related recurrence event:")
                     if answer == "S" or answer == "s":
                         print "Recurrence event:", dbg[orphan[:-17]].get('fullentry')
@@ -2006,7 +2006,7 @@ def get_google_calendar(username, passwd, time_min, casetimeARangeString, ap):
         #pdb.set_trace() #debug
         comment_emails = []
         commentsarray = []
-        if DISPLAY_COMMENTS is True:
+        if DISPLAY_COMMENTS:
             attendeeStatus, attendeeName = get_attendeeStatus(an_event.who)
             if an_event.comments != None:
 #      commentfeed = gcal.CalendarQuery(commentquery)
@@ -2133,7 +2133,7 @@ def get_google_calendar(username, passwd, time_min, casetimeARangeString, ap):
                 entry['ENDMINUTE'] = enddatetime[11:13]
                 if content != "":
                     content = '\n' + content
-                if formatTimeBeforeTitle is True:
+                if formatTimeBeforeTitle:
                     entry['DETAIL'] = casetimeARangeString % entry + ' ' + entry['TITLE'] + content
                 else:
                     entry['DETAIL'] = entry['TITLE'] + " " + casetimeARangeString % entry + content
@@ -2201,7 +2201,7 @@ def get_google_calendar(username, passwd, time_min, casetimeARangeString, ap):
             caseinterval = 'Interval'
         bydayg = recGetRRuleField('BYDAY', rrule)
         db[recurrencekeys[i]]['BYDAYG'] = bydayg
-        if len(bydayg) > 0 and (bydayg[0].isdigit() is True or bydayg[0] == '-'):
+        if len(bydayg) > 0 and (bydayg[0].isdigit() or bydayg[0] == '-'):
             casegeneral = 'bydayofweek'
             whichweek, whichday = g2ewhichweek(bydayg)
             db[recurrencekeys[i]]['WHICHWEEK'] = whichweek
@@ -2234,7 +2234,7 @@ def get_google_calendar(username, passwd, time_min, casetimeARangeString, ap):
                 if db[recurrencekeys[i]]['ENDHOUR'] == '0':
                     db[recurrencekeys[i]]['ENDHOUR'] = '12'
             db[recurrencekeys[i]]['ENDMINUTE'] = dtend[11:13]
-            if db[recurrencekeys[i]]['formatTimeBeforeTitle'] is True:
+            if db[recurrencekeys[i]]['formatTimeBeforeTitle']:
                 if content != "":
                     content = '\n' + content
                 db[recurrencekeys[i]]['DETAIL'] = casetimeARangeString % db[recurrencekeys[i]] + ' ' + db[recurrencekeys[i]]['TITLE'] + content
@@ -2327,7 +2327,7 @@ def get_shelve_and_last_sync_times(emacsDiaryLocation, gmailuser, initialiseShel
     postfix = str(abs(hash(gmailuser)))
     shelvenamefq = shelvepath + 'egcsyncshelve' + postfix + '.dat'
     f = shelve.open(shelvenamefq)
-    if f == {} or initialiseShelve is True:
+    if f == {} or initialiseShelve:
         for key in f.keys():
             del f[key]
         f['updated-e'] = time.gmtime()
@@ -2369,7 +2369,7 @@ def update_orphans_in_gcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2
             timetuple_dtstart = convertTimetuple2GMT(timetuple_dtstart)
             timetuple_dtend = entry['timetuple_dtend']
             timetuple_dtend = convertTimetuple2GMT(timetuple_dtend)
-            if entry['alldayevent'] is True:
+            if entry['alldayevent']:
                 start_time = time.strftime('%Y-%m-%d', timetuple_dtstart)
                 end_time = time.strftime('%Y-%m-%d', timetuple_dtend)
             else:
@@ -2432,7 +2432,7 @@ def InsertEntryIntoGcal(entry, gcal, dicFindTimeBeforeTitle):
         timetuple_dtstart = convertTimetuple2GMT(timetuple_dtstart)
         timetuple_dtend = entry['timetuple_dtend']
         timetuple_dtend = convertTimetuple2GMT(timetuple_dtend)
-        if entry['alldayevent'] is True:
+        if entry['alldayevent']:
             start_time = time.strftime('%Y-%m-%d', timetuple_dtstart)
             end_time = time.strftime('%Y-%m-%d', timetuple_dtend)
         else:
@@ -2766,7 +2766,7 @@ def handle_contentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delf
     perhaps a list of possibilities.  If the
     ENTRY_CONTENTION variable is set to 2 we will do nothing
     and just add both entries"""
-    if readFromGoogleOnly is True:
+    if readFromGoogleOnly:
         ENTRY_CONTENTION = 2
     dict = {}
     dictype = type(dict)
@@ -2800,7 +2800,7 @@ def handle_contentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delf
                 print "<< diary possibility#", j, ":", dbe[dbekey]['fullentry']
             if len(contendingdbe) > 1:
                 answervalidated = False
-                while answervalidated is False:
+                while not answervalidated:
                     answer = raw_input("?? Which diary possibility# most likely matches in contention with the aforementioned modified gcal entry? (n for none):")
                     if len(answer) > 0:
                         if answer[0] == 'n' or answer[0] == 'N':
@@ -2816,12 +2816,12 @@ def handle_contentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delf
             answer = '0'
         elif ENTRY_CONTENTION == 2:     # do nothing, allowing for contending entries to be added to both the diary and gcal
             continuetoNextContendingE = True
-        if continuetoNextContendingE is True:
+        if continuetoNextContendingE:
             continuetoNextContendingE = False
             continue
         match = int(answer)
         answervalidated = False
-        while answervalidated is False:
+        while not answervalidated:
             answer = raw_input("?? keep gcal entry (g) or emacs diary entry (e)? (b for both)")
             answer = answer.lower()
             if answer == 'g':                       ### delete dbe match entry, and add the gcal contendingE entry to the diary
@@ -3187,7 +3187,7 @@ in your home directory called diary"
     if len(newly_added_g_keys_to_add_to_e) > 0 or len(e_keys_changed_in_g) > 0:
         gcal_was_modified = True
 
-    if read_from_google_only is False:
+    if not read_from_google_only:
         shelve, gcal = update_comments_to_gcal(identical_keys,
                                                g_to_e_key_map,
                                                emacs_db,
@@ -3211,7 +3211,7 @@ in your home directory called diary"
             len(newly_added_g_keys_to_add_to_e) > 0 or \
             len(del_from_g) > 0 or \
             len(e_keys_changed_in_g) > 0 or \
-            initialise_shelve is True \
+            initialise_shelve \
             or len(dict_update_orphans) > 0 or \
             len(delete_orphans) > 0:
         delete_entries_from_e(shelve, del_from_e)
@@ -3253,4 +3253,3 @@ in your home directory called diary"
 
 if __name__ == '__main__':
     sys.exit(main())
-
