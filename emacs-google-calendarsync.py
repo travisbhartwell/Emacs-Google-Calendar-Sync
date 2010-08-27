@@ -3006,7 +3006,7 @@ in your home directory called diary"
     try:
         opts, args = getopt.getopt(argv[1:], SHORT_OPTS, LONG_OPTS)
     except getopt.GetoptError, err:
-        print str(err)
+        print >> sys.stderr, str(err)
         usage()
         return 2
 
