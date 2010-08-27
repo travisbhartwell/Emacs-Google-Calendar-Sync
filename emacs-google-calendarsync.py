@@ -101,7 +101,7 @@ if GMT_OFFSET is None:
 # starting in autumn
 GMT_OFFSET -= 1
 
-DictionaryDefinedType = type({})
+DICTIONARY_DEFINED_TYPE = type({})
 
 # Date and Time Format Constants
 ISO_DATE_FMT = '%Y-%m-%dT%H:%M:%S.000Z'
@@ -205,20 +205,20 @@ def StripExtraNewLines(string):
     return string
 
 
-def escstring(string):
+def escstring(a_string):
     """ Use this function in place of re.escape(); re.escape() does
     not seem to work right...it is only used in the load_template()
     function."""
-    str = []
+    a_str = []
     target = ''
-    for i in range(len(string)):
-        if string[i] in ['(', ')', '*', '+', '.', '?']:
-            str.append('\\')
-        elif string[i] == "%":
-            str.append('%')
-        elif string[i] == "&":
-            str.append('&')
-        str.append(string[i])
+    for i in range(len(a_string)):
+        if a_string[i] in ['(', ')', '*', '+', '.', '?']:
+            a_str.append('\\')
+        elif a_string[i] == "%":
+            a_str.append('%')
+        elif a_string[i] == "&":
+            a_str.append('&')
+        a_str.append(string[i])
 
     target = ''.join(str)
     return target
@@ -275,12 +275,12 @@ def load_ref_table(table_name):
     ff = filecontent.splitlines(True)
     key = ''
     value = ''
-    dict = {}
+    a_dict = {}
     for line in ff:
         key, value = line.split(':')
         value = value.strip()
-        dict[key] = value
-    return dict
+        a_dict[key] = value
+    return a_dict
 
 
 def load_template(filename, escape=True):
@@ -332,19 +332,17 @@ def EvaluateTemplates(atTemplate, matchvarfilename):
 
 def deepupdate(db, dbTmp):
     """ overwrite any non dict type value and use {}.update on dict types """
-    dict = {}
-    dictype = type(dict)
     dbkeys = db.keys()
     dbTmpkeys = dbTmp.keys()
     for key in dbkeys:
         if key in dbTmpkeys:
-            if type(db[key]) == dictype:
+            if type(db[key]) == DICTIONARY_DEFINED_TYPE:
                 db[key].update(dbTmp[key])
             else:
                 db[key] = dbTmp[key]
     for key in dbTmpkeys:
         if key not in dbkeys:
-            if type(db[key]) == dictype:
+            if type(db[key]) == DICTIONARY_DEFINED_TYPE:
                 db[key] = dbTmp[key].copy()
             else:
                 db[key] = dbTmp[key]
@@ -1164,7 +1162,7 @@ def address_exceptions(google_db,
     dicExceptions = convert_exceptions_to_dict(exceptions)
     google_dbkeys = \
         [key for key in google_db.keys() \
-             if type(google_db[key]) == DictionaryDefinedType]
+             if type(google_db[key]) == DICTIONARY_DEFINED_TYPE]
     # these event ids are normal ones, not those that are found in
     #  exceptions
     for eventid in dicExceptions.keys():
@@ -1328,7 +1326,7 @@ def add_recurrence_descriptions(google_db, emacs_db):
 
         # get only recurrence records
         dbkeys = [key for key in db.keys() \
-                      if type(db[key]) == DictionaryDefinedType \
+                      if type(db[key]) == DICTIONARY_DEFINED_TYPE \
                       and 'caseRec' in db[key].keys()]
         for key in dbkeys:
             record = db.get(key)
@@ -1795,10 +1793,10 @@ def get_keys_to_modify_from_e(db1, db2):
     """ Returns some arrays of keys that are to be inserted into or
     deleted from Gcal.  Any edited entries are deleted and reinserted
     """
-    dict = {}
-    dictype = type(dict)
-    keys1 = [key for key in db1.keys() if type(db1[key]) == dictype]
-    keys2 = [key for key in db2.keys() if type(db2[key]) == dictype]
+    keys1 = [key for key in db1.keys() \
+                 if type(db1[key]) == DICTIONARY_DEFINED_TYPE]
+    keys2 = [key for key in db2.keys() \
+                 if type(db2[key]) == DICTIONARY_DEFINED_TYPE]
 
     # identicalkeys are hashkeys that are the same in both the shelve
     # and emacs_db, meaning the entries are unchanged
@@ -1820,11 +1818,10 @@ def get_keys_to_modify_from_g(google_db,
 
     # identical_keys are hashkeys that are the same in both the shelve
     # and emacs_db
-    dict = {}
-    dictype = type(dict)
-    gkeys = [key for key in google_db.keys() if type(google_db[key]) == dictype]
+    gkeys = [key for key in google_db.keys() \
+                 if type(google_db[key]) == DICTIONARY_DEFINED_TYPE]
     skeys = [key for key in shelve_db.keys() \
-                 if type(shelve_db[key]) == dictype]
+                 if type(shelve_db[key]) == DICTIONARY_DEFINED_TYPE]
     skeyeventids = [shelve_db[key].get('eventid') for key in skeys]
     delfromE = [key for key in identical_keys \
                     if shelve_db[key].get('eventid') not in gkeys]
@@ -2161,12 +2158,10 @@ def createIndexFromShelve(db):
     diary entries for the emacs calendar it returns a 2xn matrix
     of timestamps associated with entry starting dates and hash
     keys, primary keys of the shelve"""
-    dict = {}
-    dictype = type(dict)
     dbkeys = db.keys()
     index = []
     for key in dbkeys:
-        if type(db[key]) == dictype:
+        if type(db[key]) == DICTIONARY_DEFINED_TYPE:
             # start date converted to timestamp for indexing
             dttimestamp = time.mktime(db[key]['timetuple_dtstart'])
             row = []
@@ -2182,11 +2177,9 @@ def sortkeysbydate(db, keys):
     diary entries for the emacs calendar it returns a 2xn matrix
     of timestamps associated with entry starting dates and hash
     keys, primary keys of the shelve"""
-    dict = {}
-    dictype = type(dict)
     index = []
     for key in keys:
-        if type(db[key]) == dictype:
+        if type(db[key]) == DICTIONARY_DEFINED_TYPE:
             # start date converted to timestamp for indexing
             dttimestamp = time.mktime(db[key]['timetuple_dtstart'])
             row = []
@@ -2348,7 +2341,7 @@ def update_edit_links(google_db, shelve_db):
     editlinksmap = {}               # editlinksmap maps gkey to eventid
     g2ekeymap = {}
     for key in shelve_db.keys():
-        if type(shelve_db[key]) == DictionaryDefinedType:
+        if type(shelve_db[key]) == DICTIONARY_DEFINED_TYPE:
             google_dbrecord = google_db.get(shelve_db[key]['eventid'])
             if google_dbrecord is not None:
                 eventid = google_dbrecord.get('eventid')
@@ -2362,7 +2355,7 @@ def update_edit_links(google_db, shelve_db):
                     gkeyschangedinG.append(shelve_db[key]['eventid'])
 
     for key in google_db.keys():
-        if type(google_db[key]) == DictionaryDefinedType:
+        if type(google_db[key]) == DICTIONARY_DEFINED_TYPE:
             editlinksmap[key] = google_db[key]['editlink']
 
 
@@ -2418,14 +2411,12 @@ def handle_contentions(read_from_google_only,
     and just add both entries"""
     if read_from_google_only:
         ENTRY_CONTENTION = 2
-    dict = {}
-    dictype = type(dict)
     contendingE = [shelve_db[key].get('eventid') \
                        for key in e_keys_changed_in_g \
                        if key in del_from_g]
 
     emacs_dbkeys = [key for key in emacs_db.keys() \
-                        if type(emacs_db[key] == dictype)]
+                        if type(emacs_db[key] == DICTIONARY_DEFINED_TYPE)]
     # contending entries from emacs_db will not appear in the
     # identical_keys list
     contendingemacs_db = [key for key in emacs_dbkeys \
@@ -2612,7 +2603,7 @@ def locate_emacs_diary_linux(homedir):
 file.  If we cant find it return None.  # OS Dependent.  """
     defaultlocation = DIARY_FILE
     if os.path.exists(defaultlocation):
-        return defaultlocationq
+        return defaultlocation
     elif os.path.exists(homedir + '/diary'):
         return homedir + '/diary'
     elif os.path.exists(homedir + '/.emacs'):
