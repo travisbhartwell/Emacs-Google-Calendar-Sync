@@ -393,14 +393,14 @@ def getTimeRanges(db, keys):
 def updateDetails(db, details, keys):
     """  """
     tDetails = load_template('detail_template')
-    patDetails, sd = EvaluateTemplates(tDetails, 'detail_template_mtch')
+    patDetails, _ = EvaluateTemplates(tDetails, 'detail_template_mtch')
     dbTmp = parseList2db(patDetails, details, keys)
 
     deepupdate(db, dbTmp)
     timeranges = getTimeRanges(db, keys)
 
     atTimescases = load_template('times_template')
-    patTimes, sp = EvaluateTemplates(atTimescases, 'times_template_mtch')
+    patTimes, _ = EvaluateTemplates(atTimescases, 'times_template_mtch')
     dbTmp = parseList2db(patTimes, timeranges, keys)
     deepupdate(db, dbTmp)
 
@@ -680,7 +680,7 @@ def ordinalIntervaltonum(ordint):
         return ""
     ordint = ordint.lower()
     interval = \
-        "".join([char for i, char in \
+        "".join([char for _, char in \
                      zip(xrange(len(ordint)), ordint) if char.isdigit()])
     if interval != "":
         return interval
@@ -803,31 +803,31 @@ def parseCommentOwner(login, comments_text):
     return comment, status
 
 
-def parsedates(file):
+def parsedates(f):
     dates = []
     entries = []
     entry_start = []
     date_end = []
     entry_end = []
-    file = '\n' + file
+    f = '\n' + f
     found_date = False
     found_date_end = False
-    for i in xrange(1, len(file)):
-        c = file[i]
-        lastc = file[i-1]
+    for i in xrange(1, len(f)):
+        c = f[i]
+        lastc = f[i-1]
         #print c
         if lastc == '\n':
             if found_date and not found_date_end:
                 date_end.append(i)
                 # re.search will fail unless there is text after the
                 # newline, i.e. NEWLINE_AND_END
-                dates.append(file[entry_start[len(entry_start)-1]:i] +
+                dates.append(f[entry_start[len(entry_start)-1]:i] +
                              NEWLINE_AND_END)
                 found_date_end = True
 
             if c != ' ' and found_date:
                 entry_end.append(i-1)
-                entries.append(file[entry_start[len(entry_start)-1]:i] +
+                entries.append(f[entry_start[len(entry_start)-1]:i] +
                                NEWLINE_AND_END)
                 found_date = False
             if c != '\n' and c != ' ' and not found_date:
@@ -849,15 +849,15 @@ def get_emacs_diary(login,
     db = {}
     ap = load_template('cases_template')
 
-    pat, sp = EvaluateTemplates(ap, 'cases_template_mtch')
+    pat, _ = EvaluateTemplates(ap, 'cases_template_mtch')
 
     descTemplate = load_template('recurrence_event_descriptions_template')
-    descpat, descarray = \
+    descpat, _ = \
         EvaluateTemplates(descTemplate,
                           'recurrence_event_descriptions_template_mtch')
 
     f = open(emacs_diary_location, "r")
-    file = f.read()
+    a_file = f.read()
     f.close()
     keys = []
     details = []
@@ -866,13 +866,13 @@ def get_emacs_diary(login,
     lookforheaders = True
 
     # need this or last entry wont be read
-    file = file + NEWLINE_AND_END
+    a_file = a_file + NEWLINE_AND_END
     # preserve any header information in the diary
-    while len(file) > 13 and lookforheaders:
-        if file[:13] == "&%%(org-diary" or file[:12] == "%%(org-diary":
-            newlinepos = file.find('\n')
-            diaryheader = diaryheader + file[:newlinepos] + '\n'
-            file = file[newlinepos + 1:]
+    while len(a_file) > 13 and lookforheaders:
+        if a_file[:13] == "&%%(org-diary" or a_file[:12] == "%%(org-diary":
+            newlinepos = a_file.find('\n')
+            diaryheader = diaryheader + a_file[:newlinepos] + '\n'
+            a_file = a_file[newlinepos + 1:]
         else:
             lookforheaders = False
     if initialise_shelve:
@@ -880,7 +880,7 @@ def get_emacs_diary(login,
         return db, diaryheader, ""
 
     e2gcase_table = load_ref_table('e2gcase_table')
-    datefields, entries, entry_start, date_end, entry_end = parsedates(file)
+    datefields, entries, entry_start, date_end, entry_end = parsedates(a_file)
     for idxDiary in xrange(len(datefields)):
         for idxCase in pat.keys():
             mo = pat[idxCase].search(datefields[idxDiary])
@@ -891,7 +891,7 @@ def get_emacs_diary(login,
                 entry = {}
                 entry = mo.groupdict()
                 fullentry = \
-                    StripExtraNewLines(file[entry_start_pos:entry_end_pos])
+                    StripExtraNewLines(a_file[entry_start_pos:entry_end_pos])
                 fullentry, comments_text = strip_comments(fullentry)
                 entry['DETAIL'], comments_text = \
                     strip_comments(entry.get('DETAIL'))
@@ -913,7 +913,7 @@ def get_emacs_diary(login,
                     entry['gcase'] = e2gcase_table[idxCase]
 
                     previousline, previouslinestartpos = \
-                        getpreviousline(file, entry_start_pos)
+                        getpreviousline(a_file, entry_start_pos)
                     previouslinemo = descpat[idxCase].search(previousline)
 
                     # if description doesnt match then run it against
@@ -940,9 +940,9 @@ def get_emacs_diary(login,
         deletefromfile.sort()
         last_entrypos = 0
         for entrypos in deletefromfile:
-            newfile.append(file[last_entrypos:entrypos[0]])
+            newfile.append(a_file[last_entrypos:entrypos[0]])
             last_entrypos = entrypos[1]
-        newfile.append(file[last_entrypos:])
+        newfile.append(a_file[last_entrypos:])
         newfile = ''.join(newfile)
     else:
         newfile = ''
@@ -1012,9 +1012,9 @@ def Convertdtstart2timetuple(datestring):
 
 
 def findExtendedProperty(properties, name):
-    for property in properties:
-        if property.name == name:
-            return property.value
+    for prop in properties:
+        if prop.name == name:
+            return prop.value
     return ""
 
 
