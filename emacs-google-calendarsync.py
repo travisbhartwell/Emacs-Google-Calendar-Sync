@@ -1,15 +1,15 @@
-#!/usr/bin/python 
+#!/usr/bin/python
 # emacs-google-calendarsync revision 77
 # written and maintained by CiscoRx@gmail.com
 # DISCLAIMER: If this script should fail or cause any damage then I, ciscorx@gmail.com, assume full liability; feel free to sue me for every penny I've got, the number of pennies of which should be just enough to fit into a small envelope to mail to you.  Hopefully, it will also cover postage.
 
 globalvar_password = ''                       # optional password.  If this value is used, make sure to change the permissions on this script to execute only, i.e. chmod 111 emacs-google-calendarsync.  If this value is not supplied, the gmail password will be prompted upon execution.
 
-globalvar_GMTOFFSET = None                    # None = get gmtoffset from python time.timezone.  globalvar_GMTOFFSET = 6  refers to central timezone 
+globalvar_GMTOFFSET = None                    # None = get gmtoffset from python time.timezone.  globalvar_GMTOFFSET = 6  refers to central timezone
 
 globalvar_TZID = 'America/Chicago'            # Time zone
 
-globalvar_DIARYFILE = ''                      # Location of emacs diary (if this is left blank, the location will be guessed) 
+globalvar_DIARYFILE = ''                      # Location of emacs diary (if this is left blank, the location will be guessed)
 
 globalvar_SHELVEFILE = ''                     # Location to put the shelve.dat file, which contains the schedule from the last sync. (if this is left blank, the location will be the directory where this script resides.) The filename of the shelve file will contain the google calendar username
 
@@ -21,7 +21,7 @@ globalvar_ENTRY_CONTENTION = 0                # entry contention happens when th
 
 globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE =  '#@!z8#'  # this will allow for multiple read-only calendars to be viewed in the same dairy.  The multiple calendar support is not yet implemented
 
-globalvar_DEFAULT_NON_RECURRING_FORMAT = 0    # which format to use for entries synced from gcal to diary?: 0 = monthabbreviated day, year      1 = month/day/year  
+globalvar_DEFAULT_NON_RECURRING_FORMAT = 0    # which format to use for entries synced from gcal to diary?: 0 = monthabbreviated day, year      1 = month/day/year
 
 globalvar_FORMAT_TIME_BEFORE_TITLE_IN_DIARY = True  # True/False: do we want entries synced from gcal to diary to be written with time first then title, or vice versa
 
@@ -41,15 +41,11 @@ import gdata.calendar
 import atom
 import getopt
 import sys
-import string
 import time
 import datetime
-import fileinput
 import re
 import os
 import shelve
-import pdb
-from pprint import pprint
 
 if globalvar_GMTOFFSET == None:
   globalvar_GMTOFFSET = time.timezone / 60 / 60
@@ -63,10 +59,10 @@ DictionaryDefinedType = type({})
 
 ### The \n and \t characters must be double escaped in all template variables, e.g. \\n \\t , they must be tripple escaped in _mtch variables, e.g. \\\n  ###
 ###   No escape is necessary when the templates are stored in separate files
- 
-### cases_template describes the total number of ways that a given emacs diary entry date can be formatted.  Recurring cases contain the letters Rec.  
+
+### cases_template describes the total number of ways that a given emacs diary entry date can be formatted.  Recurring cases contain the letters Rec.
 ### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, containing regexps which are found in cases_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
-### Each formatting case is delimited in an XML like manner.  .  
+### Each formatting case is delimited in an XML like manner.  .
 ### Number Postfixed variable names represent the same variable without the postfixed number.  The postfixed numbers must increment from left to right with respect to their relative positions in each case entry
 
 cases_template = """
@@ -121,37 +117,37 @@ cases_template = """
 <VIS><DAYOFWEEKABBR> <DETAIL>
 </caseRecWeeklyAbbr>
 
-<caseRecWeekly>  
+<caseRecWeekly>
 <VIS>%%(and (diary-cyclic 1 <STMONTH> <STDAY> <STYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
 </caseRecWeekly>
 
-<caseRecWeeklyException>  
+<caseRecWeeklyException>
 <VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-cyclic 1 <STMONTH> <STDAY> <STYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
 </caseRecWeeklyException>
 
-<caseRecWeeklyBlock>  
+<caseRecWeeklyBlock>
 <VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
 </caseRecWeeklyBlock>
 
-<caseRecWeeklyBlockException>  
+<caseRecWeeklyBlockException>
 <VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(memq (calendar-day-of-week date) '(<BYDAY>))) <DETAIL>
 </caseRecWeeklyBlockException>
 
 
-<caseRecWeeklyInterval>      
+<caseRecWeeklyInterval>
 <VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date))(car date)(car (nthcdr 2 date)))))))(and (= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyInterval>
 
-<caseRecWeeklyIntervalException>      
+<caseRecWeeklyIntervalException>
 <VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date))(car date)(car (nthcdr 2 date)))))))(and (not (or (diary-date <EXCEPTIONSTRING>)))(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyIntervalException>
 
 
-<caseRecWeeklyIntervalBlock>      
+<caseRecWeeklyIntervalBlock>
 <VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date))(car date)(car (nthcdr 2 date)))))))(and (diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyIntervalBlock>
 
-<caseRecWeeklyIntervalBlockException>      
+<caseRecWeeklyIntervalBlockException>
 <VIS>%%(let ((dayname (calendar-day-of-week date))(strtwkno (string-to-number (format-time-string <SOMEZING> (encode-time 1 1 1 <STDAY> <STMONTH> <STYEAR>))))(weekno (string-to-number (format-time-string <SOMEZING2> (encode-time 1 1 1 (car (cdr date))(car date)(car (nthcdr 2 date)))))))(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-block <STMONTH2> <STDAY2> <STYEAR2> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (mod (- weekno strtwkno) <INTERVAL>) 0)(memq dayname '(<BYDAY>)))) <DETAIL>
 </caseRecWeeklyIntervalBlockException>
 
@@ -173,20 +169,20 @@ cases_template = """
 </caseRecMonthlyBlockException>
 
 
-<caseRecMonthlyInterval> 
+<caseRecMonthlyInterval>
 <VIS>%%(and (diary-date t <STDAY> t)(diary-cyclic 1 <STMONTH> <STDAY2> <STYEAR>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)) <DETAIL>
 </caseRecMonthlyInterval>
 
-<caseRecMonthlyIntervalException> 
+<caseRecMonthlyIntervalException>
 <VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-date t <STDAY> t)(diary-cyclic 1 <STMONTH> <STDAY2> <STYEAR>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)) <DETAIL>
 </caseRecMonthlyIntervalException>
 
 
-<caseRecMonthlyIntervalBlock> 
+<caseRecMonthlyIntervalBlock>
 <VIS>%%(and (diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)) <DETAIL>
 </caseRecMonthlyIntervalBlock>
 
-<caseRecMonthlyIntervalBlockException> 
+<caseRecMonthlyIntervalBlockException>
 <VIS>%%(and (not (or (diary-date <EXCEPTIONSTRING>)))(diary-block <STMONTH> <STDAY> <STYEAR> <UNTILMONTH> <UNTILDAY> <UNTILYEAR>)(= (car (cdr date)) <STDAY2>)(= (mod (- (car date) <STMONTH2>) <INTERVAL>) 0)) <DETAIL>
 </caseRecMonthlyIntervalBlockException>
 
@@ -292,12 +288,12 @@ DAYOFWEEK ([Ss]unday|[Mm]onday|[Tt]uesday|[Ww]ednesday|[Tt]hursday|[Ff]riday|[Ss
 DAYOFWEEKABBR ([Ss]un|[Mm]on|[Tt]ue|[Ww]ed|[Tt]hu|[Ff]ri|[Ss]at)
 MONTHABBR ([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)
 STDAYNOTFOLLOWEDBYCOMMA ([0-3]?\d)(?!,)
-notfollowedbycomma (?!,) 
+notfollowedbycomma (?!,)
 VIS (&?)
 DETAIL (.*?)(?=^[\w%&\d*])
 """
 
-### detail_template describes the total number of ways that a given <DETAIL> field, from that of cases_template, can be formatted in the diary file.  
+### detail_template describes the total number of ways that a given <DETAIL> field, from that of cases_template, can be formatted in the diary file.
 ### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, containing regexps which are found in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
 ### Each formatting case is delimited in an XML like manner.  .\n must be double escaped e.g. \\n
 
@@ -465,7 +461,7 @@ Recurs Daily, With Exceptions, Beginning <STMONTH>/<STDAY>/<STYEAR>, Until <UNTI
 </caseRecDailyBlockException>
 
 <caseRecDailyInterval>
-Recurs Every <INTERVAL> Days, Beginning <STMONTH>/<STDAY>/<STYEAR> 
+Recurs Every <INTERVAL> Days, Beginning <STMONTH>/<STDAY>/<STYEAR>
 </caseRecDailyInterval>
 
 <caseRecDailyIntervalException>
@@ -628,9 +624,9 @@ UNTILDAY (\d?\d)
 UNTILYEAR (\d{4})
 WHICHWEEKORDINAL (.+?)
 """
-### gcases_template describes the total number of ways that a recursion entry can be formatted in a google calendar feed.  
+### gcases_template describes the total number of ways that a recursion entry can be formatted in a google calendar feed.
 ### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, the regexps of which are contained in gcases_template_mtch.  Lowercase fields are place holders for literal strings as described in the gcases_template_mtch template, and do not act as variables.
-### Each formatting case is delimited in an XML like manner.  .  
+### Each formatting case is delimited in an XML like manner.  .
 gcases_template = """
 <caseRecDaily>
 DTSTART;TZID=<TZID>:<STDATETIME><newline>
@@ -761,9 +757,9 @@ TZID2 (.+?)
 INTERVAL (\d?\d)
 """
 
-### times_template describes the total number of ways that a given <TIMERANGE> field, from that of details_template, can be formatted in the diary file.  
+### times_template describes the total number of ways that a given <TIMERANGE> field, from that of details_template, can be formatted in the diary file.
 ### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, containing regexps which are found in times_template_mtch.  Lowercase fields are place holders for literal strings as described in the times_template_mtch template, and do not act as variables.
-### Each formatting case is delimited in an XML like manner.  .  
+### Each formatting case is delimited in an XML like manner.  .
 times_template = """
 <caseTimeARange>
 <STHOUR>:<STMINUTE><STAMPM><HYPHEN><ENDHOUR>:<ENDMINUTE><ENDAMPM>
@@ -772,7 +768,7 @@ times_template = """
 <caseTimeBRangewithStarttimeMinutesOnly>
 <STHOUR>:<STMINUTE><STAMPM><HYPHEN><ENDHOUR><ENDAMPM>
 </caseTimeBRangewithStarttimeMinutesOnly>
- 
+
 <caseTimeCRangewithEndtimeMinutesOnly>
 <STHOUR><STAMPM><HYPHEN><ENDHOUR>:<ENDMINUTE><ENDAMPM>
 </caseTimeCRangewithEndtimeMinutesOnly>
@@ -858,13 +854,10 @@ def RemoveNewlinesSpacePadding(source):
   return ''.join(target).strip()
 
 def removeallextraspaces(string):
-  while  pos != -1:
-    string = string.replace('  ',' ')
-    pos = string.find('  ')
-  return string
+  return re.sub("[ ]+", " ", string)
 
 def StripExtraNewLines(string):
-  """ Use this function on the 'fullentry' field before hashing to get a key, as sometimes new lines can get into the diary and mess up the hash""" 
+  """ Use this function on the 'fullentry' field before hashing to get a key, as sometimes new lines can get into the diary and mess up the hash"""
   pos = string.find('\n\n')
   while  pos != -1:
     string = string.replace('\n\n','\n')
@@ -876,7 +869,7 @@ def StripExtraNewLines(string):
   return string
 
 
-def escstring(string):   
+def escstring(string):
   """ Use this function in place of re.escape(); re.escape() does not seem to work right...it is only used in the loadTemplate() function"""
   str=[]
   target=''
@@ -890,7 +883,7 @@ def escstring(string):
     str.append(string[i])
 
   target=''.join(str)
-  return target 
+  return target
 
 def rmwhtspc(sTarget):
   sTarget.strip()
@@ -899,10 +892,10 @@ def rmwhtspc(sTarget):
   sTarget = sTarget.replace(') (',')(')
   return sTarget
 
- 
-def loadMtchvars(filename): 
+
+def loadMtchvars(filename):
   """The _mtch file must end in a new line.  Uppercase entries are recognized as variable names for pattern patching.  Lowercase entries are not recognized as matching variables, and their values are substituted in verbatim.  Any variable appearing more than once in an entry must have a 1 digit ordinal number appende to the variable name, incremented for each occurrence"""
-  filecontent = globals()[locals()['filename']]       
+  filecontent = globals()[locals()['filename']]
 
   ff= filecontent.splitlines(True)
   key = ''
@@ -912,7 +905,7 @@ def loadMtchvars(filename):
     spcloc = line.find(" ")
     key = line[0:spcloc]
     if key.islower():
-      dicDatatypes[ key ] = line[spcloc+1:]   ## lowercase keys dont get var names  
+      dicDatatypes[ key ] = line[spcloc+1:]   ## lowercase keys dont get var names
     elif key[:-1] in identicalkeys:  ### more than one occurance of a variable in a pattern must have a 1 digit ordinal number appended to the variable name
       dicDatatypes[ key ] = line[spcloc+1] + '?P=' + key[:-1] + ')'
     else:
@@ -922,7 +915,7 @@ def loadMtchvars(filename):
 
 def loadreftable(filename):
   """ loads simple one level dictionary from a file. The file must be tab separated and end in a new line.  There cannot be more than 1 newline at the end of the file or an error will result"""
-  filecontent = globals()[locals()['filename']]       
+  filecontent = globals()[locals()['filename']]
 
   ff = filecontent.splitlines(True)
   key = ''
@@ -931,41 +924,40 @@ def loadreftable(filename):
   for line in ff:
     key,value = line.split('\t')
     value = value.strip()
-    dict[ key ] = value 
+    dict[ key ] = value
   return dict
 
 
 
 
-def loadTemplate(filename, Escape = True):    
+def loadTemplate(filename, Escape = True):
   """all whitespace thats longer than a single space is removed from template.  If whitespace is needed to be represented in a pattern, create a tag for it in lowercase letters, and create an entry in the _mtch file indicating what to sub in verbatim.
-     note: the ^ may only be used in template to indicate beginning of string.  The EvaluateTemplate() function is used to create matching patterns using loadTemplates return value as an argument. 
+     note: the ^ may only be used in template to indicate beginning of string.  The EvaluateTemplate() function is used to create matching patterns using loadTemplates return value as an argument.
     """
-  filecontent = globals()[locals()['filename']]       
+  filecontent = globals()[locals()['filename']]
 
   test = filecontent.splitlines(True)
   test = stripallarray(test)
-  casestring = ''.join(test) 
+  casestring = ''.join(test)
   casepat = re.compile(r'<(.+?)>(.+?)</')
   tpCases = casepat.findall(casestring)
   pat = re.compile(r'\<(\w+?)\>')
-  tCase={}
   ttCase={}
   aCasename=[]
   casename=''
-  escapedstring = ''          
+  escapedstring = ''
   for i in range(len(tpCases)):
     casename=tpCases[i][0]
     if Escape == True:
       escapedstring = escstring(tpCases[i][1])  #escape (,),%, &
     else:
       escapedstring = tpCases[i][1]
-    tmpstr = re.sub(pat,r'%(\1)s',escapedstring)  
+    tmpstr = re.sub(pat,r'%(\1)s',escapedstring)
     ttCase[casename] = tmpstr                      #make a template
     aCasename.append(casename)
   return ttCase
 
-def EvaluateTemplates(atTemplate, matchvarfilename): 
+def EvaluateTemplates(atTemplate, matchvarfilename):
   """makes match pattern for future matches
      This function also calls loadMtchvars() """
   dicTypes = loadMtchvars(matchvarfilename)
@@ -976,8 +968,8 @@ def EvaluateTemplates(atTemplate, matchvarfilename):
     stringpatterns.append(p0)
     dicEvaluatedTemplatesArray[i] = (re.compile(p0,re.M | re.S))
   return dicEvaluatedTemplatesArray, stringpatterns
-        
-      
+
+
 
 
 def deepupdate(db, dbTmp):
@@ -998,11 +990,11 @@ def deepupdate(db, dbTmp):
         db[key] = dbTmp[key].copy()
       else:
         db[key] = dbTmp[key]
-   
 
- 
+
+
 def parseList2db(pat,lDiaryArray, keys):
-  """ keys argument is a list of entrypids associated with each string in lDiaryArray, respectively.   pat is a dictionary of patterns to check against.  The pattern cases are matched against a diary string in alphabetical order of case name, accepting the first pattern that is matched""" 
+  """ keys argument is a list of entrypids associated with each string in lDiaryArray, respectively.   pat is a dictionary of patterns to check against.  The pattern cases are matched against a diary string in alphabetical order of case name, accepting the first pattern that is matched"""
   dbTmp = {}
   entrypid = ''
   moCase2Diary = {}
@@ -1016,7 +1008,7 @@ def parseList2db(pat,lDiaryArray, keys):
         entry = moCase2Diary.groupdict()
         entrypid =  keys[i]
         entry['entrypid'] = entrypid
-        casename ='casename-' + idxCase 
+        casename ='casename-' + idxCase
         entry[casename] = idxCase
         dbTmp[entrypid] = entry
         break
@@ -1032,12 +1024,12 @@ def getTimeRanges(db, keys):
         timeranges.append(tmpRec[tmpReckeys[0]])
       else:
         timeranges.append('')
-  return timeranges 
+  return timeranges
 
-def updateDetails(db, details, keys): 
+def updateDetails(db, details, keys):
   """  """
   tDetails = loadTemplate('detail_template')
-  patDetails, sd = EvaluateTemplates(tDetails, 'detail_template_mtch') 
+  patDetails, sd = EvaluateTemplates(tDetails, 'detail_template_mtch')
   dbTmp = parseList2db(patDetails, details, keys)
 #  for entrykey in dbTmp.keys():                                            ### workaround for having created an extra variable called TIMERANGEII in detail_template
 #    if 'TIMERANGEII' in dbTmp[entrykey].keys():
@@ -1054,7 +1046,7 @@ def updateDetails(db, details, keys):
   deepupdate(db, dbTmp)
 
 def e2gbyday(byday):
-  """  converts emacs calendar BYDAY field data to the google calendar BYDAY equivalent""" 
+  """  converts emacs calendar BYDAY field data to the google calendar BYDAY equivalent"""
   if byday == '':
     return ''
   bydayg=''
@@ -1066,7 +1058,7 @@ def e2gbyday(byday):
   return bydayg
 
 def g2ebyday(byday):
-  """  converts google calendar BYDAY field data to the emacs calendar BYDAY equivalent""" 
+  """  converts google calendar BYDAY field data to the emacs calendar BYDAY equivalent"""
   if byday == '':
     return ''
   bydaye=''
@@ -1096,7 +1088,7 @@ def g2ewhichweek(whichweekg):
   else:
     whichweek = whichweekg[0]
     whichday = whichweekg[1:3]
-  whichday = days[whichday.upper()]  
+  whichday = days[whichday.upper()]
   return whichweek, whichday
 
 
@@ -1119,13 +1111,13 @@ def ISOtoORGtime( isotime):
   """ taking account for GMT """
   isodate = datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:6]) - datetime.timedelta(hours = globalvar_GMTOFFSET)
   return isodate.strftime('[%Y-%m-%d %a %H:%M:%S]')
-  
+
   #return datetime.datetime(*time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')[0:5]).strftime('[%Y-%m-%d %H:%M:%S]')
 
 def ISOtoTimestamp(isotime):
   return time.mktime(time.strptime(isotime, '%Y-%m-%dT%H:%M:%S.000Z')) - 3600 * globalvar_GMTOFFSET
 
-  
+
 
 def sdeltaDatetime(offsetdays):
   return datetime.datetime.now() + datetime.timedelta(offsetdays)
@@ -1137,13 +1129,11 @@ def HandleLooseEmacsEnds(db):
   nowyear = now[0]
   nowmonth = now[1]
   nowday = now[2]
-  nowhour = now[3]
-  nowminute = now[4]
   daysofweek = ['SU','MO','TU','WE','TH','FR','SA']
   for dbkey in db.keys():
     alldayevent = False
     reckeys = db[dbkey].keys()
-    db[dbkey]['TZID'] = globalvar_TZID 
+    db[dbkey]['TZID'] = globalvar_TZID
     db[dbkey]['TZID2'] = globalvar_TZID
     db[dbkey]['newline']='\r\n'
     db[dbkey]['STMONTH'] = db[dbkey].setdefault('STMONTH',str(nowmonth)).zfill(2)
@@ -1170,15 +1160,15 @@ def HandleLooseEmacsEnds(db):
       db[dbkey]['STYEAR'] = str(nowyear)
     elif len(db[dbkey]['STYEAR']) < 4:
       year = '2' + db[dbkey]['STYEAR'].zfill(3)
-      db[dbkey]['STYEAR'] = year 
-    if 'STHOUR' not in reckeys:   
+      db[dbkey]['STYEAR'] = year
+    if 'STHOUR' not in reckeys:
       alldayevent = True
       db[dbkey]['STHOUR'] = '01'
       db[dbkey]['STMINUTE'] = '00'
     else:
       db[dbkey]['STHOUR'] = db[dbkey]['STHOUR'].zfill(2)
       if 'STMINUTE' not in reckeys:
-        db[dbkey]['STMINUTE'] = '00'     
+        db[dbkey]['STMINUTE'] = '00'
 
     stday = int(db[dbkey]['STDAY'])
     stmonth = int(db[dbkey]['STMONTH'])
@@ -1199,22 +1189,18 @@ def HandleLooseEmacsEnds(db):
 
     defaultenddatetime = stdatetime + datetime.timedelta(minutes=globalvar_DEFAULTEVENTDURATION)
     defaultenddatetimetuple = defaultenddatetime.timetuple()
-    aaa = [key for key in db[dbkey].keys() if key[:8] == 'casename']
-    #print aaa   ## debug for details and times regexp
-    #pdb.set_trace()
-    #sys.exit(0)  ##debug
     if 'ENDYEAR' not in reckeys:
       db[dbkey]['ENDYEAR'] = str(defaultenddatetimetuple[0]).zfill(4)
     elif len(db[dbkey]['ENDYEAR']) < 4:
       year = '2' + db[dbkey]['ENDYEAR'].zfill(3)
-      db[dbkey]['ENDYEAR'] = year  
+      db[dbkey]['ENDYEAR'] = year
     db[dbkey]['ENDMONTH'] = db[dbkey].setdefault('ENDMONTH',str(defaultenddatetimetuple[1])).zfill(2)
     db[dbkey]['ENDDAY'] = db[dbkey].setdefault('ENDDAY',str(defaultenddatetimetuple[2])).zfill(2)
     if 'ENDHOUR' in reckeys and 'ENDMINUTE' not in reckeys:   ### this is a case like 3:30pm - 5pm, where no minutes are given in the endtime, because they are abbreviated from 00
       db[dbkey]['ENDMINUTE'] = '00'
     else:
-      db[dbkey]['ENDMINUTE'] = db[dbkey].setdefault('ENDMINUTE',str(defaultenddatetimetuple[4])).zfill(2) 
-    db[dbkey]['ENDHOUR'] = db[dbkey].setdefault('ENDHOUR',str(defaultenddatetimetuple[3])).zfill(2) 
+      db[dbkey]['ENDMINUTE'] = db[dbkey].setdefault('ENDMINUTE',str(defaultenddatetimetuple[4])).zfill(2)
+    db[dbkey]['ENDHOUR'] = db[dbkey].setdefault('ENDHOUR',str(defaultenddatetimetuple[3])).zfill(2)
 
     endhour = int(db[dbkey]['ENDHOUR'])
     endday = int(db[dbkey]['STDAY'])
@@ -1228,10 +1214,10 @@ def HandleLooseEmacsEnds(db):
       db[dbkey]['ENDHOUR'] = time.strftime('%I',defaultenddatetimetuple)
     if db[dbkey]['ENDAMPM'].upper()[0] == 'P' and endhour < 12:
       endhour += 12
-                            ### check to see if end date spans into its tomorrows date  
+                            ### check to see if end date spans into its tomorrows date
     if endhour < sthour:
       tomorrowsdate = stdatetime
-      tomorrowsdate += datetime.timedelta(hours=23)      
+      tomorrowsdate += datetime.timedelta(hours=23)
       db[dbkey]['ENDDAY'] = tomorrowsdate.strftime('%d').zfill(2)
       db[dbkey]['ENDMONTH'] = tomorrowsdate.strftime('%m').zfill(2)
       db[dbkey]['ENDYEAR'] = tomorrowsdate.strftime('%Y')
@@ -1239,7 +1225,7 @@ def HandleLooseEmacsEnds(db):
       endmonth = int(db[dbkey]['ENDMONTH'])
       endyear = int(db[dbkey]['ENDYEAR'])
 
-      
+
     enddatetime = datetime.datetime(endyear,endmonth,endday,endhour,endminute)
     enddatetimestr = enddatetime.isoformat()
     enddatetimestr = enddatetimestr.replace(':','')
@@ -1252,7 +1238,7 @@ def HandleLooseEmacsEnds(db):
       startdatetimetuple = datetime.datetime(styear,stmonth,stday).timetuple()
       enddatetimetuple = datetime.datetime(endyear,endmonth,endday).timetuple()
       db[dbkey]['timetuple_dtstart'] = startdatetimetuple
-      db[dbkey]['timetuple_dtend'] = enddatetimetuple  
+      db[dbkey]['timetuple_dtend'] = enddatetimetuple
     else:
       db[dbkey]['alldayevent'] = False
       db[dbkey]['timetuple_dtstart'] = stdatetime.timetuple()
@@ -1270,14 +1256,14 @@ def HandleLooseEmacsEnds(db):
       db[dbkey]['UNTILDATETIME']= untildatetimestr[:8]
 
     gcase = db[dbkey]['gcase']
-                                                  ## write recurrence string from gcases_template 
+                                                  ## write recurrence string from gcases_template
     if len(gcase) > 7 and gcase[:7] == 'caseRec':
       recurrencestring = gcases_template[gcase] % db[dbkey]
       db[dbkey]['recurrencestring'] = recurrencestring
       db[dbkey]['caseRec'] = gcase
-    
 
-    
+
+
 def printcontents(db):
   """ used for debugging purposes """
   for keys in db.keys():
@@ -1313,13 +1299,13 @@ def ordinalIntervaltonum(ordint):
                    "other"          :"2",}
   return weeksofmonth.setdefault('ordint','')
 
-  
+
 def copyDescriptiontodbrecord(dbrecord, desc, caseTemplate):
   """ copy description changes to record, and flag modified if any changes were made """
   #return dbrecord  ### debug
 
   modified = False
-                   
+
   desckeys = desc.keys()
   if 'STDAY' in desckeys and 'STMONTH' in desckeys and 'STYEAR' in desckeys:
     stday = desc.get('STDAY')
@@ -1342,7 +1328,7 @@ def copyDescriptiontodbrecord(dbrecord, desc, caseTemplate):
   if 'INTERVALORDINAL' in desckeys:
     interval = ordinalIntervaltonum(desc.get('INTERVALORDINAL'))
     if interval != "" and interval != dbrecord['INTERVAL']:
-      dbrecord['INTERVAL'] = intervalordinal
+      dbrecord['INTERVAL'] = interval
       modified = True
   if 'ONWHATDAYS' in desckeys:
     onwhatdays = desc.get('ONWHATDAYS').lower().strip()
@@ -1359,7 +1345,7 @@ def copyDescriptiontodbrecord(dbrecord, desc, caseTemplate):
       onwhatdays = onwhatdays.replace(' and','')
       for day in onwhatdays:
         bydayd.append(daysofweek.setdefault(day[:2],""))
-        bydayd = " ".join(byday)
+        bydayd = " ".join(bydayd)
         bydayd = removeallextraspaces(bydayd)
         byday = dbrecord.get('BYDAY')
         if byday != None and byday != bydayd:
@@ -1416,13 +1402,13 @@ def parsedates(file):
   entry_end = []
   file = '\n' + file
   found_date = False
-  found_entry_end = False
+  found_date_end = False
   for i in xrange(1,len(file)):
     c = file[i]
     lastc = file[i-1]
     #print c
     if lastc == '\n':
-      if  found_date == True and found_date_end == False:
+      if found_date == True and found_date_end == False:
         date_end.append(i)
         dates.append(file[entry_start[len(entry_start)-1]:i] + '\nend')  ## re.search will fail unless there is text after the newline, i.e. '\nend'
         found_date_end = True
@@ -1431,17 +1417,15 @@ def parsedates(file):
         entry_end.append(i-1)
         entries.append(file[entry_start[len(entry_start)-1]:i] + '\nend')
         found_date = False
-        found_entry_end = True
       if c != '\n' and c != ' ' and found_date == False:
         entry_start.append(i-1)
         found_date = True
-        found_entry_end = False
         found_date_end = False
 
   if len(entry_start) > len(entry_end):
     entry_start.pop()
-  return dates, entries, entry_start, date_end, entry_end  
-    
+  return dates, entries, entry_start, date_end, entry_end
+
 
 def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTemplate, printingCase, shelve):
   db={}
@@ -1452,7 +1436,7 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
   descTemplate = loadTemplate('recurrence_event_descriptions_template')
   descpat, descarray = EvaluateTemplates(descTemplate, 'recurrence_event_descriptions_template_mtch')
 
-  f=open(emacsDiaryLocation, "r") 
+  f=open(emacsDiaryLocation, "r")
   file=f.read()
   f.close()
   keys = []
@@ -1470,7 +1454,7 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
       lookforheaders = False
   if initialiseShelve == True:
     return db, diaryheader, ""                ## unrecognized_entries is "", the last return value
-  
+
   e2gcase_table = loadreftable('e2gcase_table')
   datefields, entries, entry_start, date_end, entry_end = parsedates(file)
   for idxDiary in xrange(len(datefields)):
@@ -1491,18 +1475,16 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
           comment_owner_content, comment_owner_status = parseCommentOwner(login, comments_text)
           entry['comment_owner_hash'] = hash( entry.get('comment_owner_content') )
           entry['comment_owner_status'] = comment_owner_status
-         
+
         if fullentry.find(globalvar_DISCARD_ENTRIES_THAT_CONTAIN_THIS_CODE) == -1:  ## this is for a future feature
           details.append(entry['DETAIL'])
           entry['entrycase'] = idxCase
           entry['gcase'] = e2gcase_table[idxCase]
-          desc_entry = {}
           isModified = False
           previousline, previouslinestartpos =  getpreviousline(file,entry_start_pos)
           previouslinemo = descpat[idxCase].search(previousline)
           if previouslinemo != None:                           ## if description doesnt match then run it against all possible desc templates, if no match either then mark for  delete, else run both against shelve to see which one was edited and then update record.   IF description does match but items are changed, then find out which is correct by running it against the shelve, then update the record
             entry_start_pos = previouslinestartpos
-            desc_entry = previouslinemo.groupdict()
 
           #entry, isModified = copyDescriptiontodbrecord(entry, desc_entry, printingCase[idxCase])
             if isModified:
@@ -1525,7 +1507,7 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
     newfile = ''.join(newfile)
   else:
     newfile = ''
-  newfile = StripExtraNewLines(newfile)              
+  newfile = StripExtraNewLines(newfile)
   updateDetails(db, details, keys)
   HandleLooseEmacsEnds(db)
   #pdb.set_trace() #debug
@@ -1539,10 +1521,10 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
     unrecognized_diary_entries = ""
 
   return db, diaryheader, unrecognized_diary_entries
-   
-  
 
-   
+
+
+
 def recGetFieldTZID( recurrence):
   pos = recurrence.find('TZID')
   pos = recurrence.find('=',pos)
@@ -1566,7 +1548,7 @@ def recGetRRuleField(fieldname, rule):
   else:
     return ''
 
-   
+
 def blankforNoneType(string):
   if string == None:
     return ''
@@ -1587,8 +1569,8 @@ def Convertdtstart2timetuple(datestring):
     hour = 0
     minute = 0
   x = datetime.datetime(year,month,day,hour,minute)
-  return x.timetuple()  
-  
+  return x.timetuple()
+
 def findExtendedProperty(properties, name):
   for property in properties:
     if property.name == name:
@@ -1629,10 +1611,10 @@ def convert_exceptions_to_dict(exceptions):
   """ part of  addressExceptions() """
   dicExceptions = {}
   exceptions.sort()
-  for exception in exceptions:                             
+  for exception in exceptions:
     eventid = exception[:-17]
     datestr = exception[-16:]
-    datemdy = datestr[4:6] + ' ' + datestr[6:8] + ' ' + datestr[:4] 
+    datemdy = datestr[4:6] + ' ' + datestr[6:8] + ' ' + datestr[:4]
     elementlist = dicExceptions.get(eventid)
     if elementlist == None:
       dicExceptions[eventid] = [datemdy]
@@ -1646,7 +1628,6 @@ def update_full_entry_for_caseRec_record(record,TimeARangeString, CaseTemplateSt
   formatTimeBeforeTitle= record.get('formatTimeBeforeTitle')
 #  nonrecurringformat = record.get('nonrecurringformat')
   content = record.get('CONTENT')
-  entrycase = record.get('caseRec')
   title = record.get('TITLE')
   if content != "":
     content = '\n' + content
@@ -1658,11 +1639,11 @@ def update_full_entry_for_caseRec_record(record,TimeARangeString, CaseTemplateSt
     detail = title + ' ' + TimeARangeString % record + content
   record['DETAIL'] = detail
   recurrencestring = CaseTemplateString % record
-  if recurrencestring[0] == '%':                                # this is a work around for printing the escaped % char 
+  if recurrencestring[0] == '%':                                # this is a work around for printing the escaped % char
     recurrencestring = '%' + recurrencestring
   if recurrencestring[:2] == '&%':
     recurrencestring = '&%' + recurrencestring[1:]
-  record['fullentry'] = StripExtraNewLines(recurrencestring) 
+  record['fullentry'] = StripExtraNewLines(recurrencestring)
   return record
 
 
@@ -1688,7 +1669,7 @@ def add_exceptions_to_record(dbgrecord, exceptions):
     dicMonths[dayyear] = montharray
 
   for dayyear in dicMonths.keys():
-    exceptionstring = exceptionstring + "(diary-date '(" + " ".join(dicMonths[dayyear]) + ") '(" + dayyear[:-4] + ") " + dayyear[-4:]+ ")"  ## put all the dates of the same month into  
+    exceptionstring = exceptionstring + "(diary-date '(" + " ".join(dicMonths[dayyear]) + ") '(" + dayyear[:-4] + ") " + dayyear[-4:]+ ")"  ## put all the dates of the same month into
   exceptionstring = exceptionstring[12:-1]                      # if there are more than 1 exceptions, then we need them separated by '(diary-date'
   dbgrecord['EXCEPTIONSTRING'] = exceptionstring
   return dbgrecord
@@ -1780,8 +1761,8 @@ def handleExceptions( readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2
         del addG[0]
     elif answer == 'D':
       Deleteorphans.append(orphan)
-      
-          
+
+
   return delfromG, addG, dicUpdateorphans, Deleteorphans, dbe
 
 def ordinalsuffix(day):
@@ -1805,7 +1786,7 @@ def addRecurrenceDescriptions(dbg, dbe):
                    "3":"Third",
                    "4":"Fourth",
                    "5":"Fifth",}
-  
+
 
   dbnames = ['dbg','dbe']
   db = dbg
@@ -1817,7 +1798,6 @@ def addRecurrenceDescriptions(dbg, dbe):
     dbkeys = [key for key in db.keys() if type(db[key]) == DictionaryDefinedType and 'caseRec' in db[key].keys()]  ## get only recurrence records
     for key in dbkeys:
       record = db.get(key)
-      recordkeys = record.keys()
       caseRec = record.get('caseRec')
 
       if caseRec.find('bydayofweek') != -1:
@@ -1831,7 +1811,7 @@ def addRecurrenceDescriptions(dbg, dbe):
         if  bydayarray != "":
           bydayarray = [ daysofweek[int(kz)] for kz in bydayarray.split(" ")]
           if len(bydayarray) > 2:
-            byday = ", ".join(bydayarray[:-1]) 
+            byday = ", ".join(bydayarray[:-1])
             byday = byday + " and " + bydayarray[-1] + " "
           elif len(bydayarray) == 2:
             byday = " and ".join(bydayarray) + " "
@@ -1878,7 +1858,6 @@ def get_attendeeStatus(an_event_who):
 def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
   Canceled = []
   Orphaned = []
-  nowdatetime = sCurrentDatetime()
   recurrences = []
   recurrencekeys = []
   months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -1897,12 +1876,11 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
     print 'connection error'
     errorstatus = err[0].get('status')
     errorbody = err[0].get('body')
-    errorreason =  err[0].get('reason')
     if errorstatus == 302:           ## 302= redirect
       print errorbody, 'redirect to:', errorRedirectURI(errorbody)
     shelve.close()
     sys.exit(1)
-  
+
   query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full')
   #commentquery = gdata.calendar.service.CalendarEventCommentQuery()
 
@@ -1945,7 +1923,7 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
 #      commentfeed = gcal.CalendarQuery(commentquery)
       #newcomment = gdata.calendar.CalendarEventCommentEntry()
         commentobj = an_event.comments
-        commenthref = get_commenthref(commentobj)   
+        commenthref = get_commenthref(commentobj)
         entry['calendarEventComment_href'] = commenthref
         commentfeed = gcal.Query(commenthref)   ## cant get the CalendarEventCommentQuery to work so using this instead
         commententry = commentfeed.entry
@@ -2114,7 +2092,7 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
     db[recurrencekeys[i]]['ENDDAY'] = dtend[6:8]
     tzid = recGetFieldTZID(recurrence)
     db[recurrencekeys[i]]['TZID'] = tzid
-    db[recurrencekeys[i]]['TZID2'] = tzid    
+    db[recurrencekeys[i]]['TZID2'] = tzid
     rrule = recGetField('RRULE',recurrence)
     db[recurrencekeys[i]]['rrule'] = rrule
     casefrequency = recGetRRuleField('FREQ',rrule)
@@ -2126,7 +2104,7 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
       caseblock = 'Block'
       db[recurrencekeys[i]]['UNTILYEAR'] = untildate[0:4]
       db[recurrencekeys[i]]['UNTILMONTH'] = untildate[4:6]
-      db[recurrencekeys[i]]['UNTILDAY'] = untildate[6:8]     
+      db[recurrencekeys[i]]['UNTILDAY'] = untildate[6:8]
     db[recurrencekeys[i]]['wkst'] = recGetRRuleField('WKST',rrule)
     interval = recGetRRuleField('INTERVAL',rrule)
     if interval != '' and int(interval) > 0:
@@ -2180,26 +2158,26 @@ def getGoogleCalendar(username,passwd,time_min, casetimeARangeString, ap):
       db[recurrencekeys[i]]['DETAIL'] = db[recurrencekeys[i]]['TITLE'] + content
     recurrencestring = ap[casename] % db[recurrencekeys[i]]
 
-    if recurrencestring[0] == '%':                                # this is a work around for printing the escaped % char 
+    if recurrencestring[0] == '%':                                # this is a work around for printing the escaped % char
       recurrencestring = '%' + recurrencestring
     if recurrencestring[:2] == '&%':
       recurrencestring = '&%' + recurrencestring[1:]
 
-    db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring ) 
+    db[recurrencekeys[i]]['fullentry'] = StripExtraNewLines(recurrencestring )
     db[recurrencekeys[i]]['timetuple_dtstart'] = Convertdtstart2timetuple(dtstart)
-  
+
   #sys.exit(0) #debug
   return db, gcal, Canceled, Orphaned, feed
 
 def getKeystomodifyfromE(db1,db2):
   """ Returns some arrays of keys that are to be inserted into or deleted from Gcal.  Any edited entries are deleted and reinserted """
   dict = {}
-  dictype = type(dict) 
+  dictype = type(dict)
   keys1 = [key for key in db1.keys() if type(db1[key])==dictype]
   keys2 = [key for key in db2.keys() if type(db2[key])==dictype]
 
-  identicalkeys = [key for key in keys1 if key in keys2]          # identicalkeys are hashkeys that are the same in both the shelve and dbe, meaning the entries are unchanged 
-  
+  identicalkeys = [key for key in keys1 if key in keys2]          # identicalkeys are hashkeys that are the same in both the shelve and dbe, meaning the entries are unchanged
+
   delfromG = [key for key in keys2 if key not in identicalkeys]
   addtoG = [key for key in keys1 if key not in identicalkeys]
   return identicalkeys, delfromG, addtoG
@@ -2209,46 +2187,46 @@ def getKeystomodifyfromGREDACTED(dbg,dbshelf,identicalkeys, glastsynctime):
   ### REDACTED
                                                                   # identicalkeys are hashkeys that exist in both the shelve and dbe
   dict = {}
-  dictype = type(dict) 
+  dictype = type(dict)
   gkeys = [key for key in dbg.keys() if type(dbg[key])==dictype]
   skeys = [key for key in dbshelf.keys() if type(dbshelf[key])==dictype]
   skeyeventids = [dbshelf[key].get('eventid') for key in skeys]
   delfromE = [key for key in identicalkeys if dbshelf[key].get('eventid') not in gkeys]
   addE = [key for key in identicalkeys if key not in delfromE and dbg[dbshelf[key]['eventid']].get('modified') > glastsynctime]
   #addE = [key for key in identicalkeys if key not in delfromE]
- 
+
 
   addEinTermsofGkeys = [dbshelf[key]['eventid'] for key in identicalkeys if key not in delfromE and dbg[dbshelf[key]['eventid']].get('modified') > glastsynctime]
   #addEinTermsofGkeys = [dbshelf[key]['eventid'] for key in identicalkeys if key not in delfromE]
-   
+
   delfromE += addE                    #instead of editing simply delete and create a new entry
   alsoaddtheseGkeystoE = [key for key in gkeys if key not in skeyeventids]
   return delfromE, addE, addEinTermsofGkeys, alsoaddtheseGkeystoE
-  
+
 def getKeystomodifyfromG(dbg,delfromEalso,shelve,identicalkeys, glastsynctime):
   """ Returns some arrays of keys that are to be inserted into or deleted from the emacs Diary.  Any edited entries are deleted and reinserted """
                                                                   # identicalkeys are hashkeys that are the same in both the shelve and dbe
   dict = {}
-  dictype = type(dict) 
+  dictype = type(dict)
   gkeys = [key for key in dbg.keys() if type(dbg[key])==dictype]
   skeys = [key for key in shelve.keys() if type(shelve[key])==dictype]
   skeyeventids = [shelve[key].get('eventid') for key in skeys]
   delfromE = [key for key in identicalkeys if shelve[key].get('eventid') not in gkeys]
 
   addE = [key for key in identicalkeys if key not in delfromE and dbg[shelve[key]['eventid']].get('modified') > glastsynctime]
-  #addE = [key for key in identicalkeys if key not in delfromE]    ## debug.  
- 
+  #addE = [key for key in identicalkeys if key not in delfromE]    ## debug.
+
 
   addEinTermsofGkeys = [shelve[key]['eventid'] for key in identicalkeys if key not in delfromE and dbg[shelve[key]['eventid']].get('modified') > glastsynctime]
   #addEinTermsofGkeys = [dbshelf[key]['eventid'] for key in identicalkeys if key not in delfromE]
-   
+
   #delfromE += addE                    #instead of editing simply delete and create a new entry
   alsoaddtheseNewlyAddedGkeystoE = [key for key in gkeys if key not in skeyeventids]  # these are newly entered from gcal
 
 
   delfromE = appendtokeys(delfromE, delfromEalso)
   return delfromE, addE, addEinTermsofGkeys, alsoaddtheseNewlyAddedGkeystoE
- 
+
 
 def getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve):
   lastmodifiedg = time.strptime('1995-1-1T12:00:00','%Y-%m-%dT%H:%M:%S')
@@ -2257,8 +2235,6 @@ def getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve):
   postfix = str(abs(hash(gmailuser)))
   shelvenamefq = shelvepath + 'egcsyncshelve' + postfix + '.dat'
   f=shelve.open(shelvenamefq)
-  emptydict = {}
-  dicType = type(emptydict)
   if f=={} or initialiseShelve == True:
     for key in f.keys():
       del f[key]
@@ -2266,7 +2242,7 @@ def getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve):
     f['updated-g'] = time.strptime("1970-10-10T10:30:30.000Z",'%Y-%m-%dT%H:%M:%S.000Z')
   else:
     lastmodifiedg = f['updated-g']
-    lastmodifiede = f['updated-e']    
+    lastmodifiede = f['updated-e']
   return f,lastmodifiedg,lastmodifiede
 
 def convertTimetuple2GMT(tt):
@@ -2280,19 +2256,19 @@ def convertTimetuple2GMT(tt):
 def UpdateOrphansInGcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2ekeymap, feed):
   ## all non-recurring events must be entered in terms of GMT
   dicFindTimeBeforeTitle = mapTimeBeforeTitles()
-      
+
   for orphan in dicUpdateorphans.keys():
     for event in feed.entry:
       if event.id.text == orphan:
         break
-  
+
     entry = dbe[dicUpdateorphans[orphan]]
     event.title = atom.Title(text=entry.get('TITLE'))
     event.title.text = entry.get('TITLE')
     event.content = atom.Content(text=entry.get('CONTENT'))
     content = entry.get('CONTENT')
     if content != None:
-      event.content.text = RemoveNewlinesSpacePadding(content) 
+      event.content.text = RemoveNewlinesSpacePadding(content)
   #    event.where.append(gdata.calendar.Where(value_string=event['WHERE']))             ### WHERE feature not yet supported
     if 'recurrencestring' in entry:
       event.recurrence = gdata.calendar.Recurrence(text=entry['recurrencestring'])
@@ -2314,7 +2290,6 @@ def UpdateOrphansInGcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2eke
 
 ###                                                                                   ### set extended_property additions here
 
-    entrykeys = entry.keys()
     entrycase = entry.get('entrycase')
     if 'caseMonthdayyear' == entrycase:                                                        # non recurring format: mm/dd/yyyy or Jul 4, 2009 format?
       extendeddefaultformat = gdata.calendar.ExtendedProperty(name="nonrecurringformat", value="1")
@@ -2337,18 +2312,18 @@ def UpdateOrphansInGcal(dicUpdateorphans, dbe, shelve, gcal, editlinksmap, g2eke
     if diaryentryvisibility == '&':                                                           # entry visibility inhibiter?
       extended = gdata.calendar.ExtendedProperty(name="VIS", value="&")
       event.extended_property.append(extended)
-  
+
     print "-- Updated recurring event instance in Gcal to:", dbe[dicUpdateorphans[orphan]].get('fullentry')
     new_event = gcal.UpdateEvent(event.GetEditLink().href, event)
     dbe[dicUpdateorphans[orphan]]['editlink'] = new_event.GetEditLink().href
     del shelve[g2ekeymap[orphan]]
-    
+
 
   return
 
 #def Flag_to_UpdateRecurrence_Entries_If_Change_In_Orphans(flagRecurrenceUpdate, addEinTermsofG, delfromE, dicUpdateorphans):
 #   flagRecurrenceUpdate:
-    
+
 #   return addEinTermsofG, delfromE
 
 def InsertEntryIntoGcal(entry, gcal,dicFindTimeBeforeTitle):
@@ -2360,7 +2335,7 @@ def InsertEntryIntoGcal(entry, gcal,dicFindTimeBeforeTitle):
   event.content = atom.Content(text=entry.get('CONTENT'))
   content = entry.get('CONTENT')
   if content != None:
-    event.content.text = RemoveNewlinesSpacePadding(content) 
+    event.content.text = RemoveNewlinesSpacePadding(content)
 #    event.where.append(gdata.calendar.Where(value_string=event['WHERE']))             ### WHERE feature not yet supported
   if 'recurrencestring' in entry:
     event.recurrence = gdata.calendar.Recurrence(text=entry['recurrencestring'])
@@ -2380,7 +2355,6 @@ def InsertEntryIntoGcal(entry, gcal,dicFindTimeBeforeTitle):
 
 ###                                                                                   ### set extended_property additions here
 
-  entrykeys = entry.keys()
   entrycase = entry.get('entrycase')
   if 'caseMonthdayyear' == entrycase:                                                        # non recurring format: mm/dd/yyyy or Jul 4, 2009 format?
     extendeddefaultformat = gdata.calendar.ExtendedProperty(name="nonrecurringformat", value="1")
@@ -2412,16 +2386,16 @@ def InsertEntriesIntoGcal(addG,dbe,gcal,shelve):
   for key in addG:
     eventid, editlink = InsertEntryIntoGcal(dbe[key],gcal,dicFindTimeBeforeTitle)
     dbe[key]['eventid'] = eventid
-    dbe[key]['editlink'] = editlink 
+    dbe[key]['editlink'] = editlink
     shelve[key] = dbe[key].copy()
-    print "-- inserted from Diary to Gcal: " + shelve[key]['fullentry'] 
+    print "-- inserted from Diary to Gcal: " + shelve[key]['fullentry']
     print
 
 def DeleteEntriesFromE(shelve,delfromE):
   for key in delfromE:
     record = shelve.get(key)
     if record != None:
-      print "-- deleted from Diary: " + record.get('fullentry') 
+      print "-- deleted from Diary: " + record.get('fullentry')
       del shelve[key]
 
 
@@ -2446,7 +2420,7 @@ The document has moved <A HREF="http://www.google.com/calendar/feeds/default/pri
     return body[pos2 + 6:pos - 2]
 
 def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeymap, DeleteOrphans):
- 
+
   for key in delG:
     record = shelve.get(key)
     if record != None:
@@ -2460,13 +2434,12 @@ def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeyma
           except Exception, err:             ## 302=Redirect received, but redirects_remaining <= 0
             errorstatus = err[0].get('status')
             errorbody = err[0].get('body')
-            errorreason =  err[0].get('reason')
             print "-- unable to delete " + shelve[key]['fullentry']
             if errorstatus != 404:           ## 404 being Not Found, so if its not Not Found, then assume its redirect
               print errorbody, 'redirect to:', errorRedirectURI(errorbody)
               shelve.close()
               sys.exit(1)
-      
+
           del shelve[key]
 
   for key in DeleteOrphans:
@@ -2474,10 +2447,9 @@ def DeleteEntriesFromGcal(delG,delfromdbg,dbg,gcal,shelve, editlinksmap,g2ekeyma
     try:
       gcal.DeleteEvent(editlink)
       print "-- deleted recurring event instance from Gcal and Diary:" + dbg[key].get('fullentry')
-    except Exception, err:     
+    except Exception, err:
       errorstatus = err[0].get('status')
       errorbody = err[0].get('body')
-      errorreason =  err[0].get('reason')
       print "-- unable to delete from gcal (probably already deleted): " +  dbg[key].get('fullentry')
       if errorstatus != 404:           ## 404 being Not Found, so if its not Not Found, then assume its redirect
         print errorbody, 'redirect to:', errorRedirectURI(errorbody)
@@ -2492,7 +2464,7 @@ def InsertEntriesEditedbyDiarytoE(addE,dbe,shelve):
   for key in addE:
     shelve[key] = dbe[key].copy()
     print "-- insert edit into Diary: " + shelve[key]['fullentry']
-    
+
 
 def InsertEntriesIntoE(addGkeystoE, shelve,dbg):
   for gkey in addGkeystoE:
@@ -2538,10 +2510,8 @@ def sortkeysbydate(db, keys):
   for i in range(0,size):
     target.append(index[i][1])
   return target
-  
+
 def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader,unrecognized_diary_entries):
-  dict = {}
-  dictype = type(dict) 
   index = createIndexFromShelve(shelve)
   f = open(emacsDiaryLocation,'w')
   f.seek(0)
@@ -2550,7 +2520,7 @@ def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader,unrecognized_diary_e
   comment_status_enum = { 'A':'ACCEPTED', 'D':'DECLINED', 'I': 'INVITED', 'T': 'TENTATIVE'}
   for row in index:   ### row[1] contains the ekeys and row[0] contains the order index
     f.write(shelve[row[1]].setdefault('recurrencedesc','') + shelve[row[1]].get('fullentry') + '\n')
-    
+
     if 'comment_entries' in shelve[row[1]] and len(shelve[row[1]].get('comment_entries')) > 0 and shelve[row[1]]['comment_entries'][0].get('status') != None and shelve[row[1]]['comment_entries'][0].get('status') != '':
       f.write(' * EGCSync ' + shelve[row[1]].get('comment_title') + '\n')
       for commententry in shelve[row[1]].get('comment_entries'):
@@ -2570,13 +2540,13 @@ def WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader,unrecognized_diary_e
 
 def CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal):
 
-  query = gdata.calendar.service.CalendarEventQuery('default', 'private', 
+  query = gdata.calendar.service.CalendarEventQuery('default', 'private',
         'full')
   query.start_min = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime())
   query.start_max = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime())
   #query.updated_min = start_date
   feed = gcal.CalendarQuery(query)
- 
+
   shelve['updated-e'] = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)
   shelve['updated-g'] = time.strptime(feed.updated.text,'%Y-%m-%dT%H:%M:%S.000Z')
 
@@ -2613,14 +2583,14 @@ def UpdateAttendeeStatustoGcal(username, identicalkeys,g2ekeymap, dbe, dbg, shel
         originalstatus = ''
       editlink = editlinksmap.get(key)
       if printedstatus != None:
-        print "-- updated attendee status for", dbg[key].get('fullentry'), ":", dbg[key].get('comment_owner_status'), " CHANGED TO: ", printedstatus 
+        print "-- updated attendee status for", dbg[key].get('fullentry'), ":", dbg[key].get('comment_owner_status'), " CHANGED TO: ", printedstatus
         new_event = gcal.UpdateEvent(editlink, feed.entry[idxfeed])
         new_editlink = new_event.GetEditLink()
         editlinksmap[key] =              new_editlink
         shelve[shelvekey]['editlink'] =  new_editlink
 
   return shelve, gcal, feed, editlinksmap
-      
+
 def UpdateCommentstoGcal(identicalkeys,g2ekeymap, dbe, dbg, shelve, gcal):
   """ this function will not work until google fixes its api.  The google calendar supplies a writable view of the comment feed to the api, but not the actual feed itself; updating the copy does not have any effect on the comments displayed in the google calendar web gui """
   return shelve, gcal #debug
@@ -2628,7 +2598,6 @@ def UpdateCommentstoGcal(identicalkeys,g2ekeymap, dbe, dbg, shelve, gcal):
   for key in comments_modified_in_diary:
     if key in dbg and shelve[g2ekeymap.get(key)].get('comment_owner_hash') == dbg[key].get('comment_owner_hash'):
       shelvekey = g2ekeymap[key]
-      comment_editlink = dbg[key].get('comment_owner_editlink')
       comment_entry = dbg[key].get('comment_owner_entry')
       comment_entry.content.text = dbe[shelvekey].get('comment_owner_content')
       print "-- updated comment for ", dbg[key].get('fullentry'), ":", dbg[key].get('comment_owner_content') , " CHANGED TO: " ,  comment_entry.content.text
@@ -2637,7 +2606,7 @@ def UpdateCommentstoGcal(identicalkeys,g2ekeymap, dbe, dbg, shelve, gcal):
   return shelve, gcal
 
 def updateEditLinks(dbg,shelve):
- 
+
   ekeyschangedinG = []
   gkeyschangedinG = []
   editlinksmap = {}               # editlinksmap maps gkey to eventid
@@ -2649,9 +2618,9 @@ def updateEditLinks(dbg,shelve):
         eventid = dbgrecord.get('eventid')
         editlinkg = dbgrecord.get('editlink')
         editlinksmap[eventid] = editlinkg     #create a keymap for editlinks from g keys
-        g2ekeymap[eventid] = key              #create a keymap from g keys to e keys also 
+        g2ekeymap[eventid] = key              #create a keymap from g keys to e keys also
         if editlinkg != shelve[key]['editlink']:
-          
+
           ekeyschangedinG.append(key)
           gkeyschangedinG.append(shelve[key]['eventid'])
 
@@ -2660,9 +2629,9 @@ def updateEditLinks(dbg,shelve):
     if type(dbg[key]) == DictionaryDefinedType:
       editlinksmap[key] = dbg[key]['editlink']
 
- 
+
   return ekeyschangedinG, gkeyschangedinG, g2ekeymap, editlinksmap
-        
+
 def appendtokeys( keylist, keystoinsert):
   for key in keystoinsert:
     if key not in keylist:
@@ -2696,25 +2665,24 @@ def handleContentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delfr
   dict = {}
   dictype = type(dict)
   contendingE = [shelve[key].get('eventid') for key in ekeyschangedinG if key in delfromG]
-  
-  shelvekeys = [key for key in shelve.keys() if type(shelve[key]==dictype)]
+
   dbekeys = [key for key in dbe.keys() if type(dbe[key]==dictype)]
   contendingdbe = [key for key in dbekeys if key not in identicalkeys]    ### contending entries from dbe will not appear in the identicalkeys list
-  
+
   contendingdbe = sortkeysbydate(dbe,contendingdbe)
 
   contendingE = sortkeysbydate(dbg,contendingE)
   delfromdbe = []
-  
+
   delfromdbg = []
   addEdit2E = []
   i = -1
   answer = '0'
-  
+
   for key in contendingE:                  ###  nest 2 loops for contendingE (from gcal) and contendingdbe (from the diary)
-    continuetoNextContendingE = False 
+    continuetoNextContendingE = False
     i += 1
-    print "!! CONTENTION #", i, "!!!!!!!!! The following entry has been modified in both the emacs diary as well as the google calendar:" 
+    print "!! CONTENTION #", i, "!!!!!!!!! The following entry has been modified in both the emacs diary as well as the google calendar:"
     print ">> gcal:",  dbg[key]['fullentry']
     if ENTRY_CONTENTION == 0:       # prompt from list of contenders
       if len(contendingdbe) == 0:             # if the list is empty then break to the next contendingE
@@ -2731,7 +2699,7 @@ def handleContentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delfr
           if len(answer) > 0:
             if answer[0] == 'n' or answer[0] == 'N':
               answervalidated = True
-              continuetoNextContendingE = True             
+              continuetoNextContendingE = True
             elif answer[0] >= '0' and answer[0] <= '9' and int(answer) < len(contendingdbe):
               answervalidated = True
       elif len(contendingdbe) == 1:
@@ -2752,14 +2720,14 @@ def handleContentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delfr
       answer = answer.lower()
       if answer == 'g':                       ### delete dbe match entry, and add the gcal contendingE entry to the diary
         delfromG = removekey(delfromG, g2ekeymap.get(key))
-        addEdit2E = appendkey(addEdit2E, key) 
+        addEdit2E = appendkey(addEdit2E, key)
         addG = removekey(addG, contendingdbe[match])
-        delfromdbe = appendkey(delfromdbe, contendingdbe[match])  ### delete from the diary 
+        delfromdbe = appendkey(delfromdbe, contendingdbe[match])  ### delete from the diary
         delfromdbe = appendkey(delfromdbe, g2ekeymap.get(key))        ### delete from the shelve
 
         del dbe[contendingdbe[match]]
         del contendingdbe[match]
-        
+
         answervalidated = True
       elif answer == 'e':                    ### delete the contendingE entry, and add the dbe match entry
         delfromG = appendkey(delfromG, contendingE[i])
@@ -2784,8 +2752,6 @@ class _Getch:
     def __call__(self): return self.impl()
 
 class _GetchUnix:
-    def __init__(self):
-        import tty, sys
     def __call__(self):
         import sys, tty, termios
         fd = sys.stdin.fileno()
@@ -2797,8 +2763,6 @@ class _GetchUnix:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
 class _GetchWindows:
-    def __init__(self):
-        import msvcrt
     def __call__(self):
         import msvcrt
         return msvcrt.getch()
@@ -2809,16 +2773,16 @@ def getpasswd():
   a = 'q'
   passwd = ''
   while a != chr(13):
-    a = getch() 
+    a = getch()
     passwd = passwd + a
     print '*',
   return passwd[0:len(passwd) - 1]
 
 def gethomedir():   ## should work for windows and linux but not mac   ## OS Dependent
   try:
-    from win32com.shell import shellcon, shell            
+    from win32com.shell import shellcon, shell
     homedir = shell.SHGetFolderPath(0, shellcon.CSIDL_APPDATA, 0, 0)
- 
+
   except ImportError: #  non-windows/win32com case
     homedir = os.path.expanduser("~")
   return homedir
@@ -2910,7 +2874,7 @@ rguments; if they are not, then they will be prompted upon execution."
     gmailuser = raw_input('enter gmail username:')
     print('enter gmail passwd:'),
     gmailpasswd = getpasswd()
- 
+
   shelve, lastsyncG, lastsyncE = getShelveandLastSyncTimes(emacsDiaryLocation, gmailuser, initialiseShelve)
   lastmodifiedE = time.gmtime(os.stat(emacsDiaryLocation).st_mtime)  ## OS Dependent
 
@@ -2921,7 +2885,7 @@ rguments; if they are not, then they will be prompted upon execution."
 
 
 
-  dbg, gcal, Canceled, Orphaned, feed = getGoogleCalendar(gmailuser,gmailpasswd, lastsyncG, TimesTemplate['caseTimeARange'], CasesTemplate) 
+  dbg, gcal, Canceled, Orphaned, feed = getGoogleCalendar(gmailuser,gmailpasswd, lastsyncG, TimesTemplate['caseTimeARange'], CasesTemplate)
 
 
 
@@ -2935,8 +2899,8 @@ rguments; if they are not, then they will be prompted upon execution."
   if lastmodifiedE > lastsyncE:
     DiaryWasModified = True
   else:
-    DiaryWasModified = False   
-  if lastmodifiedG > lastsyncG:    
+    DiaryWasModified = False
+  if lastmodifiedG > lastsyncG:
     GcalWasModified = True
   else:
     GcalWasModified = False
@@ -2944,23 +2908,23 @@ rguments; if they are not, then they will be prompted upon execution."
   ekeyschangedinG, gkeyschangedinG, g2ekeymap, editlinksmap = updateEditLinks(dbg,shelve)   # ekeyschangedinG are edited gcal entries, not newly added ones
 
   dbg, flagRecurrenceUpdates = addressExceptions(dbg,shelve, g2ekeymap, Orphaned + Canceled, TimesTemplate['caseTimeARange'], CasesTemplate)   ## change the casename of recurrence events that contain exceptions and add the exceptions to their EXCEPTIONSTRING.  note: the term 'exception', throughout the scope of this script, refers to recurrence exceptions, and not error exceptions
-  
+
   dbg, dbe = addRecurrenceDescriptions(dbg, dbe)
-  
+
   identicalkeys, delfromG, addG = getKeystomodifyfromE(dbe,shelve) # identicalkeys are hashkeys that are the same in both the shelve and dbe, meaning the entries are unchanged by emacs diary
 
- 
+
 
   delfromG, addG, dicUpdateorphans, Deleteorphans, dbe = handleExceptions( readFromGoogleOnly, ENTRY_CONTENTION, dbg, shelve, dbe, g2ekeymap, Orphaned, delfromG, addG, identicalkeys, ekeyschangedinG, gkeyschangedinG, editlinksmap )
 
   identicalkeys, delfromG,delfromE, addG, delfromdbg, addEdit2E, ekeyschangedinG, gkeyschangedinG  = handleContentions(readFromGoogleOnly, ENTRY_CONTENTION, identicalkeys, delfromG, addG, ekeyschangedinG,gkeyschangedinG,shelve,dbg, dbe, g2ekeymap)
 
   delfromE, addE, addEinTermsofG, alsoaddtheseNewlyAddedGkeystoE = getKeystomodifyfromG(dbg,delfromE, shelve,identicalkeys, lastsyncG)
-  
-  alsoaddtheseNewlyAddedGkeystoE = removekeys(alsoaddtheseNewlyAddedGkeystoE, delfromdbg)  
-  alsoaddtheseNewlyAddedGkeystoE = appendtokeys(alsoaddtheseNewlyAddedGkeystoE, addEdit2E)    
+
+  alsoaddtheseNewlyAddedGkeystoE = removekeys(alsoaddtheseNewlyAddedGkeystoE, delfromdbg)
+  alsoaddtheseNewlyAddedGkeystoE = appendtokeys(alsoaddtheseNewlyAddedGkeystoE, addEdit2E)
   addE = appendtokeys(addE, dicUpdateorphans.values())      ## if orphans are modified, their new value must be added to the shelve
-  
+
   delfromE = appendtokeys(delfromE,ekeyschangedinG)
   alsoaddtheseNewlyAddedGkeystoE = appendtokeys(alsoaddtheseNewlyAddedGkeystoE, gkeyschangedinG)
 
@@ -2984,11 +2948,11 @@ rguments; if they are not, then they will be prompted upon execution."
       if readFromGoogleOnly == False:
         InsertEntriesIntoGcal(addG,dbe,gcal,shelve)
       InsertEntriesEditedbyDiarytoE(addE,dbe,shelve)
-    if GcalWasModified or len(flagRecurrenceUpdates)> 0:  
+    if GcalWasModified or len(flagRecurrenceUpdates)> 0:
       InsertEntriesIntoE(addEinTermsofG, shelve, dbg)
-    #  InsertEntriesIntoE(alsoaddtheseNewlyAddedGkeystoE,shelve,dbg)  
+    #  InsertEntriesIntoE(alsoaddtheseNewlyAddedGkeystoE,shelve,dbg)
     WriteEmacsDiary(emacsDiaryLocation, shelve, diaryheader,unrecognized_diary_entries )
-  else:  
+  else:
    print "-- No Changes"
   CloseShelveandMarkSyncTimes(emacsDiaryLocation,shelve,gcal)
 if __name__ == '__main__':
