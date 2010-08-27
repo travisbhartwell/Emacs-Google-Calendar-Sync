@@ -80,10 +80,6 @@ globalvar_CHANGING_RECURRING_EVENT_DESCRIPTIONS_EDITS_THE_ENTRY = False
 # each diary entry   False = No comments
 globalvar_DISPLAY_COMMENTS = True
 
-try:
-    from xml.etree import ElementTree
-except ImportError:
-    from elementtree import ElementTree
 import gdata.calendar.service
 import gdata.service
 import atom.service
@@ -1563,15 +1559,15 @@ def getEmacsDiary(login, emacsDiaryLocation, initialiseShelve, TimesARangeTempla
                     details.append(entry['DETAIL'])
                     entry['entrycase'] = idxCase
                     entry['gcase'] = e2gcase_table[idxCase]
-                    isModified = False
+#                    isModified = False
                     previousline, previouslinestartpos = getpreviousline(file, entry_start_pos)
                     previouslinemo = descpat[idxCase].search(previousline)
                     if previouslinemo != None:                           ## if description doesnt match then run it against all possible desc templates, if no match either then mark for  delete, else run both against shelve to see which one was edited and then update record.   IF description does match but items are changed, then find out which is correct by running it against the shelve, then update the record
                         entry_start_pos = previouslinestartpos
 
                     #entry, isModified = copyDescriptiontodbrecord(entry, desc_entry, printingCase[idxCase])
-                        if isModified:
-                            entry = update_full_entry_for_caseRec_record(dbrecord, caseTemplate, timeARangeTemplate)
+#                        if isModified:
+#                            entry = update_full_entry_for_caseRec_record(dbrecord, caseTemplate, timeARangeTemplate)
 
                     entrypid = str(hash(fullentry))
                     keys.append(entrypid)
