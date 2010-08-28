@@ -27,6 +27,9 @@ from templates import *
 # password will be prompted upon execution.
 PASSWORD = ''
 
+# optional username.
+USERNAME = ''
+
 # None = get gmtoffset from python time.timezone.  globalvar_GMTOFFSET
 # = 6  refers to central timezone
 GMT_OFFSET = None
@@ -2304,10 +2307,10 @@ def write_emacs_diary(emacs_diary_location,
                 shelve_db[row[1]].get('fullentry') +
                 NEWLINE)
 
-        if all(('comment_entries' in shelve_db[row[1]],
-                len(shelve_db[row[1]].get('comment_entries')) > 0,
-                shelve_db[row[1]]['comment_entries'][0].get('status') != None,
-                shelve_db[row[1]]['comment_entries'][0].get('status') != '')):
+        if ('comment_entries' in shelve_db[row[1]] and
+            len(shelve_db[row[1]].get('comment_entries')) > 0 and
+            shelve_db[row[1]]['comment_entries'][0].get('status') is not None and
+            shelve_db[row[1]]['comment_entries'][0].get('status') != ''):
             f.write(' * EGCSync ' +
                     shelve_db[row[1]].get('comment_title') +
                     NEWLINE)
@@ -2389,9 +2392,9 @@ def update_attendee_status_to_gcal(user_name,
         comment_owner_unchanged = \
             shelve_comment_owner_status == google_comment_owner_status
 
-        if all((key in google_db,
-                'comment_owner_status' in google_db[key],
-                comment_owner_unchanged)):
+        if (key in google_db and
+            'comment_owner_status' in google_db[key] and
+            comment_owner_unchanged):
             shelve_key = g_to_e_key_map[key]
             index_feed = google_db[key].get('index_feed')
             entry_who = feed.entry[index_feed].who
@@ -2828,19 +2831,19 @@ Please create a file in your home directory called diary"
             usage()
             return 0
 
+    gmail_user = USERNAME
+    gmail_passwd = PASSWORD
+
     if len(args) == 2:
         gmail_user = args[0]
         gmail_passwd = args[1]
     elif len(args) == 1:
         gmail_user = args[0]
 
-        if PASSWORD is None or PASSWORD.strip() == '':
-            print('enter gmail passwd:'),
-            gmail_passwd = get_passwd()
-        else:
-            gmail_passwd = PASSWORD
-    else:
+    if gmail_user is None or gmail_user.strip() == '':
         gmail_user = raw_input('enter gmail username:')
+
+    if gmail_passwd is None or gmail_passwd.strip() == '':
         print('enter gmail passwd:'),
         gmail_passwd = get_passwd()
 
