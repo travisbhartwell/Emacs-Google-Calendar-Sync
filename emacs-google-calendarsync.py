@@ -633,7 +633,7 @@ def handle_emacs_loose_ends(db):
         end_datetime_string = end_datetime_string.replace('-', '')
 
         if all_day_event:
-            db[db_key]['all_day_event'] = True
+            db[db_key]['alldayevent'] = True
             end_datetime_string = end_datetime_string[:8]
             start_datetime_string = start_datetime_string[:8]
             start_datetime_tuple = datetime.datetime(start_year,
@@ -645,7 +645,7 @@ def handle_emacs_loose_ends(db):
             db[db_key]['timetuple_dtstart'] = start_datetime_tuple
             db[db_key]['timetuple_dtend'] = end_datetime_tuple
         else:
-            db[db_key]['all_day_event'] = False
+            db[db_key]['alldayevent'] = False
             db[db_key]['timetuple_dtstart'] = start_datetime.timetuple()
             db[db_key]['timetuple_dtend'] = end_datetime.timetuple()
 
@@ -669,7 +669,7 @@ def handle_emacs_loose_ends(db):
         # write recurrence string from gcases_template
         if len(gcase) > 7 and gcase[:7] == 'caseRec':
             recurrence_string = gcases_template[gcase] % db[db_key]
-            db[db_key]['recurrence_string'] = recurrence_string
+            db[db_key]['recurrencestring'] = recurrence_string
             db[db_key]['caseRec'] = gcase
 
 
@@ -915,7 +915,7 @@ def get_emacs_diary(login,
                 full_entry, comments_text = strip_comments(full_entry)
                 entry['DETAIL'], comments_text = \
                     strip_comments(entry.get('DETAIL'))
-                entry['full_entry'] = full_entry
+                entry['fullentry'] = full_entry
                 # in this case a attendeeStatus without a comment is
                 # still considered a comment
                 if comments_text is not None:
@@ -1105,7 +1105,7 @@ def update_full_caseRec_entry(record,
                               time_a_range_string,
                               case_template_string):
     """ part of address_exceptions() """
-    format_time_before_title = record.get('format_time_before_title')
+    format_time_before_title = record.get('formatTimeBeforeTitle')
     content = record.get('CONTENT')
     title = record.get('TITLE')
     if content != "":
@@ -1359,7 +1359,7 @@ def add_recurrence_descriptions(google_db, emacs_db):
                       and 'caseRec' in db[key].keys()]
         for key in dbkeys:
             record = db.get(key)
-            case_record = record.get('case_record')
+            case_record = record.get('caseRec')
 
             if case_record.find('bydayofweek') != -1:
                 record['WHICHWEEKORDINAL'] = \
@@ -1525,13 +1525,13 @@ def get_google_calendar(user_name,
                     comment_entry['updated'] = a_comment.updated.text
                     comment_entry['id'] = a_comment.id.text
                     if len(a_comment.link) > 1:
-                        comment_entry['edit_link'] = a_comment.link[1]
+                        comment_entry['editlink'] = a_comment.link[1]
                     comments.append(comment_entry)
                     email_id = comment_entry.get('email')
                     email_id = email_id.split('@')[0]
                     if email_id == user_name:
                         entry['comment_owner_editlink'] = \
-                            comment_entry.get('edit_link')
+                            comment_entry.get('editlink')
                         entry['comment_owner_entry'] = comment
                         entry['comment_owner_status'] = \
                             comment_entry.get('status')
@@ -1586,32 +1586,32 @@ def get_google_calendar(user_name,
                                           TIMESTAMP_FMT)
         edit_link = an_event.GetEditLink()
         if edit_link != "":
-            entry['edit_link'] = edit_link.href
+            entry['editlink'] = edit_link.href
 
         # get extended_properties here
         #  time before title?
         format_time_before_title = \
             find_extended_property(an_event.extended_property,
-                                   'format_time_before_title')
+                                   'formatTimeBeforeTitle')
         if format_time_before_title == "":
             format_time_before_title = FORMAT_TIME_BEFORE_TITLE_IN_DIARY
         elif format_time_before_title == "1":
             format_time_before_title = True
         else:
             format_time_before_title = False
-        entry['format_time_before_title'] = format_time_before_title
+        entry['formatTimeBeforeTitle'] = format_time_before_title
         # entry visibility inhibiter?
         entry['VIS'] = find_extended_property(an_event.extended_property,
                                               'VIS')
         # non recurring format : mm/dd/yyyy or Jul 4, 2009 style?
         non_recurring_format = \
             find_extended_property(an_event.extended_property,
-                                   'non_recurring_format')
+                                   'nonrecurringformat')
         if non_recurring_format == "":
             non_recurring_format = DEFAULT_NON_RECURRING_FORMAT
         else:
             non_recurring_format = int(non_recurring_format)
-        entry['non_recurring_format'] = non_recurring_format
+        entry['nonrecurringformat'] = non_recurring_format
         if an_event.recurrence is not None:
             # the gcal recurrence info is never used and takes up
             # alot of space
@@ -1717,7 +1717,7 @@ def get_google_calendar(user_name,
         datetime_start = recurrence_get_field('DTSTART', recurrence)
         db[recurrence_keys[i]]['SOMEZING'] = '"%V"'
         db[recurrence_keys[i]]['SOMEZING2'] = '"%V"'
-        db[recurrence_keys[i]]['datetime_start'] = datetime_start
+        db[recurrence_keys[i]]['dtstart'] = datetime_start
         db[recurrence_keys[i]]['STYEAR'] = datetime_start[0:4]
         db[recurrence_keys[i]]['STMONTH'] = datetime_start[4:6]
         db[recurrence_keys[i]]['STDAY'] = datetime_start[6:8]
@@ -1730,7 +1730,7 @@ def get_google_calendar(user_name,
         db[recurrence_keys[i]]['STYEAR4'] = datetime_start[0:4]
 
         datetime_end = recurrence_get_field('DTEND', recurrence)
-        db[recurrence_keys[i]]['datetime_end'] = datetime_end
+        db[recurrence_keys[i]]['dtend'] = datetime_end
         db[recurrence_keys[i]]['ENDYEAR'] = datetime_end[0:4]
         db[recurrence_keys[i]]['ENDMONTH'] = datetime_end[4:6]
         db[recurrence_keys[i]]['ENDDAY'] = datetime_end[6:8]
@@ -1740,7 +1740,7 @@ def get_google_calendar(user_name,
         db[recurrence_keys[i]]['TZID2'] = tzid
 
         recurrence_rule = recurrence_get_field('RRULE', recurrence)
-        db[recurrence_keys[i]]['recurrence_rule'] = recurrence_rule
+        db[recurrence_keys[i]]['rrule'] = recurrence_rule
         case_frequency = \
             recurrence_get_recurrence_rule_field('FREQ', recurrence_rule)
         case_frequency = case_frequency.lower().capitalize()
@@ -1817,7 +1817,7 @@ def get_google_calendar(user_name,
 
             db[recurrence_keys[i]]['ENDMINUTE'] = datetime_end[11:13]
 
-            if db[recurrence_keys[i]]['format_time_before_title']:
+            if db[recurrence_keys[i]]['formatTimeBeforeTitle']:
                 if content != "":
                     content = NEWLINE + content
                 db[recurrence_keys[i]]['DETAIL'] = \
@@ -2184,7 +2184,7 @@ def delete_entries_from_gcal(del_from_g,
     for key in del_from_g:
         record = shelve_db.get(key)
         if record is not None:
-            event_id = record.get('event_id')
+            event_id = record.get('eventid')
             if event_id is not None:
                 edit_link = edit_links_map.get(event_id)
                 if edit_link is not None:
@@ -2243,7 +2243,7 @@ def insert_entries_edited_by_diary_to_e(add_to_e, emacs_db, shelve_db):
 def insert_entries_into_e(add_g_keys_to_e, shelve_db, google_db):
     for g_key in add_g_keys_to_e:
         entry_pid = str(hash(google_db[g_key]['fullentry']))
-        google_db['entry_pid'] = entry_pid
+        google_db['entrypid'] = entry_pid
         shelve_db[entry_pid] = google_db[g_key].copy()
         print "-- inserted to Diary: " + google_db[g_key]['fullentry']
 
@@ -2431,7 +2431,7 @@ def update_attendee_status_to_gcal(user_name,
                                              feed.entry[index_feed])
                 new_edit_link = new_event.GetEditLink()
                 edit_links_map[key] = new_edit_link
-                shelve_db[shelve_key]['edit_link'] = new_edit_link
+                shelve_db[shelve_key]['editlink'] = new_edit_link
 
     return shelve_db, gcal, feed, edit_links_map
 
@@ -2460,9 +2460,9 @@ def update_edit_links(google_db, shelve_db):
 
     for key in shelve_db.keys():
         if type(shelve_db[key]) == DICTIONARY_DEFINED_TYPE:
-            google_db_record = google_db.get(shelve_db[key]['event_id'])
+            google_db_record = google_db.get(shelve_db[key]['eventid'])
             if google_db_record is not None:
-                event_id = google_db_record.get('event_id')
+                event_id = google_db_record.get('eventid')
                 event_link_g = google_db_record.get('editlink')
                 # create a keymap for editlinks from g keys
                 edit_links_map[event_id] = event_link_g
@@ -2470,7 +2470,7 @@ def update_edit_links(google_db, shelve_db):
                 g_to_e_key_map[event_id] = key
                 if event_link_g != shelve_db[key]['editlink']:
                     e_keys_changed_in_g.append(key)
-                    g_keys_changed_in_g.append(shelve_db[key]['event_id'])
+                    g_keys_changed_in_g.append(shelve_db[key]['eventid'])
 
     for key in google_db.keys():
         if type(google_db[key]) == DICTIONARY_DEFINED_TYPE:
