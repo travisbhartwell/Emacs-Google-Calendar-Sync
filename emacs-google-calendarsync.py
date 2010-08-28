@@ -2304,13 +2304,10 @@ def write_emacs_diary(emacs_diary_location,
                 shelve_db[row[1]].get('fullentry') +
                 NEWLINE)
 
-        status = shelve_db[row[1]]['comment_entries'][0].get('status')
-
-        if all('comment_entries' in shelve_db[row[1]],
-               len(shelve_db[row[1]].get('comment_entries')) > 0,
-               status is not None,
-               status != ''):
-
+        if 'comment_entries' in shelve_db[row[1]] and \
+                len(shelve_db[row[1]].get('comment_entries')) > 0 and \
+                shelve_db[row[1]]['comment_entries'][0].get('status') != None and \
+                shelve_db[row[1]]['comment_entries'][0].get('status') != '':
             f.write(' * EGCSync ' +
                     shelve_db[row[1]].get('comment_title') +
                     NEWLINE)
