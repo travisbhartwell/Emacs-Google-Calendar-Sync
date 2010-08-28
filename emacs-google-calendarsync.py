@@ -2304,10 +2304,10 @@ def write_emacs_diary(emacs_diary_location,
                 shelve_db[row[1]].get('fullentry') +
                 NEWLINE)
 
-        if 'comment_entries' in shelve_db[row[1]] and \
-                len(shelve_db[row[1]].get('comment_entries')) > 0 and \
-                shelve_db[row[1]]['comment_entries'][0].get('status') != None and \
-                shelve_db[row[1]]['comment_entries'][0].get('status') != '':
+        if all(('comment_entries' in shelve_db[row[1]],
+                len(shelve_db[row[1]].get('comment_entries')) > 0,
+                shelve_db[row[1]]['comment_entries'][0].get('status') != None,
+                shelve_db[row[1]]['comment_entries'][0].get('status') != '')):
             f.write(' * EGCSync ' +
                     shelve_db[row[1]].get('comment_title') +
                     NEWLINE)
@@ -2389,9 +2389,9 @@ def update_attendee_status_to_gcal(user_name,
         comment_owner_unchanged = \
             shelve_comment_owner_status == google_comment_owner_status
 
-        if all(key in google_db,
-               'comment_owner_status' in google_db[key],
-               comment_owner_unchanged):
+        if all((key in google_db,
+                'comment_owner_status' in google_db[key],
+                comment_owner_unchanged)):
             shelve_key = g_to_e_key_map[key]
             index_feed = google_db[key].get('index_feed')
             entry_who = feed.entry[index_feed].who
@@ -2579,9 +2579,9 @@ gcal entry? (n for none):")
                         if answer[0] == 'n' or answer[0] == 'N':
                             answer_validated = True
                             continue_to_next_contending_e = True
-                        elif all(answer[0] >= '0',
+                        elif all((answer[0] >= '0',
                                  answer[0] <= '9',
-                                 int(answer) < len(contending_emacs_db)):
+                                 int(answer) < len(contending_emacs_db))):
                             answer_validated = True
             elif len(contending_emacs_db) == 1:
                 answer = '0'
