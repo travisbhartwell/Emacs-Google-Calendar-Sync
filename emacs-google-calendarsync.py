@@ -1893,16 +1893,14 @@ def get_keys_to_modify_from_g(google_db,
     del_from_e = [key for key in identical_keys \
                       if shelve_db[key].get('eventid') not in g_keys]
 
-    last_modified = google_db[shelve_db[key]['eventid']].get('modified')
-    modified_since_last_sync = last_modified > g_last_sync_time
     add_e = [key for key in identical_keys \
                  if key not in del_from_e and \
-                 modified_since_last_sync]
+                 google_db[shelve_db[key]['eventid']].get('modified') > g_last_sync_time]
 
     add_e_in_terms_of_g_keys = [shelve_db[key]['eventid'] \
                                     for key in identical_keys \
                                     if key not in del_from_e and \
-                                    modified_since_last_sync]
+                                    google_db[shelve_db[key]['eventid']].get('modified') > g_last_sync_time]
 
     # these are newly entered from gcal
     newly_added_g_keys_to_add_to_e = [key for key in g_keys \
@@ -2382,13 +2380,10 @@ def update_attendee_status_to_gcal(user_name,
                                    gcal,
                                    feed,
                                    edit_links_map):
-    comment_owner_changed = \
-        shelve_db[key].get('comment_owner_status') != \
-        emacs_db[key].get('comment_owner_status')
     attendee_status_modified_in_diary = [shelve_db[key].get('eventid') \
                                              for key in identical_keys \
-                                             if comment_owner_changed]
-
+                                             if shelve_db[key].get('comment_owner_status') != \
+                                             emacs_db[key].get('comment_owner_status')]
     for key in attendee_status_modified_in_diary:
         shelve_comment_owner_status = \
             shelve_db[g_to_e_key_map.get(key)].get('comment_owner_status')
