@@ -138,6 +138,23 @@ def strip_list(lst):
     return [s.strip() for s in lst]
 
 
+def pad_newlines_with_n_spaces(source, n):
+    """ This function is used on the CONTENT field so that when
+    written to the emacs diary, multiple lines of description can be
+    recognized as pertaining to a single respective event. N signifies
+    margin space """
+    lines = source.split(NEWLINE)
+    if len(lines) < 2:
+        return source
+    rest = lines[1:]
+    target = []
+    target.append(lines[0] + NEWLINE)
+    for line in rest:
+        if len(line) > 0 and line[0] != ' ':
+            target.append(''.zfill(n).replace('0', ' ') + line + NEWLINE)
+    return ''.join(target)
+
+
 def pad_all_newlines_with_space(source):
     """ This function is used on CONTENT of parsed gcal entry.  """
     lines = source.split(NEWLINE)
@@ -2199,7 +2216,7 @@ def write_emacs_diary(emacs_diary_location,
                 if 'published' in commententry:
                     content = commententry.get('content')
                     padded_content = \
-                        pad_newline_with_n_spaces(content + NEWLINE, 4)
+                        pad_newlines_with_n_spaces(content + NEWLINE, 4)
                     f.write(' *** content: ' + padded_content)
 
                     published_org_time = \
