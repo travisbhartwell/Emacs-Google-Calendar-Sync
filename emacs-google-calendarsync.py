@@ -138,30 +138,6 @@ def strip_list(lst):
     return [s.strip() for s in lst]
 
 
-def pad_newlines_with_space(source):
-    """ This function is used on the CONTENT field so that when
-    written to the emacs diary, multiple lines of description can be
-    recognized as pertaining to a single respective event."""
-    return pad_newlines_with_n_spaces(source, 1)
-
-
-def pad_newlines_with_n_spaces(source, n):
-    """ This function is used on the CONTENT field so that when
-    written to the emacs diary, multiple lines of description can be
-    recognized as pertaining to a single respective event. N signifies
-    margin space """
-    lines = source.split(NEWLINE)
-    if len(lines) < 2:
-        return source
-    rest = lines[1:]
-    target = []
-    target.append(lines[0] + NEWLINE)
-    for line in rest:
-        if len(line) > 0 and line[0] != ' ':
-            target.append(''.zfill(n).replace('0', ' ') + line + NEWLINE)
-    return ''.join(target)
-
-
 def pad_all_newlines_with_space(source):
     """ This function is used on CONTENT of parsed gcal entry.  """
     lines = source.split(NEWLINE)
@@ -182,10 +158,6 @@ def remove_newlines_space_padding(source):
     for line in lines:
         target.append(line.strip() + NEWLINE)
     return ''.join(target).strip()
-
-
-def remove_all_extra_spaces(a_string):
-    return re.sub("[ ]+", " ", a_string)
 
 
 def strip_extra_newlines(a_string):
@@ -220,14 +192,6 @@ def escape_string(a_string):
 
     target = ''.join(a_str)
     return target
-
-
-def remove_whitespace(a_string):
-    a_string.strip()
-    pattern = re.compile(r'\s+')
-    a_string = pattern.sub(' ', a_string)
-    a_string = a_string.replace(') (', ')(')
-    return a_string
 
 
 def load_match_vars(var):
@@ -440,10 +404,6 @@ def e_to_g_month_abbr(month_abbr):
     return months[month_abbr]
 
 
-def g_to_e_month_abbr(month):
-    return MONTH_ABBRS[int(month)-1]
-
-
 def g_to_e_which_week(which_week_g):
     if which_week_g[0] == '-':
         which_week = which_week_g[0:2]
@@ -463,15 +423,6 @@ def strip_time_string(time_string):
     return time_string
 
 
-def current_datetime_string():
-    now = time.strptime(time.asctime())
-    now = now[0:6]
-    now_datetime = datetime.datetime(*now)
-    now_string = now_datetime.isoformat()
-    now_string = strip_time_string(now_string)
-    return now_string
-
-
 def ISO_to_org_time(iso_time):
     """ taking account for GMT """
     iso_date = \
@@ -483,11 +434,6 @@ def ISO_to_org_time(iso_time):
 def ISO_to_timestamp(iso_time):
     return time.mktime(time.strptime(iso_time, ISO_DATE_FMT)) - \
         3600 * GMT_OFFSET
-
-
-def delta_datetime_string(offset_days):
-    return datetime.datetime.now() + datetime.timedelta(offset_days)
-
 
 def handle_emacs_loose_ends(db):
     """ this function should probably be rewritten """
@@ -693,85 +639,6 @@ def get_previous_line(file_strings, pos):
                 NEWLINE + \
                 NEWLINE_AND_END, current + 1
     return file_strings[:pos], 0
-
-
-def has_keys(d, key_or_keys):
-    """Does the dictionary d have all of the keys?"""
-    return all(k in d for k in keys)
-
-
-def ordinal_interval_to_number(ordinal_interval):
-    if ordinal_interval is None or len(ordinal_interval) == 0:
-        return ""
-    ordinal_interval = ordinal_interval.lower()
-    interval = \
-        "".join([char for _, char in \
-                     zip(xrange(len(ordinal_interval)),
-                         ordinal_interval) if char.isdigit()])
-    if interval != "":
-        return interval
-    weeks_of_month = {"last": "-1",
-                      "second to last": "-2",
-                      "third to last": "-3",
-                      "fourth to last": "-4",
-                      "first": "1",
-                      "second": "2",
-                      "third": "3",
-                      "fourth": "4",
-                      "fifth": "5",
-                      "other": "2", }
-    return weeks_of_month.setdefault('ordinal_interval', '')
-
-
-def copy_description_to_db_record(db_record, description, case_template):
-    """ copy description changes to record, and flag modified if any
-    changes were made """
-    modified = False
-
-    if has_keys(description, ['STDAY', 'STMONTH', 'STYEAR']):
-        start_day = description.get('STDAY')
-        start_month = description.get('STMONTH')
-        start_year = description.get('STYEAR')
-        if any(start_day != db_record['STDAY'],
-               start_month != db_record['STMONTH'],
-               start_year != db_record['STYEAR']):
-            db_record['STDAY'] = start_day.zfill(2)
-            db_record['STMONTH'] = start_month.zfill(2)
-            db_record['STYEAR'] = start_year.zfill(2)
-            modified = True
-    if has_keys(description, ['UNTILDAY', 'UNTILMONTH', 'UNTILYEAR']):
-        until_day = description.get('UNTILDAY')
-        until_month = description.get('UNTILMONTH')
-        until_year = description.get('UNTILYEAR')
-        if any(until_day != db_record['UNTILDAY'],
-               until_month != db_record['UNTILMONTH'],
-               until_year != db_record['UNTILYEAR']):
-            db_record['UNTILDAY'] = start_day.zfill(2)
-            db_record['UNTILMONTH'] = start_month.zfill(2)
-            db_record['UNTILYEAR'] = start_year.zfill(2)
-            modified = True
-    if 'INTERVALORDINAL' in description:
-        interval = \
-            ordinal_interval_to_number(description.get('INTERVALORDINAL'))
-        if interval != "" and interval != db_record['INTERVAL']:
-            db_record['INTERVAL'] = interval
-            modified = True
-    if 'ONWHATDAYS' in description:
-        on_what_days = description.get('ONWHATDAYS').lower().strip()
-        if on_what_days != "":
-            bydayd = []
-            on_what_days = on_what_days.replace(', ', '')
-            on_what_days = on_what_days.replace(' and', '')
-            for day in on_what_days:
-                bydayd.append(DAY_NUMBERS.setdefault(day[:2], ""))
-                bydayd = " ".join(bydayd)
-                bydayd = remove_all_extra_spaces(bydayd)
-                byday = db_record.get('BYDAY')
-                if byday is not None and byday != bydayd:
-                    db_record['BYDAY'] = bydayd
-                    modified = True
-
-    return db_record, modified
 
 
 def strip_comments(full_entry):
