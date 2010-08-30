@@ -50,9 +50,11 @@ import sys
 # Constants for options
 CONFIG_FILE_VAR = 'config_file'
 
+# Defaults
 DEFAULT_CONFIG_FILE_NAME = '.egc-sync.ini'
 DEFAULT_CONFIG_PATH = \
     os.path.expanduser(os.path.join('~', DEFAULT_CONFIG_FILE_NAME))
+
 
 
 def usage(status, msg=''):
@@ -75,12 +77,14 @@ def parse_cmdline(argv):
 
     CMDLINE_OPTS_EXIT_STATUS = 1
 
+    # Set defaults
+    options = {}
+    options[CONFIG_FILE_VAR] = DEFAULT_CONFIG_PATH
+
     try:
         opts, args = getopt.getopt(argv[1:], SHORT_OPTS, LONG_OPTS)
     except getopt.GetoptError, err:
         usage(CMDLINE_OPTS_EXIT_STATUS, str(err))
-
-    options = {}
 
     for option, arg in opts:
         if option in ('-h', '--help'):
@@ -105,6 +109,7 @@ def main(argv=None):
         argv = sys.argv
 
     options = parse_cmdline(argv)
+    print options
 
 
 
