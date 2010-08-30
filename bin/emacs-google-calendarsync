@@ -46,6 +46,7 @@ import getopt
 import os
 import sys
 
+from ConfigParser import SafeConfigParser, NoOptionError, NoSectionError
 
 # Constants for options
 CONFIG_FILE_VAR = 'config_file'
@@ -54,6 +55,11 @@ CONFIG_FILE_VAR = 'config_file'
 DEFAULT_CONFIG_FILE_NAME = '.egc-sync.ini'
 DEFAULT_CONFIG_PATH = \
     os.path.expanduser(os.path.join('~', DEFAULT_CONFIG_FILE_NAME))
+
+# Constants for configuration items
+GCAL_USERNAME_VAR = 'username'
+GCAL_PASSWORD_VAR = 'password'
+EMACS_DIARY_PATH_VAR = 'filepath'
 
 
 
@@ -92,15 +98,60 @@ def parse_cmdline(argv):
         elif option in ('-c', '--config-file'):
             if arg in (None, ''):
                 usage(CMDLINE_OPTS_EXIT_STATUS,
-                      'Missing config file name argument to option')
+                      'Missing config file name argument to option.')
             else:
                 options[CONFIG_FILE_VAR] = arg
         else:
             usage(CMDLINE_OPTS_EXIT_STATUS,
-                  'Unhandled option: %s' % option)
+                  'Unhandled option: %s.' % option)
 
     # Add 'args' to options before returning?
     return options
+
+
+
+def get_configuration_item(config_parser, section, var):
+    try:
+        value = config_parser.get(section, var)
+    except NoSectionError:
+        print "Missing section named: %s." % section
+        sys.exit(2)
+    except NoOptionError:
+        print "Missing option %s in section %s." % (var, section)
+        sys.exit(2)
+
+    return value
+
+
+
+def get_configuration(config_file_name):
+    # Section name constants
+    GCAL_SECTION_NAME = 'Google Calendar'
+    EMACS_DIARY_SECTION_NAME = 'Emacs Diary'
+
+    if not os.path.exists(config_file_name):
+        print 'Configuration file %s not found.' % config_file_name
+        sys.exit(2)
+
+    config_parser = SafeConfigParser()
+    config_parser.read(config_file_name)
+
+    config = {}
+    config[GCAL_USERNAME_VAR] = get_configuration_item(config_parser,
+                                                       GCAL_SECTION_NAME,
+                                                       GCAL_USERNAME_VAR)
+    config[GCAL_PASSWORD_VAR] = get_configuration_item(config_parser,
+                                                       GCAL_SECTION_NAME,
+                                                       GCAL_PASSWORD_VAR)
+    config[EMACS_DIARY_PATH_VAR] = \
+        get_configuration_item(config_parser,
+                               EMACS_DIARY_SECTION_NAME,
+                               EMACS_DIARY_PATH_VAR)
+
+    config[EMACS_DIARY_PATH_VAR] = \
+        os.path.expanduser(config[EMACS_DIARY_PATH_VAR])
+
+    return config
 
 
 
@@ -109,7 +160,10 @@ def main(argv=None):
         argv = sys.argv
 
     options = parse_cmdline(argv)
-    print options
+
+    config = get_configuration(options[CONFIG_FILE_VAR])
+
+    print config
 
 
 
