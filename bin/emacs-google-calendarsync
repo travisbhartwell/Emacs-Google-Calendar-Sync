@@ -19,14 +19,94 @@
 # along with Emacs Google Calendar Sync.  If not, see
 # <http://www.gnu.org/licenses/>.
 
+"""Synchronize an Emacs diary file and a Google hosted calendar.
 
+Usage:
+    emacs-google-calendarsync [options]
+
+Where:
+    --config-file=file
+    -c file
+        The location of the optional configuration file to use.  If
+        none is specified, the program checks for ~/.egc-sync.ini.  If
+        this file does not exist, the user will be prompted for the
+        required information.
+
+    --help
+    -h
+        Print this help message and exit.
+
+This initial pass merely takes the data from the specific Google
+calendar and converts it into Emacs diary format, overwriting the
+existing file, if any.
+
+"""
+
+import getopt
+import os
 import sys
 
+
+# Constants for options
+CONFIG_FILE_VAR = 'config_file'
+
+DEFAULT_CONFIG_FILE_NAME = '.egc-sync.ini'
+DEFAULT_CONFIG_PATH = \
+    os.path.expanduser(os.path.join('~', DEFAULT_CONFIG_FILE_NAME))
+
 
-def main():
-    pass
+def usage(status, msg=''):
+    # Shamelessly borrowed from GNU Mailman code
+    if status:
+        fd = sys.stderr
+    else:
+        fd = sys.stdout
+    print >> fd, __doc__
+    if msg:
+        print >> fd, msg
+    sys.exit(status)
+
+
+
+def parse_cmdline(argv):
+    LONG_OPTS = ['help',
+                 'config-file=']
+    SHORT_OPTS = 'hc'
+
+    CMDLINE_OPTS_EXIT_STATUS = 1
+
+    try:
+        opts, args = getopt.getopt(argv[1:], SHORT_OPTS, LONG_OPTS)
+    except getopt.GetoptError, err:
+        usage(CMDLINE_OPTS_EXIT_STATUS, str(err))
+
+    options = {}
+
+    for option, arg in opts:
+        if option in ('-h', '--help'):
+            usage(0)
+        elif option in ('-c', '--config-file'):
+            if arg in (None, ''):
+                usage(CMDLINE_OPTS_EXIT_STATUS,
+                      'Missing config file name argument to option')
+            else:
+                options[CONFIG_FILE_VAR] = arg
+        else:
+            usage(CMDLINE_OPTS_EXIT_STATUS,
+                  'Unhandled option: %s' % option)
+
+    # Add 'args' to options before returning?
+    return options
+
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    options = parse_cmdline(argv)
+
 
 
 if __name__ == '__main__':
     main()
-
