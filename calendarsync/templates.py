@@ -320,7 +320,7 @@ cases_template_mtch = {
     DAYOFWEEK_VAR: '(?P<DAYOFWEEK>[Ss]unday|[Mm]onday|[Tt]uesday|[Ww]ednesday|[Tt]hursday|[Ff]riday|[Ss]aturday)',
     SOMEZING_VAR: '(?P<SOMEZING>.{4})',
     STMONTH_VAR: '(?P<STMONTH>[01]?\d)',
-    NOTFOLLOWEDBYCOMMA_VAR: '(?!,)',
+    NOTFOLLOWEDBYCOMMA_VAR: '(?!,)\n',
     DETAIL_VAR: '(?P<DETAIL>.*?)(?=^[\w%&\d*])',
     SOMEZING2_VAR: '(?P=SOMEZING)',
     UNTILYEAR_VAR: '(?P<UNTILYEAR>20[0-3]\d)',
@@ -358,7 +358,7 @@ detail_template = {
 # The regular expression match templates for detail templates.
 detail_template_mtch = {
     TIMERANGEIV_VAR: '(?P<TIMERANGEIV>\d{1,2}(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))',
-    TITLEII_VAR: '(?P<TITLEII>\w[\w ]+(?=\n[\s\t]))',
+    TITLEII_VAR: '(?P<TITLEII>\w[\w ]+(?=\\n[\s\\t]))',
     TIMERANGEJJ_VAR: '(?P<TIMERANGEJJ>\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-?\s{0,8}(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))?)',
     TITLE_VAR: '(?P<TITLE>\w[\w \?\.\(\)\'"\[\]\-]+)',
     TIMERANGEIII_VAR: '(?P<TIMERANGEIII>\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?:am|pm|AM|PM))',
@@ -366,7 +366,7 @@ detail_template_mtch = {
     TIMERANGEII_VAR: '(?P<TIMERANGEII>\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))',
     CONTENT_VAR: '(?P<CONTENT>.+)',
     TITLEIV_VAR: '(?P<TITLEIV>\w[\w \?\.\(\)\'"\[\]\-]+)',
-    NEWLINEHERE_VAR: '\\n', }
+    NEWLINEHERE_VAR: '\\\n', }
 
 
 
@@ -477,7 +477,7 @@ recurrence_event_descriptions_template = {
 # description templates.
 recurrence_event_descriptions_template_mtch = {
     STYEAR_VAR: '(?P<STYEAR>\d\d\d\d)',
-    STDAY_VAR: STDAY_RE,
+    STDAY_VAR: '(?P<STDAY>\d?\d)',
     INTERVALORDINAL_VAR: '(?P<INTERVALORDINAL>.+?)',
     ONWHATDAYS_VAR: '(?P<ONWHATDAYS>.+?)',
     DAYORDINAL_VAR: '(?P<DAYORDINAL>.+?)',
@@ -519,7 +519,7 @@ gcases_template = {
 # The regular expression match patterns associated with the gcases
 # template.
 gcases_template_mtch = {
-    NEWLINE_VAR: '\\n',
+    NEWLINE_VAR: '\\n\n',
     STDAY_VAR: STDAY_RE,
     TZID2_VAR: '(?P=TZID)',
     ENDDATETIME_VAR: '(?P<ENDDATETIME>[12]0[012]\d(T[012][\d][0-5]\d[0-5]\d)?)',
@@ -550,8 +550,8 @@ times_template_mtch = {
     HYPHEN_VAR: '(?P<HYPHEN>\s{0,8}-\s{0,8})',
     STAMPM_VAR: '(?P<STAMPM>am|pm|AM|PM)',
     STHOUR_VAR: '(?P<STHOUR>[012]?\d)',
-    STAMPMHYPHEN_VAR: '(?P<STAMPMHYPHEN>am|pm|AM|PM)[\s\t]{0,8}-[\s	]{0,8}',
-    STAMPMNOHYPHEN_VAR: '(?P<STAMPMNOHYPHEN>am|pm|AM|PM)(?![\s\t]{0,8}-[\s\t]{0,8})',
+    STAMPMHYPHEN_VAR: '(?P<STAMPMHYPHEN>am|pm|AM|PM)[\s\\t]{0,8}-[\s	]{0,8}',
+    STAMPMNOHYPHEN_VAR: '(?P<STAMPMNOHYPHEN>am|pm|AM|PM)(?![\s\\t]{0,8}-[\s\\t]{0,8})',
     STMINUTE_VAR: '(?P<STMINUTE>[0-5]\d)',
     TAB_VAR: '(?P<TAB>?:\s+?)?',
     ENDMINUTE_VAR: '(?P<ENDMINUTE>[0-5]\d)',
