@@ -67,7 +67,7 @@ DAYOFWEEK_VAR = 'DAYOFWEEK'
 DAYOFWEEKABBR_VAR = 'DAYOFWEEKABBR'
 MONTHABBR_VAR = 'MONTHABBR'
 STDAYNOTFOLLOWEDBYCOMMA_VAR = 'STDAYNOTFOLLOWEDBYCOMMA'
-notfollowedbycomma_VAR = 'notfollowedbycomma'
+NOTFOLLOWEDBYCOMMA_VAR = 'notfollowedbycomma'
 VIS_VAR = 'VIS'
 DETAIL_VAR = 'DETAIL'
 # Constants used in detail_template_mtch
@@ -80,7 +80,7 @@ TIMERANGEIII_VAR = 'TIMERANGEIII'
 TIMERANGEII_VAR = 'TIMERANGEII'
 TIMERANGEJJ_VAR = 'TIMERANGEJJ'
 TIMERANGE_VAR = 'TIMERANGE'
-newlinehere_VAR = 'newlinehere'
+NEWLINEHERE_VAR = 'newlinehere'
 # Constants first used in recurrence_event_descriptions_template_mtch
 DAYORDINAL_VAR = 'DAYORDINAL'
 DAYOFWEEKD_VAR = 'DAYOFWEEKD'
@@ -91,7 +91,7 @@ WHICHWEEKORDINAL_VAR = 'WHICHWEEKORDINAL'
 # Constants first used in gcases_template_mtch
 UNTILGTIME_VAR = 'UNTILGTIME'
 BYDAYG_VAR = 'BYDAYG'
-newline_VAR = 'newline'
+NEWLINE_VAR = 'newline'
 STDATETIME_VAR = 'STDATETIME'
 ENDDATETIME_VAR = 'ENDDATETIME'
 UNTILDATETIME_VAR = 'UNTILDATETIME'
@@ -109,6 +109,56 @@ ENDHOUR_VAR = 'ENDHOUR'
 ENDMINUTE_VAR = 'ENDMINUTE'
 ENDAMPM_VAR = 'ENDAMPM'
 
+# Constants used in the Emacs Diary to Google Calendar mapping
+CASE_MONTHDAYYEAR_VAR = 'caseMonthdayyear'
+CASE_MDY_VAR = 'caseMDY'
+CASE_MONTH_A_B_B_RDAYYEAR_VAR = 'caseMonthABBRdayyear'
+CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR = 'caseMonthABBRdayyearwspace'
+CASE_REC_DAILY_ASTERISK_VAR = 'caseRecDailyAsterisk'
+CASE_REC_DAILY_ASTERIX_VAR = 'caseRecDailyAsterix'
+CASE_REC_DAILY_ASTERIX_EXCEPTION_VAR = 'caseRecDailyAsterixException'
+CASE_REC_DAILY_EXCEPTION_VAR = 'caseRecDailyException'
+CASE_REC_DAILY_VAR = 'caseRecDaily'
+CASE_REC_DAILY_BLOCK_VAR = 'caseRecDailyBlock'
+CASE_REC_DAILY_BLOCK_EXCEPTION_VAR = 'caseRecDailyBlockException'
+CASE_REC_DAILY_INTERVAL_VAR = 'caseRecDailyInterval'
+CASE_REC_DAILY_INTERVAL_EXCEPTION_VAR = 'caseRecDailyIntervalException'
+CASE_REC_DAILY_INTERVAL_BLOCK_VAR = 'caseRecDailyIntervalBlock'
+CASE_REC_DAILY_INTERVAL_BLOCK_EXCEPTION_VAR = 'caseRecDailyIntervalBlockException'
+CASE_REC_WEEKLY_WEEKNAME_VAR = 'caseRecWeeklyWeekname'
+CASE_REC_WEEKLY_VAR = 'caseRecWeekly'
+CASE_REC_WEEKLY_ABBR_VAR = 'caseRecWeeklyAbbr'
+CASE_REC_WEEKLY_EXCEPTION_VAR = 'caseRecWeeklyException'
+CASE_REC_WEEKLY_BLOCK_VAR = 'caseRecWeeklyBlock'
+CASE_REC_WEEKLY_BLOCK_EXCEPTION_VAR = 'caseRecWeeklyBlockException'
+CASE_REC_WEEKLY_INTERVAL_VAR = 'caseRecWeeklyInterval'
+CASE_REC_WEEKLY_INTERVAL_EXCEPTION_VAR = 'caseRecWeeklyIntervalException'
+CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR = 'caseRecWeeklyIntervalBlock'
+CASE_REC_WEEKLY_INTERVAL_BLOCK_EXCEPTION_VAR = 'caseRecWeeklyIntervalBlockException'
+CASE_REC_MONTHLY_VAR = 'caseRecMonthly'
+CASE_REC_MONTHLY_ASTERISK_VAR = 'caseRecMonthlyAsterisk'
+CASE_REC_MONTHLY_EXCEPTION_VAR = 'caseRecMonthlyException'
+CASE_REC_MONTHLY_BLOCK_VAR = 'caseRecMonthlyBlock'
+CASE_REC_MONTHLY_BLOCK_EXCEPTION_VAR = 'caseRecMonthlyBlockException'
+CASE_REC_MONTHLY_INTERVAL_VAR = 'caseRecMonthlyInterval'
+CASE_REC_MONTHLY_INTERVAL_EXCEPTION_VAR = 'caseRecMonthlyIntervalException'
+CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR = 'caseRecMonthlyIntervalBlock'
+CASE_REC_MONTHLY_INTERVAL_BLOCK_EXCEPTION_VAR = 'caseRecMonthlyIntervalBlockException'
+CASE_REC_MONTHLYBYDAYOFWEEK_VAR = 'caseRecMonthlybydayofweek'
+CASE_REC_MONTHLYBYDAYOFWEEK_EXCEPTION_VAR = 'caseRecMonthlybydayofweekException'
+CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR = 'caseRecMonthlybydayofweekBlock'
+CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_EXCEPTION_VAR = 'caseRecMonthlybydayofweekBlockException'
+CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR = 'caseRecMonthlybydayofweekInterval'
+CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_EXCEPTION_VAR = 'caseRecMonthlybydayofweekIntervalException'
+CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR = 'caseRecMonthlybydayofweekIntervalBlock'
+CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_EXCEPTION_VAR = 'caseRecMonthlybydayofweekIntervalBlockException'
+CASE_REC_YEARLY_VAR = 'caseRecYearly'
+CASE_REC_YEARLY_EXCEPTION_VAR = 'caseRecYearlyException'
+CASE_REC_YEARLY_A_B_B_R_B_VAR = 'caseRecYearlyABBRB'
+CASE_REC_YEARLY_MODERN_VAR = 'caseRecYearlyModern'
+CASE_REC_YEARLY_INTERVAL_VAR = 'caseRecYearlyInterval'
+CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR = 'caseRecYearlyIntervalException'
+
 
 
 def _compile_match_templates(match_template_dict):
@@ -117,8 +167,9 @@ def _compile_match_templates(match_template_dict):
     object.
     """
     new_match_template_dict = {}
-    for k, v in match_template_dict.items():
-        new_match_template_dict[k] = re.compile(re.escape(v), re.S | re.M)
+    for template_name, regex in match_template_dict.items():
+        new_match_template_dict[template_name] = \
+            re.compile(re.escape(regex), re.S | re.M)
 
     return new_match_template_dict
 
@@ -370,7 +421,7 @@ cases_template_mtch = _compile_match_templates({
         DAYOFWEEKABBR_VAR: '([Ss]un|[Mm]on|[Tt]ue|[Ww]ed|[Tt]hu|[Ff]ri|[Ss]at)',
         MONTHABBR_VAR: '([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)',
         STDAYNOTFOLLOWEDBYCOMMA_VAR: STDAYNOTFOLLOWEDBYCOMMA_RE,
-        notfollowedbycomma_VAR: '(?!,)',
+        NOTFOLLOWEDBYCOMMA_VAR: '(?!,)',
         VIS_VAR: '(&?)',
         DETAIL_VAR: '(.*?)(?=^[\w%&\d*])',})
 
@@ -447,58 +498,58 @@ detail_template_mtch = _compile_match_templates({
         TIMERANGEII_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))',
         TIMERANGEJJ_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-?\s{0,8}(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))?)',
         TIMERANGE_VAR: '((\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-\s{0,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))|(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)))',
-        newlinehere_VAR: '\\\n',})
+        NEWLINEHERE_VAR: '\\\n',})
 
 
 # Mapping from the Emacs Diary formatting to Google Calendar
 e2gcase_table = {
-    'caseMonthdayyear':'caseMDY',
-    'caseMonthABBRdayyear':'caseMDY',
-    'caseMonthABBRdayyearwspace':'caseMDY',
-    'caseRecDailyAsterisk':'caseRecDaily',
-    'caseRecDailyAsterix':'caseRecDaily',
-    'caseRecDailyAsterixException':'caseRecDailyException',
-    'caseRecDaily':'caseRecDaily',
-    'caseRecDailyException':'caseRecDaily',
-    'caseRecDailyBlock':'caseRecDailyBlock',
-    'caseRecDailyBlockException':'caseRecDailyBlock',
-    'caseRecDailyInterval':'caseRecDailyInterval',
-    'caseRecDailyIntervalException':'caseRecDailyInterval',
-    'caseRecDailyIntervalBlock':'caseRecDailyIntervalBlock',
-    'caseRecDailyIntervalBlockException':'caseRecDailyIntervalBlock',
-    'caseRecWeeklyWeekname':'caseRecWeekly',
-    'caseRecWeeklyAbbr':'caseRecWeekly',
-    'caseRecWeekly':'caseRecWeekly',
-    'caseRecWeeklyException':'caseRecWeekly',
-    'caseRecWeeklyBlock':'caseRecWeeklyBlock',
-    'caseRecWeeklyBlockException':'caseRecWeeklyBlock',
-    'caseRecWeeklyInterval':'caseRecWeeklyInterval',
-    'caseRecWeeklyIntervalException':'caseRecWeeklyInterval',
-    'caseRecWeeklyIntervalBlock':'caseRecWeeklyIntervalBlock',
-    'caseRecWeeklyIntervalBlockException':'caseRecWeeklyIntervalBlock',
-    'caseRecMonthly':'caseRecMonthly',
-    'caseRecMonthlyAsterisk':'caseRecMonthly',
-    'caseRecMonthlyException':'caseRecMonthly',
-    'caseRecMonthlyBlock':'caseRecMonthlyBlock',
-    'caseRecMonthlyBlockException':'caseRecMonthlyBlock',
-    'caseRecMonthlyInterval':'caseRecMonthlyInterval',
-    'caseRecMonthlyIntervalException':'caseRecMonthlyInterval',
-    'caseRecMonthlyIntervalBlock':'caseRecMonthlyIntervalBlock',
-    'caseRecMonthlyIntervalBlockException':'caseRecMonthlyIntervalBlock',
-    'caseRecMonthlybydayofweek':'caseRecMonthlybydayofweek',
-    'caseRecMonthlybydayofweekException':'caseRecMonthlybydayofweek',
-    'caseRecMonthlybydayofweekBlock':'caseRecMonthlybydayofweekBlock',
-    'caseRecMonthlybydayofweekBlockException':'caseRecMonthlybydayofweekBlock',
-    'caseRecMonthlybydayofweekInterval':'caseRecMonthlybydayofweekInterval',
-    'caseRecMonthlybydayofweekIntervalException':'caseRecMonthlybydayofweekInterval',
-    'caseRecMonthlybydayofweekIntervalBlock':'caseRecMonthlybydayofweekIntervalBlock',
-    'caseRecMonthlybydayofweekIntervalBlockException':'caseRecMonthlybydayofweekIntervalBlock',
-    'caseRecYearly':'caseRecYearly',
-    'caseRecYearlyException':'caseRecYearly',
-    'caseRecYearlyABBRB':'caseRecYearly',
-    'caseRecYearlyModern':'caseRecYearly',
-    'caseRecYearlyInterval':'caseRecYearlyInterval',
-    'caseRecYearlyIntervalException':'caseRecYearlyInterval',}
+    CASE_MONTHDAYYEAR_VAR: CASE_MDY_VAR,
+    CASE_MONTH_A_B_B_RDAYYEAR_VAR: CASE_MDY_VAR,
+    CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: CASE_MDY_VAR,
+    CASE_REC_DAILY_ASTERISK_VAR: CASE_REC_DAILY_VAR,
+    CASE_REC_DAILY_ASTERIX_VAR: CASE_REC_DAILY_VAR,
+    CASE_REC_DAILY_ASTERIX_EXCEPTION_VAR: CASE_REC_DAILY_EXCEPTION_VAR,
+    CASE_REC_DAILY_VAR: CASE_REC_DAILY_VAR,
+    CASE_REC_DAILY_EXCEPTION_VAR: CASE_REC_DAILY_VAR,
+    CASE_REC_DAILY_BLOCK_VAR: CASE_REC_DAILY_BLOCK_VAR,
+    CASE_REC_DAILY_BLOCK_EXCEPTION_VAR: CASE_REC_DAILY_BLOCK_VAR,
+    CASE_REC_DAILY_INTERVAL_VAR: CASE_REC_DAILY_INTERVAL_VAR,
+    CASE_REC_DAILY_INTERVAL_EXCEPTION_VAR: CASE_REC_DAILY_INTERVAL_VAR,
+    CASE_REC_DAILY_INTERVAL_BLOCK_VAR: CASE_REC_DAILY_INTERVAL_BLOCK_VAR,
+    CASE_REC_DAILY_INTERVAL_BLOCK_EXCEPTION_VAR: CASE_REC_DAILY_INTERVAL_BLOCK_VAR,
+    CASE_REC_WEEKLY_WEEKNAME_VAR: CASE_REC_WEEKLY_VAR,
+    CASE_REC_WEEKLY_ABBR_VAR: CASE_REC_WEEKLY_VAR,
+    CASE_REC_WEEKLY_VAR: CASE_REC_WEEKLY_VAR,
+    CASE_REC_WEEKLY_EXCEPTION_VAR: CASE_REC_WEEKLY_VAR,
+    CASE_REC_WEEKLY_BLOCK_VAR: CASE_REC_WEEKLY_BLOCK_VAR,
+    CASE_REC_WEEKLY_BLOCK_EXCEPTION_VAR: CASE_REC_WEEKLY_BLOCK_VAR,
+    CASE_REC_WEEKLY_INTERVAL_VAR: CASE_REC_WEEKLY_INTERVAL_VAR,
+    CASE_REC_WEEKLY_INTERVAL_EXCEPTION_VAR: CASE_REC_WEEKLY_INTERVAL_VAR,
+    CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR: CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR,
+    CASE_REC_WEEKLY_INTERVAL_BLOCK_EXCEPTION_VAR: CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR,
+    CASE_REC_MONTHLY_VAR: CASE_REC_MONTHLY_VAR,
+    CASE_REC_MONTHLY_ASTERISK_VAR: CASE_REC_MONTHLY_VAR,
+    CASE_REC_MONTHLY_EXCEPTION_VAR: CASE_REC_MONTHLY_VAR,
+    CASE_REC_MONTHLY_BLOCK_VAR: CASE_REC_MONTHLY_BLOCK_VAR,
+    CASE_REC_MONTHLY_BLOCK_EXCEPTION_VAR: CASE_REC_MONTHLY_BLOCK_VAR,
+    CASE_REC_MONTHLY_INTERVAL_VAR: CASE_REC_MONTHLY_INTERVAL_VAR,
+    CASE_REC_MONTHLY_INTERVAL_EXCEPTION_VAR: CASE_REC_MONTHLY_INTERVAL_VAR,
+    CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR: CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR,
+    CASE_REC_MONTHLY_INTERVAL_BLOCK_EXCEPTION_VAR: CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_EXCEPTION_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_EXCEPTION_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_EXCEPTION_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_EXCEPTION_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR,
+    CASE_REC_YEARLY_VAR: CASE_REC_YEARLY_VAR,
+    CASE_REC_YEARLY_EXCEPTION_VAR: CASE_REC_YEARLY_VAR,
+    CASE_REC_YEARLY_A_B_B_R_B_VAR: CASE_REC_YEARLY_VAR,
+    CASE_REC_YEARLY_MODERN_VAR: CASE_REC_YEARLY_VAR,
+    CASE_REC_YEARLY_INTERVAL_VAR: CASE_REC_YEARLY_INTERVAL_VAR,
+    CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: CASE_REC_YEARLY_INTERVAL_VAR,}
 
 
 ### recurrence event descriptions
@@ -834,7 +885,7 @@ RRULE:FREQ=YEARLY;INTERVAL=<INTERVAL>;WKST=SU<newline>
 gcases_template_mtch = _compile_match_templates({
         UNTILGTIME_VAR: '(T[0-2]\d{3}00Z?)?)',
         BYDAYG_VAR: '([1234,MOTUWEHFR]+)',
-        newline_VAR: '\\n',
+        NEWLINE_VAR: '\\n',
         STDATETIME_VAR: DATETIME_RE,
         ENDDATETIME_VAR: DATETIME_RE,
         UNTILDATETIME_VAR: '([12]0[012]\d(T[012][\d][0-5]\d[0-5]\dZ)?)',
@@ -886,5 +937,3 @@ times_template_mtch = _compile_match_templates({
         ENDMINUTE_VAR: MINUTE_RE,
         ENDAMPM_VAR: AM_PM_RE,
         STDAYNOTFOLLOWEDBYCOMMA_VAR: STDAYNOTFOLLOWEDBYCOMMA_RE,})
-
-
