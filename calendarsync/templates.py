@@ -233,17 +233,17 @@ CASE_MDY_VAR = 'caseMDY'
 
 
 
-def _compile_match_templates(match_template_dict):
-    """Compiles the regular expressions in the match template
-    dictionary, reassigning the values to be the regular expression
-    object.
-    """
-    new_match_template_dict = {}
-    for template_name, regex in match_template_dict.items():
-        new_match_template_dict[template_name] = \
-            re.compile(re.escape(regex), re.S | re.M)
+def _evaluate_templates(template_dict, match_template_dict):
+    evaluated_templates_dict = {}
+    evaluated_template_strings_dict = {}
+    for template_name, template in template_dict:
+        string_pattern = template % match_template_dict
+        evaluated_template_strings_dict[template_name] = \
+            string_pattern
+        evaluated_templates_dict[template_name] = \
+            re.compile(string_pattern, re.S | re.M)
 
-    return new_match_template_dict
+    return evaluated_templates_dict, evaluated_template_strings_dict
 
 
 
@@ -309,37 +309,37 @@ cases_template = {
     CASE_REC_YEARLY_INTERVAL_VAR: '%(VIS)s%%(or (diary-date %(STMONTH)s %(STDAY)s %(STYEAR)s)(and (>= (car (cddr date)) %(STYEAR2)s)(diary-anniversary %(STMONTH2)s %(STDAY2)s %(STYEAR3)s)(= (mod (- (car (nthcdr 2 date)) %(STYEAR4)s) %(INTERVAL)s) 0))) %(DETAIL)s',
     CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: '%(VIS)s%%(or (diary-date %(STMONTH)s %(STDAY)s %(STYEAR)s)(and (not (or (diary-date %(EXCEPTIONSTRING)s)))(>= (car (cddr date)) %(STYEAR2)s)(diary-anniversary %(STMONTH2)s %(STDAY2)s %(STYEAR3)s)(= (mod (- (car (cddr date)) %(STYEAR4)s) %(INTERVAL)s) 0))) %(DETAIL)s', }
 
-# The compiled regular expression match templates for the case templates.
-cases_template_mtch = _compile_match_templates({
-        BYDAY_VAR: '([0-6 ]{1,13})',
-        STDAY_VAR: DAY_RE,
-        EXCEPTIONSTRING_VAR: '([\ddiary\-ent\(\)\' ]*?)',
-        WHICHWEEK_VAR: '(-?[0-3])',
-        STYEAR_VAR: '(\d?\d?\d\d)',
-        STMONTH_VAR: MONTH_RE,
-        STMONTHABBR_VAR: '([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ept|[Oo]ct|[Nn]ov|[Dd]ec)',
-        ENDDAY_VAR: DAY_RE,
-        ENDMONTH_VAR: MONTH_RE,
-        ENDYEAR_VAR: YEAR_RE,
-        UNTILDAY_VAR: DAY_RE,
-        UNTILMONTH_VAR: MONTH_RE,
-        UNTILYEAR_VAR: YEAR_RE,
-        STMONTH2_VAR: MONTH_RE,
-        STDAY2_VAR: DAY_RE,
-        STYEAR2_VAR: YEAR_RE,
-        STYEAR3_VAR: YEAR_RE,
-        STYEAR4_VAR: YEAR_RE,
-        SOMEZING_VAR: SOMEZING_RE,
-        SOMEZING2_VAR: SOMEZING_RE,
-        INTERVAL_VAR: '(\d+)',
-        NUMDAYOFWEEK_VAR: '([0-6])',
-        DAYOFWEEK_VAR: '([Ss]unday|[Mm]onday|[Tt]uesday|[Ww]ednesday|[Tt]hursday|[Ff]riday|[Ss]aturday)',
-        DAYOFWEEKABBR_VAR: '([Ss]un|[Mm]on|[Tt]ue|[Ww]ed|[Tt]hu|[Ff]ri|[Ss]at)',
-        MONTHABBR_VAR: '([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)',
-        STDAYNOTFOLLOWEDBYCOMMA_VAR: STDAYNOTFOLLOWEDBYCOMMA_RE,
-        NOTFOLLOWEDBYCOMMA_VAR: '(?!,)',
-        VIS_VAR: '(&?)',
-        DETAIL_VAR: '(.*?)(?=^[\w%&\d*])', })
+# The regular expression match templates for the case templates.
+cases_template_mtch = {
+    BYDAY_VAR: '([0-6 ]{1,13})',
+    STDAY_VAR: DAY_RE,
+    EXCEPTIONSTRING_VAR: '([\ddiary\-ent\(\)\' ]*?)',
+    WHICHWEEK_VAR: '(-?[0-3])',
+    STYEAR_VAR: '(\d?\d?\d\d)',
+    STMONTH_VAR: MONTH_RE,
+    STMONTHABBR_VAR: '([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ept|[Oo]ct|[Nn]ov|[Dd]ec)',
+    ENDDAY_VAR: DAY_RE,
+    ENDMONTH_VAR: MONTH_RE,
+    ENDYEAR_VAR: YEAR_RE,
+    UNTILDAY_VAR: DAY_RE,
+    UNTILMONTH_VAR: MONTH_RE,
+    UNTILYEAR_VAR: YEAR_RE,
+    STMONTH2_VAR: MONTH_RE,
+    STDAY2_VAR: DAY_RE,
+    STYEAR2_VAR: YEAR_RE,
+    STYEAR3_VAR: YEAR_RE,
+    STYEAR4_VAR: YEAR_RE,
+    SOMEZING_VAR: SOMEZING_RE,
+    SOMEZING2_VAR: SOMEZING_RE,
+    INTERVAL_VAR: '(\d+)',
+    NUMDAYOFWEEK_VAR: '([0-6])',
+    DAYOFWEEK_VAR: '([Ss]unday|[Mm]onday|[Tt]uesday|[Ww]ednesday|[Tt]hursday|[Ff]riday|[Ss]aturday)',
+    DAYOFWEEKABBR_VAR: '([Ss]un|[Mm]on|[Tt]ue|[Ww]ed|[Tt]hu|[Ff]ri|[Ss]at)',
+    MONTHABBR_VAR: '([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)',
+    STDAYNOTFOLLOWEDBYCOMMA_VAR: STDAYNOTFOLLOWEDBYCOMMA_RE,
+    NOTFOLLOWEDBYCOMMA_VAR: '(?!,)',
+    VIS_VAR: '(&?)',
+    DETAIL_VAR: '(.*?)(?=^[\w%&\d*])', }
 
 
 # detail_template describes the total number of ways that a given
@@ -366,22 +366,22 @@ detail_template = {
     DETAILS_U_TITLE_NEWLINE_CONTENT_VAR: '%(TITLE)s%(newlinehere)s%(CONTENT)s',
     DETAILS_X_TITLE_VAR: '%(TITLE)s', }
 
-# The compiled regular expression match templates for detail templates.
-detail_template_mtch = _compile_match_templates({
-        TITLE_VAR: TITLE_RE,
-        TITLEIV_VAR: TITLE_RE,
-        TITLEII_VAR: '(\w[\w ]+(?=\\n[\s\\t]))',
-        CONTENT_VAR: '(.+)',
-        TIMERANGEIV_VAR: '(\d{1,2}(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))',
-        TIMERANGEIII_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?:am|pm|AM|PM))',
-        TIMERANGEII_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))',
-        TIMERANGEJJ_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-?\s{0,8}(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))?)',
-        TIMERANGE_VAR: '((\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-\s{0,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))|(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)))',
-        NEWLINEHERE_VAR: '\\\n', })
+# The regular expression match templates for detail templates.
+detail_template_mtch = {
+    TITLE_VAR: TITLE_RE,
+    TITLEIV_VAR: TITLE_RE,
+    TITLEII_VAR: '(\w[\w ]+(?=\\n[\s\\t]))',
+    CONTENT_VAR: '(.+)',
+    TIMERANGEIV_VAR: '(\d{1,2}(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))',
+    TIMERANGEIII_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?:am|pm|AM|PM))',
+    TIMERANGEII_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))',
+    TIMERANGEJJ_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-?\s{0,8}(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))?)',
+    TIMERANGE_VAR: '((\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-\s{0,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))|(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)))',
+    NEWLINEHERE_VAR: '\\\n', }
 
 
 # Mapping from the Emacs Diary formatting to Google Calendar
-e2gcase_table = {
+e_to_g_case_table = {
     CASE_MONTHDAYYEAR_VAR: CASE_MDY_VAR,
     CASE_MONTH_A_B_B_RDAYYEAR_VAR: CASE_MDY_VAR,
     CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: CASE_MDY_VAR,
@@ -483,23 +483,23 @@ recurrence_event_descriptions_template = {
     CASE_REC_YEARLY_INTERVAL_VAR: 'Recurs Every %(INTERVAL)s Years, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Years, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s', }
 
-# The match compiled regular expressions associated with the
-# recurrence event description templates.
-recurrence_event_descriptions_template_mtch = _compile_match_templates({
-        STDAY_VAR: TWO_DIGIT_RE,
-        DAYORDINAL_VAR: GENERAL_RE,
-        DAYOFWEEKD_VAR: GENERAL_RE,
-        WHICHWEEKD_VAR: GENERAL_RE,
-        ONWHATDAYS_VAR: GENERAL_RE,
-        INTERVALORDINAL_VAR: GENERAL_RE,
-        INTERVAL_VAR: GENERAL_RE,
-        STMONTH_VAR: ONE_OR_TWO_DIGIT_RE,
-        STDAY_VAR: ONE_OR_TWO_DIGIT_RE,
-        STYEAR_VAR: FOUR_DIGIT_YEAR_RE,
-        UNTILMONTH_VAR: ONE_OR_TWO_DIGIT_RE,
-        UNTILDAY_VAR: ONE_OR_TWO_DIGIT_RE,
-        UNTILYEAR_VAR: FOUR_DIGIT_YEAR_RE,
-        WHICHWEEKORDINAL_VAR: GENERAL_RE, })
+# The match regular expressions associated with the recurrence event
+# description templates.
+recurrence_event_descriptions_template_mtch = {
+    STDAY_VAR: TWO_DIGIT_RE,
+    DAYORDINAL_VAR: GENERAL_RE,
+    DAYOFWEEKD_VAR: GENERAL_RE,
+    WHICHWEEKD_VAR: GENERAL_RE,
+    ONWHATDAYS_VAR: GENERAL_RE,
+    INTERVALORDINAL_VAR: GENERAL_RE,
+    INTERVAL_VAR: GENERAL_RE,
+    STMONTH_VAR: ONE_OR_TWO_DIGIT_RE,
+    STDAY_VAR: ONE_OR_TWO_DIGIT_RE,
+    STYEAR_VAR: FOUR_DIGIT_YEAR_RE,
+    UNTILMONTH_VAR: ONE_OR_TWO_DIGIT_RE,
+    UNTILDAY_VAR: ONE_OR_TWO_DIGIT_RE,
+    UNTILYEAR_VAR: FOUR_DIGIT_YEAR_RE,
+    WHICHWEEKORDINAL_VAR: GENERAL_RE, }
 
 
 
@@ -527,18 +527,18 @@ gcases_template = {
     CASE_REC_YEARLY_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=YEARLY;UNTIL=%(UNTILDATETIME)s;WKST=SU%(newline)s',
     CASE_REC_YEARLY_INTERVAL_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=YEARLY;INTERVAL=%(INTERVAL)s;WKST=SU%(newline)s', }
 
-# Compiled regular expression patterns associated with the gcases template.
-gcases_template_mtch = _compile_match_templates({
-        UNTILGTIME_VAR: '(T[0-2]\d{3}00Z?)?)',
-        BYDAYG_VAR: '([1234,MOTUWEHFR]+)',
-        NEWLINE_VAR: '\\n',
-        STDATETIME_VAR: DATETIME_RE,
-        ENDDATETIME_VAR: DATETIME_RE,
-        UNTILDATETIME_VAR: '([12]0[012]\d(T[012][\d][0-5]\d[0-5]\dZ)?)',
-        STDAY_VAR: DAY_RE,
-        TZID_VAR: GENERAL_RE,
-        TZID2_VAR: GENERAL_RE,
-        INTERVAL_VAR: ONE_OR_TWO_DIGIT_RE, })
+# The regular expression match patterns associated with the gcases template.
+gcases_template_mtch = {
+    UNTILGTIME_VAR: '(T[0-2]\d{3}00Z?)?)',
+    BYDAYG_VAR: '([1234,MOTUWEHFR]+)',
+    NEWLINE_VAR: '\\n',
+    STDATETIME_VAR: DATETIME_RE,
+    ENDDATETIME_VAR: DATETIME_RE,
+    UNTILDATETIME_VAR: '([12]0[012]\d(T[012][\d][0-5]\d[0-5]\dZ)?)',
+    STDAY_VAR: DAY_RE,
+    TZID_VAR: GENERAL_RE,
+    TZID2_VAR: GENERAL_RE,
+    INTERVAL_VAR: ONE_OR_TWO_DIGIT_RE, }
 
 
 
@@ -555,15 +555,15 @@ times_template = {
     CASE_TIME_F_STARTTIME_ONLYWITHOUT_MINUTES_VAR: '%(STHOUR)s%(STAMPM)s', }
 
 # The match templates associated with the times template
-times_template_mtch = _compile_match_templates({
-        TAB_VAR: '(?:\s+?)?',
-        HYPHEN_VAR: '(\s{0,8}-\s{0,8})',
-        STHOUR_VAR: HOUR_RE,
-        STMINUTE_VAR: MINUTE_RE,
-        STAMPM_VAR: AM_PM_RE,
-        STAMPMHYPHEN_VAR: '(am|pm|AM|PM)[\s\\t]{0,8}-[\s\t]{0,8}',
-        STAMPMNOHYPHEN_VAR: '(am|pm|AM|PM)(?![\s\\t]{0,8}-[\s\\t]{0,8})',
-        ENDHOUR_VAR: HOUR_RE,
-        ENDMINUTE_VAR: MINUTE_RE,
-        ENDAMPM_VAR: AM_PM_RE,
-        STDAYNOTFOLLOWEDBYCOMMA_VAR: STDAYNOTFOLLOWEDBYCOMMA_RE, })
+times_template_mtch = {
+    TAB_VAR: '(?:\s+?)?',
+    HYPHEN_VAR: '(\s{0,8}-\s{0,8})',
+    STHOUR_VAR: HOUR_RE,
+    STMINUTE_VAR: MINUTE_RE,
+    STAMPM_VAR: AM_PM_RE,
+    STAMPMHYPHEN_VAR: '(am|pm|AM|PM)[\s\\t]{0,8}-[\s\t]{0,8}',
+    STAMPMNOHYPHEN_VAR: '(am|pm|AM|PM)(?![\s\\t]{0,8}-[\s\\t]{0,8})',
+    ENDHOUR_VAR: HOUR_RE,
+    ENDMINUTE_VAR: MINUTE_RE,
+    ENDAMPM_VAR: AM_PM_RE,
+    STDAYNOTFOLLOWEDBYCOMMA_VAR: STDAYNOTFOLLOWEDBYCOMMA_RE, }
