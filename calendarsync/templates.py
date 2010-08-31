@@ -40,6 +40,12 @@ TWO_DIGIT_RE = '(/d/d)'
 YEAR_RE = '(20[0-3]\d)'
 
 # Constants used in templates
+# Common strings used in templates
+RECURS_DAILY_TEMPLATE_STRING = 'Recurs Daily'
+RECURS_EVERY_WEEK_TEMPLATE_STRING = 'Recurs Every Week'
+RECURS_YEARLY_TEMPLATE_STRING = 'Recurs Yearly'
+SINGLE_DAY_EVENT_TEMPLATE_STRING = 'Single Day Event'
+
 # Constants first used in cases template
 CASE_REC_DAILY_ASTERIX_VAR = 'caseRecDailyAsterix'
 CASE_REC_DAILY_VAR = 'caseRecDaily'
@@ -225,21 +231,21 @@ def _compile_match_templates(match_template_dict):
     return new_match_template_dict
 
 
-### cases_template describes the total number of ways that a given
-### emacs diary entry date can be formatted.  Recurring cases contain
-### the letters Rec.
+
+# cases_template describes the total number of ways that a given emacs
+# diary entry date can be formatted.  Recurring cases contain the
+# letters Rec.
 
-### Fields are delimited by '<' and '>'; Uppercase fields refer to
-### variable names, containing regexps which are found in
-### cases_template_mtch.  Lowercase fields are place holders for
-### literal strings as described in the detail_template_mtch template,
-### and do not act as variables.
+# Fields are delimited by '<' and '>'; Uppercase fields refer to
+# variable names, containing regexps which are found in
+# cases_template_mtch.  Lowercase fields are place holders for literal
+# strings as described in the detail_template_mtch template, and do
+# not act as variables.
 
-### Each formatting case is delimited in an XML like manner.
-### Number Postfixed variable names represent the same variable
-### without the postfixed number.  The postfixed numbers must
-### increment from left to right with respect to their relative
-### positions in each case entry
+# Each formatting case is delimited in an XML like manner.  Number
+# Postfixed variable names represent the same variable without the
+# postfixed number.  The postfixed numbers must increment from left to
+# right with respect to their relative positions in each case entry
 
 # Templates for cases template
 cases_template = {
@@ -320,9 +326,15 @@ cases_template_mtch = _compile_match_templates({
         VIS_VAR: '(&?)',
         DETAIL_VAR: '(.*?)(?=^[\w%&\d*])', })
 
-### detail_template describes the total number of ways that a given <DETAIL> field, from that of cases_template, can be formatted in the diary file.
-### Fields are delimited by '<' and '>'; Uppercase fields refer to variable names, containing regexps which are found in detail_template_mtch.  Lowercase fields are place holders for literal strings as described in the detail_template_mtch template, and do not act as variables.
-### Each formatting case is delimited in an XML like manner.  .\n must be double escaped e.g. \\n
+
+# detail_template describes the total number of ways that a given
+# <DETAIL> field, from that of cases_template, can be formatted in the
+# diary file.  Fields are delimited by '<' and '>'; Uppercase fields
+# refer to variable names, containing regexps which are found in
+# detail_template_mtch.  Lowercase fields are place holders for
+# literal strings as described in the detail_template_mtch template,
+# and do not act as variables.  Each formatting case is delimited in
+# an XML like manner.  .\n must be double escaped e.g. \\n
 
 # Templates for detail template
 detail_template = {
@@ -352,7 +364,7 @@ detail_template_mtch = _compile_match_templates({
         TIMERANGE_VAR: '((\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-\s{0,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))|(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)))',
         NEWLINEHERE_VAR: '\\\n', })
 
-
+
 # Mapping from the Emacs Diary formatting to Google Calendar
 e2gcase_table = {
     CASE_MONTHDAYYEAR_VAR: CASE_MDY_VAR,
@@ -403,15 +415,17 @@ e2gcase_table = {
     CASE_REC_YEARLY_INTERVAL_VAR: CASE_REC_YEARLY_INTERVAL_VAR,
     CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: CASE_REC_YEARLY_INTERVAL_VAR, }
 
+
+
 # Recurrence event descriptions templates
 # Templates for recurrence event descriptions template
 recurrence_event_descriptions_template = {
-    CASE_MONTHDAYYEAR_VAR: 'Single Day Event',
-    CASE_MONTH_A_B_B_RDAYYEAR_VAR: 'Single Day Event',
-    CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: 'Single Day Event',
-    CASE_REC_DAILY_ASTERISK_VAR: 'Recurs Daily',
-    CASE_REC_DAILY_ASTERIX_VAR: 'Recurs Daily',
-    CASE_REC_DAILY_ASTERIX_EXCEPTION_VAR: 'Recurs Daily',
+    CASE_MONTHDAYYEAR_VAR: SINGLE_DAY_EVENT_TEMPLATE_STRING,
+    CASE_MONTH_A_B_B_RDAYYEAR_VAR: SINGLE_DAY_EVENT_TEMPLATE_STRING,
+    CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: SINGLE_DAY_EVENT_TEMPLATE_STRING,
+    CASE_REC_DAILY_ASTERISK_VAR: RECURS_DAILY_TEMPLATE_STRING,
+    CASE_REC_DAILY_ASTERIX_VAR: RECURS_DAILY_TEMPLATE_STRING,
+    CASE_REC_DAILY_ASTERIX_EXCEPTION_VAR: RECURS_DAILY_TEMPLATE_STRING,
     CASE_REC_DAILY_VAR: 'Recurs Daily, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_DAILY_EXCEPTION_VAR: 'Recurs Daily, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_DAILY_BLOCK_VAR: 'Recurs Daily, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
@@ -420,8 +434,8 @@ recurrence_event_descriptions_template = {
     CASE_REC_DAILY_INTERVAL_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Days, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_DAILY_INTERVAL_BLOCK_VAR: 'Recurs Every %(INTERVAL)s Days, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
     CASE_REC_DAILY_INTERVAL_BLOCK_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Days, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_WEEKLY_WEEKNAME_VAR: 'Recurs Every Week',
-    CASE_REC_WEEKLY_ABBR_VAR: 'Recurs Every Week',
+    CASE_REC_WEEKLY_WEEKNAME_VAR: RECURS_EVERY_WEEK_TEMPLATE_STRING,
+    CASE_REC_WEEKLY_ABBR_VAR: RECURS_EVERY_WEEK_TEMPLATE_STRING,
     CASE_REC_WEEKLY_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_WEEKLY_EXCEPTION_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_WEEKLY_BLOCK_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
@@ -449,8 +463,8 @@ recurrence_event_descriptions_template = {
     CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_EXCEPTION_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every %(INTERVALORDINAL)s Month, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
     CASE_REC_YEARLY_VAR: 'Recurs Yearly, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_YEARLY_EXCEPTION_VAR: 'Recurs Yearly, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_YEARLY_A_B_B_R_B_VAR: 'Recurs Yearly',
-    CASE_REC_YEARLY_MODERN_VAR: 'Recurs Yearly',
+    CASE_REC_YEARLY_A_B_B_R_B_VAR: RECURS_YEARLY_TEMPLATE_STRING,
+    CASE_REC_YEARLY_MODERN_VAR: RECURS_YEARLY_TEMPLATE_STRING,
     CASE_REC_YEARLY_INTERVAL_VAR: 'Recurs Every %(INTERVAL)s Years, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Years, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s', }
 
@@ -472,6 +486,8 @@ recurrence_event_descriptions_template_mtch = _compile_match_templates({
         UNTILYEAR_VAR: FOUR_DIGIT_YEAR_RE,
         WHICHWEEKORDINAL_VAR: GENERAL_RE, })
 
+
+
 # gcases_template describes the total number of ways that a recursion
 # entry can be formatted in a google calendar feed.
 # Templates for gcases template
@@ -509,6 +525,8 @@ gcases_template_mtch = _compile_match_templates({
         TZID2_VAR: GENERAL_RE,
         INTERVAL_VAR: ONE_OR_TWO_DIGIT_RE, })
 
+
+
 # times_template describes the total number of ways that a given
 # <TIMERANGE> field, from that of details_template, can be formatted in
 # the diary file.
