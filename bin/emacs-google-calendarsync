@@ -32,6 +32,10 @@ Where:
         this file does not exist, the user will be prompted for the
         required information.
 
+    --verbose
+    -v
+        If set, output verbose debugging information.
+
     --help
     -h
         Print this help message and exit.
@@ -46,8 +50,7 @@ import os
 import sys
 from ConfigParser import NoOptionError, NoSectionError, SafeConfigParser
 
-from calendarsync import sync
-from calendarsync import config
+from calendarsync import sync, config, util
 
 
 # Defaults
@@ -57,8 +60,9 @@ DEFAULT_CONFIG_PATH = \
 
 # Command line parsing constants
 LONG_OPTS = ['help',
-             'config-file=']
-SHORT_OPTS = 'hc'
+             'config-file=',
+             'verbose']
+SHORT_OPTS = 'hcv'
 CONFIG_FILE_VAR = 'config_file'
 
 # Configuration file section name constants
@@ -112,6 +116,8 @@ def parse_cmdline(argv):
                       'Missing config file name argument to option.')
             else:
                 options[CONFIG_FILE_VAR] = arg
+        elif option in ('-v', '--verbose'):
+            options[config.VERBOSE_VAR] = True
         else:
             usage(CMDLINE_OPTS_EXIT_STATUS,
                   'Unhandled option: %s.' % option)
@@ -187,8 +193,15 @@ def main(argv=None):
     options = parse_cmdline(argv)
     configuration = get_configuration(options[CONFIG_FILE_VAR])
 
-    # Currently, no useful options beyond the configuration file are
-    # used, so just pass in configuration
+    # Combine options from configuration file, command line options,
+    # and defaults for items not set
+    configuration.update(options)
+    configuration = config.update_configuration(configuration)
+
+    # Do some general set up before launching the synchronization
+    # TODO: Does this belong in sync.run_synchronization?
+    util.init_logging(configuration)
+
     sync.run_synchronization(configuration)
 
 

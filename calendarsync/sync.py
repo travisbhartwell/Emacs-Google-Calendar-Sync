@@ -21,10 +21,13 @@
 tying things together.
 """
 
+from calendarsync.util import log
+
 
 
 def run_synchronization(configuration):
     """The top-level function that performs the synchronization based
     on the passed in configuration."""
 
-    print "Running synchronization of Google Calendar and Emacs Diary."
+
+    log("Running synchronization of Google Calendar and Emacs Diary.")

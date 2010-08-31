@@ -19,7 +19,59 @@
 
 """Constants and other shared items related to configuration."""
 
-# Constants for configuration items
+import os.path
+
+
+# Constants for command line options
+VERBOSE_VAR = 'verbose'
+
+# Default values, if any, for command line options
+DEFAULT_VERBOSITY = False
+
+# Constants for default_config items
+EMACS_DIARY_PATH_VAR = 'filepath'
 GCAL_USERNAME_VAR = 'username'
 GCAL_PASSWORD_VAR = 'password'
-EMACS_DIARY_PATH_VAR = 'filepath'
+
+# Default values for configuration, if any
+DEFAULT_EMACS_DIARY_FILENAME = "diary"
+DEFAULT_EMACS_DIARY_PATH = \
+    os.path.expanduser(os.path.join("~",
+                                    DEFAULT_EMACS_DIARY_FILENAME))
+
+# List of known configuration items
+CONFIG_KEYS = set((VERBOSE_VAR,
+                   EMACS_DIARY_PATH_VAR,
+                   GCAL_USERNAME_VAR,
+                   GCAL_PASSWORD_VAR))
+
+
+
+# The default configuration
+DEFAULT_CONFIG = {EMACS_DIARY_PATH_VAR: DEFAULT_EMACS_DIARY_PATH,
+                  VERBOSE_VAR: DEFAULT_VERBOSITY}
+
+
+
+def update_configuration(config_dict):
+    """Gets an updated configuration with the defaults applied if
+    necessary.  Includes removing unknown configuration keys.
+    """
+    # For now, a shallow copy is sufficient
+    default_copy = DEFAULT_CONFIG.copy()
+    config_dict_copy = config_dict.copy()
+
+    keys_set = set(config_dict_copy.keys())
+    invalid_keys = keys_set - CONFIG_KEYS
+
+    for key in invalid_keys:
+        del config_dict_copy[key]
+
+    default_copy.update(config_dict_copy)
+
+    return default_copy
+
+
+
+
+
