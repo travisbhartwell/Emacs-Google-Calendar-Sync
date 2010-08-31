@@ -41,12 +41,13 @@ calendar and converts it into Emacs diary format, overwriting the
 existing file, if any.
 
 """
-
 import getopt
 import os
 import sys
+from ConfigParser import NoOptionError, NoSectionError, SafeConfigParser
 
-from ConfigParser import SafeConfigParser, NoOptionError, NoSectionError
+from calendarsync import sync
+from calendarsync import config
 
 # Constants for options
 CONFIG_FILE_VAR = 'config_file'
@@ -55,11 +56,6 @@ CONFIG_FILE_VAR = 'config_file'
 DEFAULT_CONFIG_FILE_NAME = '.egc-sync.ini'
 DEFAULT_CONFIG_PATH = \
     os.path.expanduser(os.path.join('~', DEFAULT_CONFIG_FILE_NAME))
-
-# Constants for configuration items
-GCAL_USERNAME_VAR = 'username'
-GCAL_PASSWORD_VAR = 'password'
-EMACS_DIARY_PATH_VAR = 'filepath'
 
 
 
@@ -88,7 +84,7 @@ def parse_cmdline(argv):
     options[CONFIG_FILE_VAR] = DEFAULT_CONFIG_PATH
 
     try:
-        opts, args = getopt.getopt(argv[1:], SHORT_OPTS, LONG_OPTS)
+        opts, args = getopt.getopt(argv, SHORT_OPTS, LONG_OPTS)
     except getopt.GetoptError, err:
         usage(CMDLINE_OPTS_EXIT_STATUS, str(err))
 
@@ -110,15 +106,17 @@ def parse_cmdline(argv):
 
 
 
-def get_configuration_item(config_parser, section, var):
+def get_configuration_item(config_parser, section, var, required=True):
     try:
         value = config_parser.get(section, var)
     except NoSectionError:
-        print "Missing section named: %s." % section
-        sys.exit(2)
+        if required:
+            print "Missing section named: %s." % section
+            sys.exit(2)
     except NoOptionError:
-        print "Missing option %s in section %s." % (var, section)
-        sys.exit(2)
+        if required:
+            print "Missing option %s in section %s." % (var, section)
+            sys.exit(2)
 
     return value
 
@@ -136,35 +134,41 @@ def get_configuration(config_file_name):
     config_parser = SafeConfigParser()
     config_parser.read(config_file_name)
 
-    config = {}
-    config[GCAL_USERNAME_VAR] = get_configuration_item(config_parser,
-                                                       GCAL_SECTION_NAME,
-                                                       GCAL_USERNAME_VAR)
-    config[GCAL_PASSWORD_VAR] = get_configuration_item(config_parser,
-                                                       GCAL_SECTION_NAME,
-                                                       GCAL_PASSWORD_VAR)
-    config[EMACS_DIARY_PATH_VAR] = \
+    configuration = {}
+    configuration[config.GCAL_USERNAME_VAR] = \
+        get_configuration_item(config_parser,
+                               GCAL_SECTION_NAME,
+                               config.GCAL_USERNAME_VAR)
+
+    configuration[config.GCAL_PASSWORD_VAR] = \
+        get_configuration_item(config_parser,
+                               GCAL_SECTION_NAME,
+                               config.GCAL_PASSWORD_VAR)
+
+    configuration[config.EMACS_DIARY_PATH_VAR] = \
         get_configuration_item(config_parser,
                                EMACS_DIARY_SECTION_NAME,
-                               EMACS_DIARY_PATH_VAR)
+                               config.EMACS_DIARY_PATH_VAR,
+                               False)
 
-    config[EMACS_DIARY_PATH_VAR] = \
-        os.path.expanduser(config[EMACS_DIARY_PATH_VAR])
+    if configuration[config.EMACS_DIARY_PATH_VAR] is not None:
+        configuration[config.EMACS_DIARY_PATH_VAR] = \
+            os.path.expanduser(configuration[config.EMACS_DIARY_PATH_VAR])
 
-    return config
+    return configuration
 
 
 
 def main(argv=None):
     if argv is None:
-        argv = sys.argv
+        argv = sys.argv[1:]
 
     options = parse_cmdline(argv)
+    configuration = get_configuration(options[CONFIG_FILE_VAR])
 
-    config = get_configuration(options[CONFIG_FILE_VAR])
-
-    print config
-
+    # Currently, no useful options beyond the configuration file are
+    # used, so just pass in configuration
+    sync.run_synchronization(configuration)
 
 
 if __name__ == '__main__':
