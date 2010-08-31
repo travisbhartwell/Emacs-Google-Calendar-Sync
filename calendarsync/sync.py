@@ -28,5 +28,3 @@ def run_synchronization(configuration):
     on the passed in configuration."""
 
     print "Running synchronization of Google Calendar and Emacs Diary."
-
-

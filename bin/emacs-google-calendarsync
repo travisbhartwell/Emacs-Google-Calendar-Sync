@@ -49,17 +49,33 @@ from ConfigParser import NoOptionError, NoSectionError, SafeConfigParser
 from calendarsync import sync
 from calendarsync import config
 
-# Constants for options
-CONFIG_FILE_VAR = 'config_file'
 
 # Defaults
 DEFAULT_CONFIG_FILE_NAME = '.egc-sync.ini'
 DEFAULT_CONFIG_PATH = \
     os.path.expanduser(os.path.join('~', DEFAULT_CONFIG_FILE_NAME))
 
+# Command line parsing constants
+LONG_OPTS = ['help',
+             'config-file=']
+SHORT_OPTS = 'hc'
+CONFIG_FILE_VAR = 'config_file'
+
+# Configuration file section name constants
+GCAL_SECTION_NAME = 'Google Calendar'
+EMACS_DIARY_SECTION_NAME = 'Emacs Diary'
+
+# Exit status
+NO_ERROR_EXIT_STATUS = 0
+CMDLINE_OPTS_EXIT_STATUS = 1
+INVALID_CONFIG_FILE_EXIT_STATUS = 2
+
 
 
 def usage(status, msg=''):
+    """Show the usage defined in the script docstring, an optional
+    error message, and then exit with the specified status code.
+    """
     # Shamelessly borrowed from GNU Mailman code
     if status:
         fd = sys.stderr
@@ -73,24 +89,23 @@ def usage(status, msg=''):
 
 
 def parse_cmdline(argv):
-    LONG_OPTS = ['help',
-                 'config-file=']
-    SHORT_OPTS = 'hc'
-
-    CMDLINE_OPTS_EXIT_STATUS = 1
-
+    """Parse the command line specified by the list argv, returning
+    the options set.
+    """
     # Set defaults
     options = {}
     options[CONFIG_FILE_VAR] = DEFAULT_CONFIG_PATH
 
     try:
-        opts, args = getopt.getopt(argv, SHORT_OPTS, LONG_OPTS)
+        # Currently ignoring the args returned, do something with it
+        # when parameters allow for arguments.
+        opts, _ = getopt.getopt(argv, SHORT_OPTS, LONG_OPTS)
     except getopt.GetoptError, err:
         usage(CMDLINE_OPTS_EXIT_STATUS, str(err))
 
     for option, arg in opts:
         if option in ('-h', '--help'):
-            usage(0)
+            usage(NO_ERROR_EXIT_STATUS)
         elif option in ('-c', '--config-file'):
             if arg in (None, ''):
                 usage(CMDLINE_OPTS_EXIT_STATUS,
@@ -107,29 +122,32 @@ def parse_cmdline(argv):
 
 
 def get_configuration_item(config_parser, section, var, required=True):
+    """Gets the configuration item specified by section and var from
+    config_parser.  Will exit the program with an error if required is
+    True and the section or option are not found.
+    """
     try:
         value = config_parser.get(section, var)
     except NoSectionError:
         if required:
             print "Missing section named: %s." % section
-            sys.exit(2)
+            sys.exit(INVALID_CONFIG_FILE_EXIT_STATUS)
     except NoOptionError:
         if required:
             print "Missing option %s in section %s." % (var, section)
-            sys.exit(2)
+            sys.exit(INVALID_CONFIG_FILE_EXIT_STATUS)
 
     return value
 
 
 
 def get_configuration(config_file_name):
-    # Section name constants
-    GCAL_SECTION_NAME = 'Google Calendar'
-    EMACS_DIARY_SECTION_NAME = 'Emacs Diary'
-
+    """Parses the configuration file specified by config_file_name.
+    Returns a dictionary with the resulting configuration.
+    """
     if not os.path.exists(config_file_name):
         print 'Configuration file %s not found.' % config_file_name
-        sys.exit(2)
+        sys.exit(INVALID_CONFIG_FILE_EXIT_STATUS)
 
     config_parser = SafeConfigParser()
     config_parser.read(config_file_name)
@@ -160,6 +178,9 @@ def get_configuration(config_file_name):
 
 
 def main(argv=None):
+    """Get the configuration from the command line arguments and the
+    configuration file and then call the synchronization method.
+    """
     if argv is None:
         argv = sys.argv[1:]
 
