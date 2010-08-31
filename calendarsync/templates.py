@@ -21,6 +21,21 @@
 Google Calendar.  Also includes related functions for evaluation.
 """
 
+# Items left to do:
+# TODO: Move rest of template related functionality (such as
+#       evaluate_template) here from the original code.
+# TODO: Figure out best way to generate template strings, reusing
+#       constants already defined.
+# TODO: Remove all regex and template fragment repetitions.
+# TODO: Test against old template code, verifying exact same templates
+#       and compiled regular expressions have been created.
+# TODO: Should the constants be in the templates module namespace or
+#       some sub-namespace?  Make sure only those items that are
+#       needed outside of the module are exported.
+# TODO: Verify which items must be exact strings and others which can
+#       be renamed to something more understandable by me.
+# TODO: Once all of the above are completed, evaluate whether this is
+#       a maintainable solution for changing and adding templates.
 import re
 
 # Common regular expressions used in many places
