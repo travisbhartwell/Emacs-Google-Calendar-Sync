@@ -867,7 +867,7 @@ def load_template(template_name, escape=True):
         # make a template
         tt_case[case_name] = temp_string
         a_case_name.append(case_name)
-    return tt_case, a_case_name
+    return tt_case
 
 
 def evaluate_templates(at_template, match_var_name):
@@ -895,3 +895,10 @@ recurrence_event_descriptions_template_mtch = \
     load_match_vars('recurrence_event_descriptions_template_mtch')
 gcases_template_mtch = load_match_vars('gcases_template_mtch')
 times_template_mtch = load_match_vars('times_template_mtch')
+
+# The template files
+cases_template = load_template('cases_template')
+detail_template = load_template('detail_template')
+recurrence_event_descriptions_template = load_template('recurrence_event_descriptions_template')
+gcases_template = load_template('gcases_template')
+times_template = load_template('times_template')
