@@ -897,8 +897,8 @@ gcases_template_mtch = load_match_vars('gcases_template_mtch')
 times_template_mtch = load_match_vars('times_template_mtch')
 
 # The template files
-cases_template = load_template('cases_template')
-detail_template = load_template('detail_template')
-recurrence_event_descriptions_template = load_template('recurrence_event_descriptions_template')
-gcases_template = load_template('gcases_template')
-times_template = load_template('times_template')
+cases_template_raw = load_template('cases_template')
+detail_template_raw = load_template('detail_template')
+recurrence_event_descriptions_template_raw = load_template('recurrence_event_descriptions_template')
+gcases_template_raw = load_template('gcases_template')
+times_template_raw = load_template('times_template')

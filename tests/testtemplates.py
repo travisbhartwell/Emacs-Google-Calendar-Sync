@@ -1,6 +1,3 @@
-from calendarsync.templates import times_template
-from calendarsync.templates import gcases_template
-from calendarsync.templates import recurrence_event_descriptions_template
 #!/usr/bin/python
 
 import oldtemplates
@@ -45,11 +42,11 @@ def test_match_vars():
 
 def test_raw_templates():
     """First test the raw-unevaluated templates."""
-    for template_name in ['cases_template',
-                          'detail_template',
-                          'recurrence_event_descriptions_template',
-                          'gcases_template',
-                          'times_template']:
+    for template_name in ['cases_template_raw',
+                          'detail_template_raw',
+                          'recurrence_event_descriptions_template_raw',
+                          'gcases_template_raw',
+                          'times_template_raw']:
         print "Comparing un-evaluated template %s" % template_name
         assert dictionaries_identical(oldtemplates.__dict__[template_name],
                                       templates.__dict__[template_name])
@@ -64,6 +61,7 @@ def test_all():
 
     for test in tests_to_run:
         test()
+        print "\n"
 
 
 if __name__=='__main__':

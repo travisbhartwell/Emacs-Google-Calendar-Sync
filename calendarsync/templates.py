@@ -225,7 +225,7 @@ CASE_MDY_VAR = 'caseMDY'
 def _evaluate_templates(template_dict, match_template_dict):
     evaluated_templates_dict = {}
     evaluated_template_strings_dict = {}
-    for template_name, template in template_dict:
+    for template_name, template in template_dict.items():
         string_pattern = template % match_template_dict
         evaluated_template_strings_dict[template_name] = \
             string_pattern
@@ -252,7 +252,7 @@ def _evaluate_templates(template_dict, match_template_dict):
 # right with respect to their relative positions in each case entry
 
 # Templates for cases template
-cases_template = {
+cases_template_raw = {
     CASE_REC_DAILY_ASTERIX_VAR: '%(VIS)s\* \*, \* %(DETAIL)s',
     CASE_REC_DAILY_VAR: '%(VIS)s%%%%\(and \(diary-cyclic 1 %(STMONTH)s %(STDAY)s %(STYEAR)s\) t\)  %(DETAIL)s',
     CASE_REC_DAILY_EXCEPTION_VAR: '%(VIS)s%%%%\(and \(not \(or \(diary-date %(EXCEPTIONSTRING)s\)\)\)\(diary-cyclic 1 %(STMONTH)s %(STDAY)s %(STYEAR)s\)\) %(DETAIL)s',
@@ -298,7 +298,6 @@ cases_template = {
     CASE_REC_YEARLY_INTERVAL_VAR: '%(VIS)s%%%%\(or \(diary-date %(STMONTH)s %(STDAY)s %(STYEAR)s\)\(and \(>= \(car \(cddr date\)\) %(STYEAR2)s\)\(diary-anniversary %(STMONTH2)s %(STDAY2)s %(STYEAR3)s\)\(= \(mod \(- \(car \(nthcdr 2 date\)\) %(STYEAR4)s\) %(INTERVAL)s\) 0\)\)\) %(DETAIL)s',
     CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: '%(VIS)s%%%%\(or \(diary-date %(STMONTH)s %(STDAY)s %(STYEAR)s\)\(and \(not \(or \(diary-date %(EXCEPTIONSTRING)s\)\)\)\(>= \(car \(cddr date\)\) %(STYEAR2)s\)\(diary-anniversary %(STMONTH2)s %(STDAY2)s %(STYEAR3)s\)\(= \(mod \(- \(car \(cddr date\)\) %(STYEAR4)s\) %(INTERVAL)s\) 0\)\)\) %(DETAIL)s', }
 
-
 # The regular expression match templates for the case templates.
 cases_template_mtch = {
     STYEAR_VAR: '(?P<STYEAR>\d?\d?\d\d)',
@@ -331,6 +330,11 @@ cases_template_mtch = {
     EXCEPTIONSTRING_VAR: '(?P<EXCEPTIONSTRING>[\ddiary\-ent\(\)\' ]*?)',
     UNTILDAY_VAR: '(?P<UNTILDAY>[0-3]?\d)', }
 
+(cases_template,
+ cases_template_strings) = _evaluate_templates(cases_template_raw,
+                                               cases_template_mtch)
+
+
 
 # detail_template describes the total number of ways that a given
 # <DETAIL> field, from that of cases_template, can be formatted in the
@@ -342,7 +346,7 @@ cases_template_mtch = {
 # an XML like manner.  .\n must be double escaped e.g. \\n
 
 # Templates for detail template
-detail_template = {
+detail_template_raw = {
     DETAILS_C_TITLE_NEWLINE_SPACE_TIMERANGE_CONTENT_VAR: '%(TITLE)s\\n\s%(TIMERANGE)s %(CONTENT)s',
     DETAILS_F_TITLE_TIMERANGE_NEWLINE_CONTENT_VAR: '%(TITLE)s %(TIMERANGE)s%(newlinehere)s%(CONTENT)s',
     DETAILS_H_TITLE_TIMERANGE_I_I_CONTENT_VAR: '%(TITLE)s %(TIMERANGEIII)s %(CONTENT)s',
@@ -370,6 +374,9 @@ detail_template_mtch = {
     NEWLINEHERE_VAR: '\\\n', }
 
 
+(detail_template,
+ detail_template_strings) = _evaluate_templates(detail_template_raw,
+                                                detail_template_mtch)
 
 # Mapping from the Emacs Diary formatting to Google Calendar
 e_to_g_case_table = {
@@ -425,7 +432,7 @@ e_to_g_case_table = {
 
 # Recurrence event descriptions templates
 # Templates for recurrence event descriptions template
-recurrence_event_descriptions_template = {
+recurrence_event_descriptions_template_raw = {
     CASE_MONTHDAYYEAR_VAR: SINGLE_DAY_EVENT_TEMPLATE_STRING,
     CASE_MONTH_A_B_B_RDAYYEAR_VAR: SINGLE_DAY_EVENT_TEMPLATE_STRING,
     CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: SINGLE_DAY_EVENT_TEMPLATE_STRING,
@@ -491,12 +498,17 @@ recurrence_event_descriptions_template_mtch = {
     STMONTH_VAR: '(?P<STMONTH>\d?\d)',
     UNTILDAY_VAR: '(?P<UNTILDAY>\d?\d)', }
 
+(recurrence_event_descriptions_template,
+ recurrence_event_descriptions_template_strings) = \
+ _evaluate_templates(recurrence_event_descriptions_template_raw,
+                     recurrence_event_descriptions_template_mtch)
+
 
 
 # gcases_template describes the total number of ways that a recursion
 # entry can be formatted in a google calendar feed.
 # Templates for gcases template
-gcases_template = {
+gcases_template_raw = {
     CASE_REC_DAILY_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=DAILY;WKST=SU%(newline)s',
     CASE_REC_DAILY_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=DAILY;UNTIL=%(UNTILDATETIME)s;WKST=SU%(newline)s',
     CASE_REC_DAILY_INTERVAL_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=DAILY;INTERVAL=%(INTERVAL)s;WKST=SU%(newline)s',
@@ -531,12 +543,17 @@ gcases_template_mtch = {
     INTERVAL_VAR: '(?P<INTERVAL>\d?\d)',
     BYDAYG_VAR: '(?P<BYDAYG>[1234,MOTUWEHFR]+)', }
 
+(gcases_template,
+ gcases_template_strings) = _evaluate_templates(gcases_template_raw,
+                                                gcases_template_mtch)
+
+
 
 # times_template describes the total number of ways that a given
 # <TIMERANGE> field, from that of details_template, can be formatted in
 # the diary file.
 # Templates for times template
-times_template = {
+times_template_raw = {
     CASE_TIME_A_RANGE_VAR: '%(STHOUR)s:%(STMINUTE)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s:%(ENDMINUTE)s%(ENDAMPM)s',
     CASE_TIME_B_RANGEWITH_STARTTIME_MINUTES_ONLY_VAR: '%(STHOUR)s:%(STMINUTE)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s%(ENDAMPM)s',
     CASE_TIME_C_RANGEWITH_ENDTIME_MINUTES_ONLY_VAR: '%(STHOUR)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s:%(ENDMINUTE)s%(ENDAMPM)s',
@@ -557,3 +574,7 @@ times_template_mtch = {
     TAB_VAR: '(?P<TAB>?:\s+?)?',
     ENDMINUTE_VAR: '(?P<ENDMINUTE>[0-5]\d)',
     STDAYNOTFOLLOWEDBYCOMMA_VAR: STDAYNOTFOLLOWEDBYCOMMA_RE, }
+
+(times_template,
+ times_template_strings) = _evaluate_templates(times_template_raw,
+                                               times_template_mtch)
