@@ -1,0 +1,26 @@
+
+* Brief outline of procedure as used in original code
+** get the location of emacs diary and verify it is there
+** read in the persisted data and last sync times
+** get emacs diary last modified time
+** load templates
+** load current emacs diary data
+** load current google calendar data
+** get google calendar latest modified data
+** figure out if diary was modified since last sync
+** figure out if gcal was modified since last sync
+** update the edit links
+** address recurrence exceptions
+** add recurrence descriptions
+** get items to modified from Emacs Diary
+** handle the recurrence exceptions
+** handle contentions in the sync between the two
+** get keys to modify from google
+** figure out what new items added to gcal to add to emacs diary
+** update google calendar with data
+** delete entries from shelve
+** update gcal orphans
+** insert entries into gcal
+** re-add emacs diary edited entries back into emacs diary
+** write the emacs diary file out
+** close the shelve and mark sync times
