@@ -220,7 +220,7 @@ cases_template = """
 """
 
 ### cases_template_mtch contains the regexp patterns associated with the cases_template.  All _mtch templates must end in a new line.
-cases_template_mtch = """BYDAY ([0-6 ]{1,13})
+cases_template_mtch_raw = """BYDAY ([0-6 ]{1,13})
 STDAY ([0-3]?\d)
 EXCEPTIONSTRING ([\ddiary\-ent\(\)' ]*?)
 WHICHWEEK (-?[0-3])
@@ -313,7 +313,7 @@ detail_template = """
 """
 
 ### detail_template_mtch contains the regexp patterns associated with detail_template.  All _mtch templates must end in a new line.  \n must be tripple escaped e.g. \\\n
-detail_template_mtch = """TITLE (\w[\w \?\.\(\)'"\[\]\-]+)
+detail_template_mtch_raw = """TITLE (\w[\w \?\.\(\)'"\[\]\-]+)
 TITLEIV (\w[\w \?\.\(\)'"\[\]\-]+)
 TITLEII (\w[\w ]+(?=\\n[\s\\t]))
 CONTENT (.+)
@@ -567,7 +567,7 @@ Recurs Every <INTERVAL> Years, With Exceptions, Beginning <STMONTH>/<STDAY>/<STY
 </caseRecYearlyIntervalException>
 """
 
-recurrence_event_descriptions_template_mtch = """STDAY (/d/d)
+recurrence_event_descriptions_template_mtch_raw = """STDAY (/d/d)
 DAYORDINAL (.+?)
 DAYOFWEEKD (.+?)
 WHICHWEEKD (.+?)
@@ -703,7 +703,7 @@ RRULE:FREQ=YEARLY;INTERVAL=<INTERVAL>;WKST=SU<newline>
 """
 
 ### gcases_template_mtch contains the regexp patterns associated with gcases_template.  All _mtch templates must end in a new line.
-gcases_template_mtch = """UNTILGTIME (T[0-2]\d{3}00Z?)?)
+gcases_template_mtch_raw = """UNTILGTIME (T[0-2]\d{3}00Z?)?)
 BYDAYG ([1234,MOTUWEHFR]+)
 newline \\n
 STDATETIME ([12]0[012]\d(T[012][\d][0-5]\d[0-5]\d)?)
@@ -746,7 +746,7 @@ times_template = """
 """
 
 ### times_template_mtch contains the regexp patterns associated with times_template.  All _mtch templates must end in a new line.
-times_template_mtch = """TAB (?:\s+?)?
+times_template_mtch_raw = """TAB (?:\s+?)?
 HYPHEN (\s{0,8}-\s{0,8})
 STHOUR ([012]?\d)
 STMINUTE ([0-5]\d)
@@ -875,10 +875,10 @@ def evaluate_templates(at_template, match_var_name):
        This function also calls load_match_vars() """
     dic_types = load_match_vars(match_var_name)
     dic_evaluated_templates_array = {}
-    string_patterns = []
+    string_patterns = {}
     for i in at_template.keys():
         p0 = at_template[i] % dic_types
-        string_patterns.append(p0)
+        string_patterns[i] = p0
         dic_evaluated_templates_array[i] = (re.compile(p0, re.M | re.S))
     return dic_evaluated_templates_array, string_patterns
 
@@ -888,17 +888,32 @@ def evaluate_templates(at_template, match_var_name):
 # The Case Ref Table
 e_to_g_case_table = load_ref_table('e2gcase_table')
 
-# The Match Vars
-cases_template_mtch = load_match_vars('cases_template_mtch')
-detail_template_mtch = load_match_vars('detail_template_mtch')
-recurrence_event_descriptions_template_mtch = \
-    load_match_vars('recurrence_event_descriptions_template_mtch')
-gcases_template_mtch = load_match_vars('gcases_template_mtch')
-times_template_mtch = load_match_vars('times_template_mtch')
-
 # The template files
 cases_template_raw = load_template('cases_template')
 detail_template_raw = load_template('detail_template')
 recurrence_event_descriptions_template_raw = load_template('recurrence_event_descriptions_template')
 gcases_template_raw = load_template('gcases_template')
 times_template_raw = load_template('times_template')
+
+# Evaluate the templates
+(cases_template,
+ cases_template_strings) = evaluate_templates(cases_template_raw,
+                                              'cases_template_mtch_raw')
+(detail_template,
+ detail_template_strings) = evaluate_templates(detail_template_raw,
+                                               'detail_template_mtch_raw')
+(recurrence_event_descriptions_template,
+ recurrence_event_descriptions_template_strings) = \
+ evaluate_templates(recurrence_event_descriptions_template_raw,
+                    'recurrence_event_descriptions_template_mtch_raw')
+(times_template,
+ times_template_strings) = evaluate_templates(times_template_raw,
+                                              'times_template_mtch_raw')
+
+# Ensure the Match Vars are loaded
+cases_template_mtch = load_match_vars('cases_template_mtch_raw')
+detail_template_mtch = load_match_vars('detail_template_mtch_raw')
+recurrence_event_descriptions_template_mtch = \
+    load_match_vars('recurrence_event_descriptions_template_mtch_raw')
+gcases_template_mtch = load_match_vars('gcases_template_mtch_raw')
+times_template_mtch = load_match_vars('times_template_mtch_raw')

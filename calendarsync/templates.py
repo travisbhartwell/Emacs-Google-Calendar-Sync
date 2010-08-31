@@ -543,10 +543,6 @@ gcases_template_mtch = {
     INTERVAL_VAR: '(?P<INTERVAL>\d?\d)',
     BYDAYG_VAR: '(?P<BYDAYG>[1234,MOTUWEHFR]+)', }
 
-(gcases_template,
- gcases_template_strings) = _evaluate_templates(gcases_template_raw,
-                                                gcases_template_mtch)
-
 
 
 # times_template describes the total number of ways that a given

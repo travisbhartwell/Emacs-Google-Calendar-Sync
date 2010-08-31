@@ -52,6 +52,16 @@ def test_raw_templates():
                                       templates.__dict__[template_name])
         print "Un-evaluated templates %s are identical." % template_name
 
+def test_evaluated_templates():
+    for template_name in ['cases_template_strings',
+                          'detail_template_strings',
+                          'recurrence_event_descriptions_template_strings',
+                          'times_template_strings']:
+        print "Comparing evaluated template %s" % template_name
+        assert dictionaries_identical(oldtemplates.__dict__[template_name],
+                                      templates.__dict__[template_name])
+        print "Evaluated templates %s are identical." % template_name
+
 def test_all():
     module_locals_copy = globals().copy()
 
