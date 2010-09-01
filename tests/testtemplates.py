@@ -3,6 +3,7 @@
 import oldtemplates
 from calendarsync import templates
 
+
 def dictionaries_identical(old, new):
     old_keys_set = set(old.keys())
     new_keys_set = set(new.keys())
@@ -40,6 +41,7 @@ def test_match_vars():
                                       templates.__dict__[match_var])
         print "Match templates %s are identical." % match_var
 
+
 def test_raw_templates():
     """First test the raw-unevaluated templates."""
     for template_name in ['cases_template_raw',
@@ -52,6 +54,7 @@ def test_raw_templates():
                                       templates.__dict__[template_name])
         print "Un-evaluated templates %s are identical." % template_name
 
+
 def test_evaluated_templates():
     for template_name in ['cases_template_strings',
                           'detail_template_strings',
@@ -61,6 +64,7 @@ def test_evaluated_templates():
         assert dictionaries_identical(oldtemplates.__dict__[template_name],
                                       templates.__dict__[template_name])
         print "Evaluated templates %s are identical." % template_name
+
 
 def test_all():
     module_locals_copy = globals().copy()
@@ -74,6 +78,5 @@ def test_all():
         print "\n"
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     test_all()
-
