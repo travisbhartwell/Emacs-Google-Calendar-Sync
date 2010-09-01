@@ -24,7 +24,6 @@ tying things together.
 from calendarsync.util import log
 
 
-
 def run_synchronization(configuration):
     """The top-level function that performs the synchronization based
     on the passed in configuration."""

@@ -46,13 +46,11 @@ CONFIG_KEYS = set((VERBOSE_VAR,
                    GCAL_PASSWORD_VAR))
 
 
-
 # The default configuration
 DEFAULT_CONFIG = {EMACS_DIARY_PATH_VAR: DEFAULT_EMACS_DIARY_PATH,
                   VERBOSE_VAR: DEFAULT_VERBOSITY}
 
 
-
 def update_configuration(config_dict):
     """Gets an updated configuration with the defaults applied if
     necessary.  Includes removing unknown configuration keys.

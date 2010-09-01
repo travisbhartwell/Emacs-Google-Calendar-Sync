@@ -22,13 +22,11 @@ Google Calendar.  Also includes related functions for evaluation.
 """
 
 # Items left to do:
-# TODO: Move rest of template related functionality (such as
-#       evaluate_template) here from the original code.
+# TODO: Handle formatting so it fits within the standards, but still
+#       generates the correct templates.
 # TODO: Figure out best way to generate template strings, reusing
 #       constants already defined.
 # TODO: Remove all regex and template fragment repetitions.
-# TODO: Test against old template code, verifying exact same templates
-#       and compiled regular expressions have been created.
 # TODO: Should the constants be in the templates module namespace or
 #       some sub-namespace?  Make sure only those items that are
 #       needed outside of the module are exported.
@@ -39,16 +37,16 @@ Google Calendar.  Also includes related functions for evaluation.
 import re
 
 # Common regular expressions used in many places
-STYEAR_RE = '(?P=STYEAR)'
-STDAYNOTFOLLOWEDBYCOMMA_RE = '(?P<STDAYNOTFOLLOWEDBYCOMMA>[0-3]?\d)(?!,)'
-STDAY_RE = '(?P<STDAY>[0-3]?\d)'
+_STDAYNOTFOLLOWEDBYCOMMA_RE = '(?P<STDAYNOTFOLLOWEDBYCOMMA>[0-3]?\d)(?!,)'
+_STDAY_RE = '(?P<STDAY>[0-3]?\d)'
+_STYEAR_RE = '(?P=STYEAR)'
 
 # Constants used in templates
 # Common strings used in templates
-RECURS_DAILY_TEMPLATE_STRING = 'Recurs Daily'
-RECURS_EVERY_WEEK_TEMPLATE_STRING = 'Recurs Every Week'
-RECURS_YEARLY_TEMPLATE_STRING = 'Recurs Yearly'
-SINGLE_DAY_EVENT_TEMPLATE_STRING = 'Single Day Event'
+_RECURS_DAILY_TEMPLATE_STRING = 'Recurs Daily'
+_RECURS_EVERY_WEEK_TEMPLATE_STRING = 'Recurs Every Week'
+_RECURS_YEARLY_TEMPLATE_STRING = 'Recurs Yearly'
+_SINGLE_DAY_EVENT_TEMPLATE_STRING = 'Single Day Event'
 
 # Constants first used in cases template
 CASE_REC_DAILY_ASTERIX_VAR = 'caseRecDailyAsterix'
@@ -221,8 +219,11 @@ ENDAMPM_VAR = 'ENDAMPM'
 CASE_MDY_VAR = 'caseMDY'
 
 
-
 def _evaluate_templates(template_dict, match_template_dict):
+    """Evaluates the template s in template_dict by apply the
+    match_template_dict and then compiling the resulting regular
+    expression.  Also returns the dictionary of the regular expression
+    strings for debugging and testing."""
     evaluated_templates_dict = {}
     evaluated_template_strings_dict = {}
     for template_name, template in template_dict.items():
@@ -235,22 +236,9 @@ def _evaluate_templates(template_dict, match_template_dict):
     return evaluated_templates_dict, evaluated_template_strings_dict
 
 
-
 # cases_template describes the total number of ways that a given emacs
 # diary entry date can be formatted.  Recurring cases contain the
 # letters Rec.
-
-# Fields are delimited by '<' and '>'; Uppercase fields refer to
-# variable names, containing regexps which are found in
-# cases_template_mtch.  Lowercase fields are place holders for literal
-# strings as described in the detail_template_mtch template, and do
-# not act as variables.
-
-# Each formatting case is delimited in an XML like manner.  Number
-# Postfixed variable names represent the same variable without the
-# postfixed number.  The postfixed numbers must increment from left to
-# right with respect to their relative positions in each case entry
-
 # Templates for cases template
 cases_template_raw = {
     CASE_REC_DAILY_ASTERIX_VAR: '%(VIS)s\* \*, \* %(DETAIL)s',
@@ -289,11 +277,14 @@ cases_template_raw = {
     CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR: '%(VIS)s%%%%\(and \(diary-block %(STMONTH)s %(STDAY)s %(STYEAR)s %(UNTILMONTH)s %(UNTILDAY)s %(UNTILYEAR)s\)\(= \(mod \(- \(car date\) %(STMONTH2)s\) %(INTERVAL)s\) 0\)\(diary-float t %(NUMDAYOFWEEK)s %(WHICHWEEK)s\)\) %(DETAIL)s',
     CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_EXCEPTION_VAR: '%(VIS)s%%%%\(and \(not \(or \(diary-date %(EXCEPTIONSTRING)s\)\)\)\(diary-block %(STMONTH)s %(STDAY)s %(STYEAR)s %(UNTILMONTH)s %(UNTILDAY)s %(UNTILYEAR)s\)\(= \(mod \(- \(car date\) %(STMONTH2)s\) %(INTERVAL)s\) 0\)\(diary-float t %(NUMDAYOFWEEK)s %(WHICHWEEK)s\)\) %(DETAIL)s',
     CASE_MONTHDAYYEAR_VAR: '%(VIS)s%(STMONTH)s/%(STDAY)s/%(STYEAR)s %(DETAIL)s',
-    CASE_MONTH_A_B_B_RDAYYEAR_VAR: '%(VIS)s%(MONTHABBR)s %(STDAY)s, %(STYEAR)s %(DETAIL)s',
-    CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: '%(VIS)s%(MONTHABBR)s  %(STDAY)s, %(STYEAR)s %(DETAIL)s',
+    CASE_MONTH_A_B_B_RDAYYEAR_VAR:
+        '%(VIS)s%(MONTHABBR)s %(STDAY)s, %(STYEAR)s %(DETAIL)s',
+    CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR:
+        '%(VIS)s%(MONTHABBR)s  %(STDAY)s, %(STYEAR)s %(DETAIL)s',
     CASE_REC_YEARLY_VAR: '%(VIS)s%%%%\(and \(>= \(car \(cddr date\)\) %(STYEAR)s\)\(diary-anniversary %(STMONTH)s %(STDAY)s %(STYEAR2)s\)\) %(DETAIL)s',
     CASE_REC_YEARLY_EXCEPTION_VAR: '%(VIS)s%%%%\(and \(not \(or \(diary-date %(EXCEPTIONSTRING)s\)\)\)\(>= \(car \(cddr date\)\) %(STYEAR)s\)\(diary-anniversary %(STMONTH)s %(STDAY)s %(STYEAR2)s\)\) %(DETAIL)s',
-    CASE_REC_YEARLY_A_B_B_R_B_VAR: '%(VIS)s%(MONTHABBR)s %(STDAYNOTFOLLOWEDBYCOMMA)s %(DETAIL)s',
+    CASE_REC_YEARLY_A_B_B_R_B_VAR:
+        '%(VIS)s%(MONTHABBR)s %(STDAYNOTFOLLOWEDBYCOMMA)s %(DETAIL)s',
     CASE_REC_YEARLY_MODERN_VAR: '%(VIS)s%(STMONTH)s/%(STDAY)s/\* %(DETAIL)s',
     CASE_REC_YEARLY_INTERVAL_VAR: '%(VIS)s%%%%\(or \(diary-date %(STMONTH)s %(STDAY)s %(STYEAR)s\)\(and \(>= \(car \(cddr date\)\) %(STYEAR2)s\)\(diary-anniversary %(STMONTH2)s %(STDAY2)s %(STYEAR3)s\)\(= \(mod \(- \(car \(nthcdr 2 date\)\) %(STYEAR4)s\) %(INTERVAL)s\) 0\)\)\) %(DETAIL)s',
     CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: '%(VIS)s%%%%\(or \(diary-date %(STMONTH)s %(STDAY)s %(STYEAR)s\)\(and \(not \(or \(diary-date %(EXCEPTIONSTRING)s\)\)\)\(>= \(car \(cddr date\)\) %(STYEAR2)s\)\(diary-anniversary %(STMONTH2)s %(STDAY2)s %(STYEAR3)s\)\(= \(mod \(- \(car \(cddr date\)\) %(STYEAR4)s\) %(INTERVAL)s\) 0\)\)\) %(DETAIL)s', }
@@ -301,22 +292,23 @@ cases_template_raw = {
 # The regular expression match templates for the case templates.
 cases_template_mtch = {
     STYEAR_VAR: '(?P<STYEAR>\d?\d?\d\d)',
-    STDAY_VAR: STDAY_RE,
+    STDAY_VAR: _STDAY_RE,
     ENDDAY_VAR: '(?P<ENDDAY>[0-3]?\d)',
     ENDMONTH_VAR: '(?P<ENDMONTH>[01]?\d)',
     VIS_VAR: '(?P<VIS>&?)',
-    STYEAR4_VAR: STYEAR_RE,
-    STYEAR3_VAR: STYEAR_RE,
-    STYEAR2_VAR: STYEAR_RE,
+    STYEAR4_VAR: _STYEAR_RE,
+    STYEAR3_VAR: _STYEAR_RE,
+    STYEAR2_VAR: _STYEAR_RE,
     INTERVAL_VAR: '(?P<INTERVAL>\d+)',
     UNTILMONTH_VAR: '(?P<UNTILMONTH>[01]?\d)',
     MONTHABBR_VAR: '(?P<MONTHABBR>[Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)',
     WHICHWEEK_VAR: '(?P<WHICHWEEK>-?[0-3])',
     BYDAY_VAR: '(?P<BYDAY>[0-6 ]{1,13})',
-    DAYOFWEEKABBR_VAR: '(?P<DAYOFWEEKABBR>[Ss]un|[Mm]on|[Tt]ue|[Ww]ed|[Tt]hu|[Ff]ri|[Ss]at)',
+    DAYOFWEEKABBR_VAR:
+        '(?P<DAYOFWEEKABBR>[Ss]un|[Mm]on|[Tt]ue|[Ww]ed|[Tt]hu|[Ff]ri|[Ss]at)',
     STMONTHABBR_VAR: '(?P<STMONTHABBR>[Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ept|[Oo]ct|[Nn]ov|[Dd]ec)',
     STMONTH2_VAR: '(?P=STMONTH)',
-    STDAYNOTFOLLOWEDBYCOMMA_VAR: STDAYNOTFOLLOWEDBYCOMMA_RE,
+    STDAYNOTFOLLOWEDBYCOMMA_VAR: _STDAYNOTFOLLOWEDBYCOMMA_RE,
     DAYOFWEEK_VAR: '(?P<DAYOFWEEK>[Ss]unday|[Mm]onday|[Tt]uesday|[Ww]ednesday|[Tt]hursday|[Ff]riday|[Ss]aturday)',
     SOMEZING_VAR: '(?P<SOMEZING>.{4})',
     STMONTH_VAR: '(?P<STMONTH>[01]?\d)',
@@ -335,29 +327,92 @@ cases_template_mtch = {
                                                cases_template_mtch)
 
 
-
-# detail_template describes the total number of ways that a given
-# <DETAIL> field, from that of cases_template, can be formatted in the
-# diary file.  Fields are delimited by '<' and '>'; Uppercase fields
-# refer to variable names, containing regexps which are found in
-# detail_template_mtch.  Lowercase fields are place holders for
-# literal strings as described in the detail_template_mtch template,
-# and do not act as variables.  Each formatting case is delimited in
-# an XML like manner.  .\n must be double escaped e.g. \\n
+# Mapping from the Emacs Diary formatting to Google Calendar
+e_to_g_case_table = {
+    CASE_MONTHDAYYEAR_VAR: CASE_MDY_VAR,
+    CASE_MONTH_A_B_B_RDAYYEAR_VAR: CASE_MDY_VAR,
+    CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: CASE_MDY_VAR,
+    CASE_REC_DAILY_ASTERISK_VAR: CASE_REC_DAILY_VAR,
+    CASE_REC_DAILY_ASTERIX_VAR: CASE_REC_DAILY_VAR,
+    CASE_REC_DAILY_ASTERIX_EXCEPTION_VAR: CASE_REC_DAILY_EXCEPTION_VAR,
+    CASE_REC_DAILY_VAR: CASE_REC_DAILY_VAR,
+    CASE_REC_DAILY_EXCEPTION_VAR: CASE_REC_DAILY_VAR,
+    CASE_REC_DAILY_BLOCK_VAR: CASE_REC_DAILY_BLOCK_VAR,
+    CASE_REC_DAILY_BLOCK_EXCEPTION_VAR: CASE_REC_DAILY_BLOCK_VAR,
+    CASE_REC_DAILY_INTERVAL_VAR: CASE_REC_DAILY_INTERVAL_VAR,
+    CASE_REC_DAILY_INTERVAL_EXCEPTION_VAR: CASE_REC_DAILY_INTERVAL_VAR,
+    CASE_REC_DAILY_INTERVAL_BLOCK_VAR: CASE_REC_DAILY_INTERVAL_BLOCK_VAR,
+    CASE_REC_DAILY_INTERVAL_BLOCK_EXCEPTION_VAR:
+        CASE_REC_DAILY_INTERVAL_BLOCK_VAR,
+    CASE_REC_WEEKLY_WEEKNAME_VAR: CASE_REC_WEEKLY_VAR,
+    CASE_REC_WEEKLY_ABBR_VAR: CASE_REC_WEEKLY_VAR,
+    CASE_REC_WEEKLY_VAR: CASE_REC_WEEKLY_VAR,
+    CASE_REC_WEEKLY_EXCEPTION_VAR: CASE_REC_WEEKLY_VAR,
+    CASE_REC_WEEKLY_BLOCK_VAR: CASE_REC_WEEKLY_BLOCK_VAR,
+    CASE_REC_WEEKLY_BLOCK_EXCEPTION_VAR: CASE_REC_WEEKLY_BLOCK_VAR,
+    CASE_REC_WEEKLY_INTERVAL_VAR: CASE_REC_WEEKLY_INTERVAL_VAR,
+    CASE_REC_WEEKLY_INTERVAL_EXCEPTION_VAR: CASE_REC_WEEKLY_INTERVAL_VAR,
+    CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR: CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR,
+    CASE_REC_WEEKLY_INTERVAL_BLOCK_EXCEPTION_VAR:
+        CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR,
+    CASE_REC_MONTHLY_VAR: CASE_REC_MONTHLY_VAR,
+    CASE_REC_MONTHLY_ASTERISK_VAR: CASE_REC_MONTHLY_VAR,
+    CASE_REC_MONTHLY_EXCEPTION_VAR: CASE_REC_MONTHLY_VAR,
+    CASE_REC_MONTHLY_BLOCK_VAR: CASE_REC_MONTHLY_BLOCK_VAR,
+    CASE_REC_MONTHLY_BLOCK_EXCEPTION_VAR: CASE_REC_MONTHLY_BLOCK_VAR,
+    CASE_REC_MONTHLY_INTERVAL_VAR: CASE_REC_MONTHLY_INTERVAL_VAR,
+    CASE_REC_MONTHLY_INTERVAL_EXCEPTION_VAR: CASE_REC_MONTHLY_INTERVAL_VAR,
+    CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR:
+        CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR,
+    CASE_REC_MONTHLY_INTERVAL_BLOCK_EXCEPTION_VAR:
+        CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_EXCEPTION_VAR:
+        CASE_REC_MONTHLYBYDAYOFWEEK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR:
+        CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_EXCEPTION_VAR:
+        CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR:
+        CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_EXCEPTION_VAR:
+        CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR:
+        CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR,
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_EXCEPTION_VAR:
+        CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR,
+    CASE_REC_YEARLY_VAR: CASE_REC_YEARLY_VAR,
+    CASE_REC_YEARLY_EXCEPTION_VAR: CASE_REC_YEARLY_VAR,
+    CASE_REC_YEARLY_A_B_B_R_B_VAR: CASE_REC_YEARLY_VAR,
+    CASE_REC_YEARLY_MODERN_VAR: CASE_REC_YEARLY_VAR,
+    CASE_REC_YEARLY_INTERVAL_VAR: CASE_REC_YEARLY_INTERVAL_VAR,
+    CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: CASE_REC_YEARLY_INTERVAL_VAR, }
 
+
+# detail_template describes the total number of ways that a given
+# DETAIL field, from that of cases template, can be formatted in the
+# diary file.
 # Templates for detail template
 detail_template_raw = {
-    DETAILS_C_TITLE_NEWLINE_SPACE_TIMERANGE_CONTENT_VAR: '%(TITLE)s\\n\s%(TIMERANGE)s %(CONTENT)s',
-    DETAILS_F_TITLE_TIMERANGE_NEWLINE_CONTENT_VAR: '%(TITLE)s %(TIMERANGE)s%(newlinehere)s%(CONTENT)s',
-    DETAILS_H_TITLE_TIMERANGE_I_I_CONTENT_VAR: '%(TITLE)s %(TIMERANGEIII)s %(CONTENT)s',
-    DETAILS_I_TITLE_TIMERANGE_I_V_CONTENT_VAR: '%(TITLE)s %(TIMERANGEIV)s %(CONTENT)s',
-    DETAILS_J_TIMERANGE_I_I_TITLE_NEWLINE_CONTENT_VAR: '%(TIMERANGEII)s %(TITLE)s\\n\s%(CONTENT)s',
+    DETAILS_C_TITLE_NEWLINE_SPACE_TIMERANGE_CONTENT_VAR:
+        '%(TITLE)s\\n\s%(TIMERANGE)s %(CONTENT)s',
+    DETAILS_F_TITLE_TIMERANGE_NEWLINE_CONTENT_VAR:
+        '%(TITLE)s %(TIMERANGE)s%(newlinehere)s%(CONTENT)s',
+    DETAILS_H_TITLE_TIMERANGE_I_I_CONTENT_VAR:
+        '%(TITLE)s %(TIMERANGEIII)s %(CONTENT)s',
+    DETAILS_I_TITLE_TIMERANGE_I_V_CONTENT_VAR:
+        '%(TITLE)s %(TIMERANGEIV)s %(CONTENT)s',
+    DETAILS_J_TIMERANGE_I_I_TITLE_NEWLINE_CONTENT_VAR:
+        '%(TIMERANGEII)s %(TITLE)s\\n\s%(CONTENT)s',
     DETAILS_K_TIMERANGE_I_I_TITLE_VAR: '%(TIMERANGEII)s %(TITLE)s',
-    DETAILS_M_TIMERANGE_TITLE_NEWLINE_CONTENT_VAR: '%(TIMERANGE)s %(TITLE)s%(newlinehere)s%(CONTENT)s',
-    DETAILS_P_TITLE_TIMERANGE_CONTENT_VAR: '%(TITLE)s %(TIMERANGE)s %(CONTENT)s',
+    DETAILS_M_TIMERANGE_TITLE_NEWLINE_CONTENT_VAR:
+        '%(TIMERANGE)s %(TITLE)s%(newlinehere)s%(CONTENT)s',
+    DETAILS_P_TITLE_TIMERANGE_CONTENT_VAR:
+        '%(TITLE)s %(TIMERANGE)s %(CONTENT)s',
     DETAILS_S_TIMERANGE_TITLE_VAR: '%(TIMERANGE)s %(TITLE)s',
     DETAILS_Q_TITLE_TIMERANGE_VAR: '%(TITLE)s %(TIMERANGE)s',
-    DETAILS_U_TITLE_NEWLINE_CONTENT_VAR: '%(TITLE)s%(newlinehere)s%(CONTENT)s',
+    DETAILS_U_TITLE_NEWLINE_CONTENT_VAR:
+        '%(TITLE)s%(newlinehere)s%(CONTENT)s',
     DETAILS_X_TITLE_VAR: '%(TITLE)s', }
 
 # The regular expression match templates for detail templates.
@@ -377,69 +432,19 @@ detail_template_mtch = {
 (detail_template,
  detail_template_strings) = _evaluate_templates(detail_template_raw,
                                                 detail_template_mtch)
-
-# Mapping from the Emacs Diary formatting to Google Calendar
-e_to_g_case_table = {
-    CASE_MONTHDAYYEAR_VAR: CASE_MDY_VAR,
-    CASE_MONTH_A_B_B_RDAYYEAR_VAR: CASE_MDY_VAR,
-    CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: CASE_MDY_VAR,
-    CASE_REC_DAILY_ASTERISK_VAR: CASE_REC_DAILY_VAR,
-    CASE_REC_DAILY_ASTERIX_VAR: CASE_REC_DAILY_VAR,
-    CASE_REC_DAILY_ASTERIX_EXCEPTION_VAR: CASE_REC_DAILY_EXCEPTION_VAR,
-    CASE_REC_DAILY_VAR: CASE_REC_DAILY_VAR,
-    CASE_REC_DAILY_EXCEPTION_VAR: CASE_REC_DAILY_VAR,
-    CASE_REC_DAILY_BLOCK_VAR: CASE_REC_DAILY_BLOCK_VAR,
-    CASE_REC_DAILY_BLOCK_EXCEPTION_VAR: CASE_REC_DAILY_BLOCK_VAR,
-    CASE_REC_DAILY_INTERVAL_VAR: CASE_REC_DAILY_INTERVAL_VAR,
-    CASE_REC_DAILY_INTERVAL_EXCEPTION_VAR: CASE_REC_DAILY_INTERVAL_VAR,
-    CASE_REC_DAILY_INTERVAL_BLOCK_VAR: CASE_REC_DAILY_INTERVAL_BLOCK_VAR,
-    CASE_REC_DAILY_INTERVAL_BLOCK_EXCEPTION_VAR: CASE_REC_DAILY_INTERVAL_BLOCK_VAR,
-    CASE_REC_WEEKLY_WEEKNAME_VAR: CASE_REC_WEEKLY_VAR,
-    CASE_REC_WEEKLY_ABBR_VAR: CASE_REC_WEEKLY_VAR,
-    CASE_REC_WEEKLY_VAR: CASE_REC_WEEKLY_VAR,
-    CASE_REC_WEEKLY_EXCEPTION_VAR: CASE_REC_WEEKLY_VAR,
-    CASE_REC_WEEKLY_BLOCK_VAR: CASE_REC_WEEKLY_BLOCK_VAR,
-    CASE_REC_WEEKLY_BLOCK_EXCEPTION_VAR: CASE_REC_WEEKLY_BLOCK_VAR,
-    CASE_REC_WEEKLY_INTERVAL_VAR: CASE_REC_WEEKLY_INTERVAL_VAR,
-    CASE_REC_WEEKLY_INTERVAL_EXCEPTION_VAR: CASE_REC_WEEKLY_INTERVAL_VAR,
-    CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR: CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR,
-    CASE_REC_WEEKLY_INTERVAL_BLOCK_EXCEPTION_VAR: CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR,
-    CASE_REC_MONTHLY_VAR: CASE_REC_MONTHLY_VAR,
-    CASE_REC_MONTHLY_ASTERISK_VAR: CASE_REC_MONTHLY_VAR,
-    CASE_REC_MONTHLY_EXCEPTION_VAR: CASE_REC_MONTHLY_VAR,
-    CASE_REC_MONTHLY_BLOCK_VAR: CASE_REC_MONTHLY_BLOCK_VAR,
-    CASE_REC_MONTHLY_BLOCK_EXCEPTION_VAR: CASE_REC_MONTHLY_BLOCK_VAR,
-    CASE_REC_MONTHLY_INTERVAL_VAR: CASE_REC_MONTHLY_INTERVAL_VAR,
-    CASE_REC_MONTHLY_INTERVAL_EXCEPTION_VAR: CASE_REC_MONTHLY_INTERVAL_VAR,
-    CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR: CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR,
-    CASE_REC_MONTHLY_INTERVAL_BLOCK_EXCEPTION_VAR: CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR,
-    CASE_REC_MONTHLYBYDAYOFWEEK_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_VAR,
-    CASE_REC_MONTHLYBYDAYOFWEEK_EXCEPTION_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_VAR,
-    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR,
-    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_EXCEPTION_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR,
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR,
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_EXCEPTION_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR,
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR,
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_EXCEPTION_VAR: CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR,
-    CASE_REC_YEARLY_VAR: CASE_REC_YEARLY_VAR,
-    CASE_REC_YEARLY_EXCEPTION_VAR: CASE_REC_YEARLY_VAR,
-    CASE_REC_YEARLY_A_B_B_R_B_VAR: CASE_REC_YEARLY_VAR,
-    CASE_REC_YEARLY_MODERN_VAR: CASE_REC_YEARLY_VAR,
-    CASE_REC_YEARLY_INTERVAL_VAR: CASE_REC_YEARLY_INTERVAL_VAR,
-    CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: CASE_REC_YEARLY_INTERVAL_VAR, }
 
 
-
 # Recurrence event descriptions templates
 # Templates for recurrence event descriptions template
 recurrence_event_descriptions_template_raw = {
-    CASE_MONTHDAYYEAR_VAR: SINGLE_DAY_EVENT_TEMPLATE_STRING,
-    CASE_MONTH_A_B_B_RDAYYEAR_VAR: SINGLE_DAY_EVENT_TEMPLATE_STRING,
-    CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: SINGLE_DAY_EVENT_TEMPLATE_STRING,
-    CASE_REC_DAILY_ASTERISK_VAR: RECURS_DAILY_TEMPLATE_STRING,
-    CASE_REC_DAILY_ASTERIX_VAR: RECURS_DAILY_TEMPLATE_STRING,
-    CASE_REC_DAILY_ASTERIX_EXCEPTION_VAR: RECURS_DAILY_TEMPLATE_STRING,
-    CASE_REC_DAILY_VAR: 'Recurs Daily, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
+    CASE_MONTHDAYYEAR_VAR: _SINGLE_DAY_EVENT_TEMPLATE_STRING,
+    CASE_MONTH_A_B_B_RDAYYEAR_VAR: _SINGLE_DAY_EVENT_TEMPLATE_STRING,
+    CASE_MONTH_A_B_B_RDAYYEARWSPACE_VAR: _SINGLE_DAY_EVENT_TEMPLATE_STRING,
+    CASE_REC_DAILY_ASTERISK_VAR: _RECURS_DAILY_TEMPLATE_STRING,
+    CASE_REC_DAILY_ASTERIX_VAR: _RECURS_DAILY_TEMPLATE_STRING,
+    CASE_REC_DAILY_ASTERIX_EXCEPTION_VAR: _RECURS_DAILY_TEMPLATE_STRING,
+    CASE_REC_DAILY_VAR:
+        'Recurs Daily, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_DAILY_EXCEPTION_VAR: 'Recurs Daily, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_DAILY_BLOCK_VAR: 'Recurs Daily, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
     CASE_REC_DAILY_BLOCK_EXCEPTION_VAR: 'Recurs Daily, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
@@ -447,8 +452,8 @@ recurrence_event_descriptions_template_raw = {
     CASE_REC_DAILY_INTERVAL_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Days, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_DAILY_INTERVAL_BLOCK_VAR: 'Recurs Every %(INTERVAL)s Days, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
     CASE_REC_DAILY_INTERVAL_BLOCK_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Days, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_WEEKLY_WEEKNAME_VAR: RECURS_EVERY_WEEK_TEMPLATE_STRING,
-    CASE_REC_WEEKLY_ABBR_VAR: RECURS_EVERY_WEEK_TEMPLATE_STRING,
+    CASE_REC_WEEKLY_WEEKNAME_VAR: _RECURS_EVERY_WEEK_TEMPLATE_STRING,
+    CASE_REC_WEEKLY_ABBR_VAR: _RECURS_EVERY_WEEK_TEMPLATE_STRING,
     CASE_REC_WEEKLY_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_WEEKLY_EXCEPTION_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_WEEKLY_BLOCK_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
@@ -457,7 +462,8 @@ recurrence_event_descriptions_template_raw = {
     CASE_REC_WEEKLY_INTERVAL_EXCEPTION_VAR: 'Recurs%(ONWHATDAYS)sEvery %(INTERVAL)s Weeks, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR: 'Recurs%(ONWHATDAYS)sEvery %(INTERVAL)s Weeks, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
     CASE_REC_WEEKLY_INTERVAL_BLOCK_EXCEPTION_VAR: 'Recurs%(ONWHATDAYS)sEvery %(INTERVAL)s Weeks, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_MONTHLY_VAR: 'Recurs Monthly, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
+    CASE_REC_MONTHLY_VAR:
+        'Recurs Monthly, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_MONTHLY_ASTERISK_VAR: 'Recurs Monthly',
     CASE_REC_MONTHLY_EXCEPTION_VAR: 'Recurs Monthly, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_MONTHLY_BLOCK_VAR: 'Recurs Monthly, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
@@ -474,10 +480,11 @@ recurrence_event_descriptions_template_raw = {
     CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_EXCEPTION_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every %(INTERVALORDINAL)s Month, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every %(INTERVALORDINAL)s Month, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
     CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_EXCEPTION_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every %(INTERVALORDINAL)s Month, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_YEARLY_VAR: 'Recurs Yearly, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
+    CASE_REC_YEARLY_VAR:
+        'Recurs Yearly, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_YEARLY_EXCEPTION_VAR: 'Recurs Yearly, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_YEARLY_A_B_B_R_B_VAR: RECURS_YEARLY_TEMPLATE_STRING,
-    CASE_REC_YEARLY_MODERN_VAR: RECURS_YEARLY_TEMPLATE_STRING,
+    CASE_REC_YEARLY_A_B_B_R_B_VAR: _RECURS_YEARLY_TEMPLATE_STRING,
+    CASE_REC_YEARLY_MODERN_VAR: _RECURS_YEARLY_TEMPLATE_STRING,
     CASE_REC_YEARLY_INTERVAL_VAR: 'Recurs Every %(INTERVAL)s Years, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
     CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Years, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s', }
 
@@ -504,7 +511,6 @@ recurrence_event_descriptions_template_mtch = {
                      recurrence_event_descriptions_template_mtch)
 
 
-
 # gcases_template describes the total number of ways that a recursion
 # entry can be formatted in a google calendar feed.
 # Templates for gcases template
@@ -533,27 +539,30 @@ gcases_template_raw = {
 # template.
 gcases_template_mtch = {
     NEWLINE_VAR: '\\n\n',
-    STDAY_VAR: STDAY_RE,
+    STDAY_VAR: _STDAY_RE,
     TZID2_VAR: '(?P=TZID)',
-    ENDDATETIME_VAR: '(?P<ENDDATETIME>[12]0[012]\d(T[012][\d][0-5]\d[0-5]\d)?)',
+    ENDDATETIME_VAR:
+        '(?P<ENDDATETIME>[12]0[012]\d(T[012][\d][0-5]\d[0-5]\d)?)',
     UNTILGTIME_VAR: '(?P<UNTILGTIME>T[0-2]\d{3}00Z?)?)',
     TZID_VAR: '(?P<TZID>.+?)',
-    UNTILDATETIME_VAR: '(?P<UNTILDATETIME>[12]0[012]\d(T[012][\d][0-5]\d[0-5]\dZ)?)',
-    STDATETIME_VAR: '(?P<STDATETIME>[12]0[012]\d(T[012][\d][0-5]\d[0-5]\d)?)',
+    UNTILDATETIME_VAR:
+        '(?P<UNTILDATETIME>[12]0[012]\d(T[012][\d][0-5]\d[0-5]\dZ)?)',
+    STDATETIME_VAR:
+        '(?P<STDATETIME>[12]0[012]\d(T[012][\d][0-5]\d[0-5]\d)?)',
     INTERVAL_VAR: '(?P<INTERVAL>\d?\d)',
     BYDAYG_VAR: '(?P<BYDAYG>[1234,MOTUWEHFR]+)', }
 
 
-
 # times_template describes the total number of ways that a given
-# <TIMERANGE> field, from that of details_template, can be formatted in
+# TIMERANGE field, from that of details_template, can be formatted in
 # the diary file.
 # Templates for times template
 times_template_raw = {
     CASE_TIME_A_RANGE_VAR: '%(STHOUR)s:%(STMINUTE)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s:%(ENDMINUTE)s%(ENDAMPM)s',
     CASE_TIME_B_RANGEWITH_STARTTIME_MINUTES_ONLY_VAR: '%(STHOUR)s:%(STMINUTE)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s%(ENDAMPM)s',
     CASE_TIME_C_RANGEWITH_ENDTIME_MINUTES_ONLY_VAR: '%(STHOUR)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s:%(ENDMINUTE)s%(ENDAMPM)s',
-    CASE_TIME_D_RANGEWITHOUT_MINUTES_VAR: '%(STHOUR)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s%(ENDAMPM)s',
+    CASE_TIME_D_RANGEWITHOUT_MINUTES_VAR:
+        '%(STHOUR)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s%(ENDAMPM)s',
     CASE_TIME_E_STARTTIME_ONLY_VAR: '%(STHOUR)s:%(STMINUTE)s%(STAMPM)s',
     CASE_TIME_F_STARTTIME_ONLYWITHOUT_MINUTES_VAR: '%(STHOUR)s%(STAMPM)s', }
 
@@ -564,12 +573,14 @@ times_template_mtch = {
     HYPHEN_VAR: '(?P<HYPHEN>\s{0,8}-\s{0,8})',
     STAMPM_VAR: '(?P<STAMPM>am|pm|AM|PM)',
     STHOUR_VAR: '(?P<STHOUR>[012]?\d)',
-    STAMPMHYPHEN_VAR: '(?P<STAMPMHYPHEN>am|pm|AM|PM)[\s\\t]{0,8}-[\s	]{0,8}',
-    STAMPMNOHYPHEN_VAR: '(?P<STAMPMNOHYPHEN>am|pm|AM|PM)(?![\s\\t]{0,8}-[\s\\t]{0,8})',
+    STAMPMHYPHEN_VAR:
+        '(?P<STAMPMHYPHEN>am|pm|AM|PM)[\s\\t]{0,8}-[\s	]{0,8}',
+    STAMPMNOHYPHEN_VAR:
+        '(?P<STAMPMNOHYPHEN>am|pm|AM|PM)(?![\s\\t]{0,8}-[\s\\t]{0,8})',
     STMINUTE_VAR: '(?P<STMINUTE>[0-5]\d)',
     TAB_VAR: '(?P<TAB>?:\s+?)?',
     ENDMINUTE_VAR: '(?P<ENDMINUTE>[0-5]\d)',
-    STDAYNOTFOLLOWEDBYCOMMA_VAR: STDAYNOTFOLLOWEDBYCOMMA_RE, }
+    STDAYNOTFOLLOWEDBYCOMMA_VAR: _STDAYNOTFOLLOWEDBYCOMMA_RE, }
 
 (times_template,
  times_template_strings) = _evaluate_templates(times_template_raw,

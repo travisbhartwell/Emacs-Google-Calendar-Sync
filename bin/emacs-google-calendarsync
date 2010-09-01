@@ -75,7 +75,6 @@ CMDLINE_OPTS_EXIT_STATUS = 1
 INVALID_CONFIG_FILE_EXIT_STATUS = 2
 
 
-
 def usage(status, msg=''):
     """Show the usage defined in the script docstring, an optional
     error message, and then exit with the specified status code.
@@ -91,7 +90,6 @@ def usage(status, msg=''):
     sys.exit(status)
 
 
-
 def parse_cmdline(argv):
     """Parse the command line specified by the list argv, returning
     the options set.
@@ -126,7 +124,6 @@ def parse_cmdline(argv):
     return options
 
 
-
 def get_configuration_item(config_parser, section, var, required=True):
     """Gets the configuration item specified by section and var from
     config_parser.  Will exit the program with an error if required is
@@ -146,7 +143,6 @@ def get_configuration_item(config_parser, section, var, required=True):
     return value
 
 
-
 def get_configuration(config_file_name):
     """Parses the configuration file specified by config_file_name.
     Returns a dictionary with the resulting configuration.
@@ -182,7 +178,6 @@ def get_configuration(config_file_name):
     return configuration
 
 
-
 def main(argv=None):
     """Get the configuration from the command line arguments and the
     configuration file and then call the synchronization method.
@@ -204,6 +199,5 @@ def main(argv=None):
 
     sync.run_synchronization(configuration)
 
-
 if __name__ == '__main__':
     main()

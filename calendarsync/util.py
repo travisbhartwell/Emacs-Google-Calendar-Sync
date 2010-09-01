@@ -28,7 +28,6 @@ _logging_initialized = False
 _verbose_logging = None
 
 
-
 def init_logging(configuration):
     """Extracts necessary configuration from the global configuration
     and initializes the logging state based on this.
@@ -42,7 +41,6 @@ def init_logging(configuration):
     _logging_initialized = True
 
 
-
 def log(message):
     """Log the given message.
 
