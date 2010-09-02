@@ -216,6 +216,7 @@ CASE_MDY_VAR = 'caseMDY'
 # Common regular expressions used in many places
 _MATCH_TEMPLATE_ALREADY_SEEN = '?P=%s'
 _MATCH_TEMPLATE_NORMAL = '?P<%s>'
+_MONTHABBR_RE = '([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)'
 _STDAYNOTFOLLOWEDBYCOMMA_RE = '([0-3]?\d)(?!,)'
 _STDAY_RE = '([0-3]?\d)'
 _STYEAR_RE = '()'
@@ -254,17 +255,18 @@ def _gen_match_templates(match_templates):
     for template_name, template in match_templates.items():
         if template_name.islower():
             new_template = template
-        elif (template_name[:-1] in match_templates.keys() and
-              template_name[-1].isdigit()):
-            loc = template.find("(")
-            new_template = (template[:loc + 1] +
-                            (_MATCH_TEMPLATE_ALREADY_SEEN %
-                             template_name[:-1]) +
-                            template[loc + 1:])
         else:
+            if (template_name[:-1] in match_templates.keys() and
+                template_name[-1].isdigit()):
+                template_internal = \
+                    _MATCH_TEMPLATE_ALREADY_SEEN % template_name[:-1]
+            else:
+                template_internal = _MATCH_TEMPLATE_NORMAL % template_name
+
+            # The match variable name goes right inside the first parenthesis
             loc = template.find("(")
             new_template = (template[:loc + 1] +
-                            (_MATCH_TEMPLATE_NORMAL % template_name) +
+                            template_internal +
                             template[loc + 1:])
 
         new_match_templates[template_name] = new_template
@@ -347,11 +349,11 @@ cases_template_mtch = _gen_match_templates({
         STYEAR2_VAR: _STYEAR_RE,
         INTERVAL_VAR: '(\d+)',
         UNTILMONTH_VAR: '([01]?\d)',
-        MONTHABBR_VAR: '([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)',
+        MONTHABBR_VAR: _MONTHABBR_RE,
         WHICHWEEK_VAR: '(-?[0-3])',
         BYDAY_VAR: '([0-6 ]{1,13})',
         DAYOFWEEKABBR_VAR: '([Ss]un|[Mm]on|[Tt]ue|[Ww]ed|[Tt]hu|[Ff]ri|[Ss]at)',
-        STMONTHABBR_VAR: '([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Mm]ay|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ept|[Oo]ct|[Nn]ov|[Dd]ec)',
+        STMONTHABBR_VAR: _MONTHABBR_RE,
         STMONTH2_VAR: '()',
         STDAYNOTFOLLOWEDBYCOMMA_VAR: _STDAYNOTFOLLOWEDBYCOMMA_RE,
         DAYOFWEEK_VAR: '([Ss]unday|[Mm]onday|[Tt]uesday|[Ww]ednesday|[Tt]hursday|[Ff]riday|[Ss]aturday)',
