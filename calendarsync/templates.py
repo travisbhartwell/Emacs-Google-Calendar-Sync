@@ -636,7 +636,7 @@ times_template_mtch = _gen_match_templates({
         HYPHEN_VAR: '(\s{0,8}-\s{0,8})',
         STAMPM_VAR: _AM_PM_RE,
         STHOUR_VAR: _HOUR_RE,
-        STAMPMHYPHEN_VAR: '(am|pm|AM|PM)[\s\\t]{0,8}-[\s	]{0,8}',
+        STAMPMHYPHEN_VAR: '(am|pm|AM|PM)[\s\\t]{0,8}-[\s\t]{0,8}',
         STAMPMNOHYPHEN_VAR: '(am|pm|AM|PM)(?![\s\\t]{0,8}-[\s\\t]{0,8})',
         STMINUTE_VAR: _MINUTE_RE,
         TAB_VAR: '(?:\s+?)?',
