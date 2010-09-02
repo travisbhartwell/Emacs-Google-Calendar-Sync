@@ -27,6 +27,8 @@ Google Calendar.  Also includes related functions for evaluation.
 # TODO: Figure out best way to generate template strings, reusing
 #       constants already defined.
 # TODO: Remove all regex and template fragment repetitions.
+# TODO: Standardize regexs (\d{4}) vs (\d\d\d\d), fixing the
+#       originals so tests will pass.
 # TODO: Should the constants be in the templates module namespace or
 #       some sub-namespace?  Make sure only those items that are
 #       needed outside of the module are exported.
@@ -235,8 +237,8 @@ _TWO_DIGIT_RE = '(/d/d)'
 _YEAR_RE = '(20[0-3]\d)'
 
 # Common portions in the cases templates
-DETAIL_TEMPLATE_PART = ' %(DETAIL)s'
-VIS_TEMPLATE_PART = '%(VIS)s'
+_DETAIL_TEMPLATE_PART = ' %(DETAIL)s'
+_VIS_TEMPLATE_PART = '%(VIS)s'
 
 
 def _evaluate_templates(template_dict, match_template_dict):
@@ -287,19 +289,23 @@ def _gen_match_templates(match_templates):
     return new_match_templates
 
 
-# cases_template describes the total number of ways that a given emacs
-# diary entry date can be formatted.  Recurring cases contain the
-# letters Rec.
 def _gen_raw_cases_templates(templates):
+    """Generates the raw cases templates from the template parts
+    common to all.
+    """
     new_templates = {}
 
     for template_name, template in templates.items():
-        new_templates[template_name] = (VIS_TEMPLATE_PART +
+        new_templates[template_name] = (_VIS_TEMPLATE_PART +
                                         template +
-                                        DETAIL_TEMPLATE_PART)
+                                        _DETAIL_TEMPLATE_PART)
 
     return new_templates
 
+
+# cases_template describes the total number of ways that a given emacs
+# diary entry date can be formatted.  Recurring cases contain the
+# letters Rec.
 # Templates for cases template
 cases_template_raw = _gen_raw_cases_templates({
         CASE_REC_DAILY_ASTERIX_VAR: '\* \*, \*',
