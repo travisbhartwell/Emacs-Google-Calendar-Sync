@@ -1123,35 +1123,141 @@ e_to_g_case_table = {
 # Templates for detail template
 detail_template_raw = {
     DETAILS_C_TITLE_NEWLINE_SPACE_TIMERANGE_CONTENT_VAR:
-        '%(TITLE)s\\n\s%(TIMERANGE)s %(CONTENT)s',
+        (
+        '%(TITLE)s'
+        '\\n\s'
+        '%(TIMERANGE)s'
+        ' '
+        '%(CONTENT)s'
+        ),
     DETAILS_F_TITLE_TIMERANGE_NEWLINE_CONTENT_VAR:
-        '%(TITLE)s %(TIMERANGE)s%(newlinehere)s%(CONTENT)s',
+        (
+        '%(TITLE)s'
+        ' '
+        '%(TIMERANGE)s'
+        '%(newlinehere)s'
+        '%(CONTENT)s'
+        ),
     DETAILS_H_TITLE_TIMERANGE_I_I_CONTENT_VAR:
-        '%(TITLE)s %(TIMERANGEIII)s %(CONTENT)s',
+        (
+        '%(TITLE)s'
+        ' '
+        '%(TIMERANGEIII)s'
+        ' '
+        '%(CONTENT)s'
+        ),
     DETAILS_I_TITLE_TIMERANGE_I_V_CONTENT_VAR:
-        '%(TITLE)s %(TIMERANGEIV)s %(CONTENT)s',
+        (
+        '%(TITLE)s'
+        ' '
+        '%(TIMERANGEIV)s'
+        ' '
+        '%(CONTENT)s'
+        ),
     DETAILS_J_TIMERANGE_I_I_TITLE_NEWLINE_CONTENT_VAR:
-        '%(TIMERANGEII)s %(TITLE)s\\n\s%(CONTENT)s',
-    DETAILS_K_TIMERANGE_I_I_TITLE_VAR: '%(TIMERANGEII)s %(TITLE)s',
+        (
+        '%(TIMERANGEII)s'
+        ' '
+        '%(TITLE)s'
+        '\\n\s'
+        '%(CONTENT)s'
+        ),
+    DETAILS_K_TIMERANGE_I_I_TITLE_VAR:
+        (
+        '%(TIMERANGEII)s'
+        ' '
+        '%(TITLE)s'
+        ),
     DETAILS_M_TIMERANGE_TITLE_NEWLINE_CONTENT_VAR:
-        '%(TIMERANGE)s %(TITLE)s%(newlinehere)s%(CONTENT)s',
+        (
+        '%(TIMERANGE)s'
+        ' '
+        '%(TITLE)s'
+        '%(newlinehere)s'
+        '%(CONTENT)s'
+        ),
     DETAILS_P_TITLE_TIMERANGE_CONTENT_VAR:
-        '%(TITLE)s %(TIMERANGE)s %(CONTENT)s',
-    DETAILS_S_TIMERANGE_TITLE_VAR: '%(TIMERANGE)s %(TITLE)s',
-    DETAILS_Q_TITLE_TIMERANGE_VAR: '%(TITLE)s %(TIMERANGE)s',
+        (
+        '%(TITLE)s'
+        ' '
+        '%(TIMERANGE)s'
+        ' '
+        '%(CONTENT)s'
+        ),
+    DETAILS_S_TIMERANGE_TITLE_VAR:
+        (
+        '%(TIMERANGE)s'
+        ' '
+        '%(TITLE)s'
+        ),
+    DETAILS_Q_TITLE_TIMERANGE_VAR:
+        (
+        '%(TITLE)s'
+        ' '
+        '%(TIMERANGE)s'
+         ),
     DETAILS_U_TITLE_NEWLINE_CONTENT_VAR:
-        '%(TITLE)s%(newlinehere)s%(CONTENT)s',
-    DETAILS_X_TITLE_VAR: '%(TITLE)s', }
+        (
+        '%(TITLE)s'
+        '%(newlinehere)s'
+        '%(CONTENT)s'
+        ),
+    DETAILS_X_TITLE_VAR:
+        '%(TITLE)s', }
 
 # The regular expression match templates for detail templates.
 detail_template_mtch = _gen_match_templates({
-        TIMERANGEIV_VAR: '(\d{1,2}(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))',
+        TIMERANGEIV_VAR:
+            (
+            '(\d{1,2}'
+            '(?:am|pm|AM|PM)'
+            '\s{1,8}-\s{1,8}'
+            '\d{1,2}(?::[0-5]\d)?'
+            '(?:am|pm|AM|PM))'
+            ),
         TITLEII_VAR: '(\w[\w ]+(?=\\n[\s\\t]))',
-        TIMERANGEJJ_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-?\s{0,8}(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))?)',
+        TIMERANGEJJ_VAR:
+            (
+            '(\d{1,2}'
+            '(?::[0-5]\d)?'
+            '(?:am|pm|AM|PM)'
+            '\s{0,8}-?\s{0,8}'
+            '(\d{1,2}(?::[0-5]\d)?'
+            '(?:am|pm|AM|PM))?)'
+             ),
         TITLE_VAR: _TITLE_RE,
-        TIMERANGEIII_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?:am|pm|AM|PM))',
-        TIMERANGE_VAR: '((\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{0,8}-\s{0,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))|(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)))',
-        TIMERANGEII_VAR: '(\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM)\s{1,8}-\s{1,8}\d{1,2}(?::[0-5]\d)?(?:am|pm|AM|PM))',
+        TIMERANGEIII_VAR:
+            (
+            '(\d{1,2}'
+            '(?::[0-5]\d)?'
+            '(?:am|pm|AM|PM)'
+            '\s{1,8}-\s{1,8}'
+            '\d{1,2}'
+            '(?:am|pm|AM|PM))'
+            ),
+        TIMERANGE_VAR:
+            (
+            '((\d{1,2}'
+            '(?::[0-5]\d)?'
+            '(?:am|pm|AM|PM)'
+            '\s{0,8}-\s{0,8}'
+            '\d{1,2}'
+            '(?::[0-5]\d)?'
+            '(?:am|pm|AM|PM))'
+            '|(\d{1,2}'
+            '(?::[0-5]\d)?'
+            '(?:am|pm|AM|PM)))'
+            ),
+        TIMERANGEII_VAR:
+            (
+            '(\d{1,2}'
+            '(?::[0-5]\d)?'
+            '(?:am|pm|AM|PM)'
+            '\s{1,8}-\s{1,8}'
+            '\d{1,2}'
+            '(?::[0-5]\d)?'
+            '(?:am|pm|AM|PM))'
+            ),
         CONTENT_VAR: '(.+)',
         TITLEIV_VAR: _TITLE_RE,
         NEWLINEHERE_VAR: '\\\n', })
@@ -1171,49 +1277,509 @@ recurrence_event_descriptions_template_raw = {
     CASE_REC_DAILY_ASTERIX_VAR: _RECURS_DAILY_TEMPLATE_STRING,
     CASE_REC_DAILY_ASTERIX_EXCEPTION_VAR: _RECURS_DAILY_TEMPLATE_STRING,
     CASE_REC_DAILY_VAR:
-        'Recurs Daily, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_DAILY_EXCEPTION_VAR: 'Recurs Daily, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_DAILY_BLOCK_VAR: 'Recurs Daily, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_DAILY_BLOCK_EXCEPTION_VAR: 'Recurs Daily, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_DAILY_INTERVAL_VAR: 'Recurs Every %(INTERVAL)s Days, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_DAILY_INTERVAL_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Days, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_DAILY_INTERVAL_BLOCK_VAR: 'Recurs Every %(INTERVAL)s Days, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_DAILY_INTERVAL_BLOCK_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Days, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
+        (
+        'Recurs Daily, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_DAILY_EXCEPTION_VAR:
+        (
+        'Recurs Daily, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_DAILY_BLOCK_VAR:
+        (
+        'Recurs Daily, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_DAILY_BLOCK_EXCEPTION_VAR:
+        (
+        'Recurs Daily, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_DAILY_INTERVAL_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Days, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_DAILY_INTERVAL_EXCEPTION_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Days, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_DAILY_INTERVAL_BLOCK_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Days, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_DAILY_INTERVAL_BLOCK_EXCEPTION_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Days, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
     CASE_REC_WEEKLY_WEEKNAME_VAR: _RECURS_EVERY_WEEK_TEMPLATE_STRING,
     CASE_REC_WEEKLY_ABBR_VAR: _RECURS_EVERY_WEEK_TEMPLATE_STRING,
-    CASE_REC_WEEKLY_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_WEEKLY_EXCEPTION_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_WEEKLY_BLOCK_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_WEEKLY_BLOCK_EXCEPTION_VAR: 'Recurs%(ONWHATDAYS)sEvery Week, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_WEEKLY_INTERVAL_VAR: 'Recurs%(ONWHATDAYS)sEvery %(INTERVAL)s Weeks, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_WEEKLY_INTERVAL_EXCEPTION_VAR: 'Recurs%(ONWHATDAYS)sEvery %(INTERVAL)s Weeks, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR: 'Recurs%(ONWHATDAYS)sEvery %(INTERVAL)s Weeks, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_WEEKLY_INTERVAL_BLOCK_EXCEPTION_VAR: 'Recurs%(ONWHATDAYS)sEvery %(INTERVAL)s Weeks, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
+    CASE_REC_WEEKLY_VAR:
+        (
+        'Recurs'
+        '%(ONWHATDAYS)s'
+        'Every Week, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_WEEKLY_EXCEPTION_VAR:
+        (
+        'Recurs'
+        '%(ONWHATDAYS)s'
+        'Every Week, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_WEEKLY_BLOCK_VAR:
+        (
+        'Recurs'
+        '%(ONWHATDAYS)s'
+        'Every Week, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s, Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_WEEKLY_BLOCK_EXCEPTION_VAR:
+        (
+        'Recurs'
+        '%(ONWHATDAYS)s'
+        'Every Week, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_WEEKLY_INTERVAL_VAR:
+        (
+        'Recurs'
+        '%(ONWHATDAYS)s'
+        'Every '
+        '%(INTERVAL)s'
+        ' Weeks, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_WEEKLY_INTERVAL_EXCEPTION_VAR:
+        (
+        'Recurs'
+        '%(ONWHATDAYS)s'
+        'Every '
+        '%(INTERVAL)s'
+        ' Weeks, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR:
+        (
+        'Recurs'
+        '%(ONWHATDAYS)s'
+        'Every '
+        '%(INTERVAL)s'
+        ' Weeks, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s, Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_WEEKLY_INTERVAL_BLOCK_EXCEPTION_VAR:
+        (
+        'Recurs'
+        '%(ONWHATDAYS)s'
+        'Every '
+        '%(INTERVAL)s'
+        ' Weeks, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/%(UNTILYEAR)s'
+        ),
     CASE_REC_MONTHLY_VAR:
-        'Recurs Monthly, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
+        (
+        'Recurs Monthly, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
     CASE_REC_MONTHLY_ASTERISK_VAR: 'Recurs Monthly',
-    CASE_REC_MONTHLY_EXCEPTION_VAR: 'Recurs Monthly, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_MONTHLY_BLOCK_VAR: 'Recurs Monthly, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_MONTHLY_BLOCK_EXCEPTION_VAR: 'Recurs Monthly, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_MONTHLY_INTERVAL_VAR: 'Recurs Every %(INTERVAL)s Months, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_MONTHLY_INTERVAL_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Months, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR: 'Recurs Every %(INTERVAL)s Months, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_MONTHLY_INTERVAL_BLOCK_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Months, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every Month, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_EXCEPTION_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every Month, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every Month, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_EXCEPTION_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every Month, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every %(INTERVALORDINAL)s Month, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_EXCEPTION_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every %(INTERVALORDINAL)s Month, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every %(INTERVALORDINAL)s Month, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_EXCEPTION_VAR: 'Recurs on the %(WHICHWEEKORDINAL)s %(DAYOFWEEKD)s of Every %(INTERVALORDINAL)s Month, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s, Until %(UNTILMONTH)s/%(UNTILDAY)s/%(UNTILYEAR)s',
+    CASE_REC_MONTHLY_EXCEPTION_VAR:
+        (
+        'Recurs Monthly, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_MONTHLY_BLOCK_VAR:
+        (
+        'Recurs Monthly, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s, Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_MONTHLY_BLOCK_EXCEPTION_VAR:
+        (
+        'Recurs Monthly, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s, Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_MONTHLY_INTERVAL_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Months, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_MONTHLY_INTERVAL_EXCEPTION_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Months, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Months, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_MONTHLY_INTERVAL_BLOCK_EXCEPTION_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Months, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_VAR:
+        (
+        'Recurs on the '
+        '%(WHICHWEEKORDINAL)s'
+        ' '
+        '%(DAYOFWEEKD)s'
+        ' of Every Month, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_EXCEPTION_VAR:
+        (
+        'Recurs on the '
+        '%(WHICHWEEKORDINAL)s'
+        ' '
+        '%(DAYOFWEEKD)s'
+        ' of Every Month, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR:
+        (
+        'Recurs on the '
+        '%(WHICHWEEKORDINAL)s'
+        ' '
+        '%(DAYOFWEEKD)s'
+        ' of Every Month, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_EXCEPTION_VAR:
+        (
+        'Recurs on the '
+        '%(WHICHWEEKORDINAL)s'
+        ' '
+        '%(DAYOFWEEKD)s'
+        ' of Every Month, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR:
+        (
+        'Recurs on the '
+        '%(WHICHWEEKORDINAL)s'
+        ' '
+        '%(DAYOFWEEKD)s'
+        ' of Every '
+        '%(INTERVALORDINAL)s'
+        ' Month, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_EXCEPTION_VAR:
+        (
+        'Recurs on the '
+        '%(WHICHWEEKORDINAL)s'
+        ' '
+        '%(DAYOFWEEKD)s'
+        ' of Every '
+        '%(INTERVALORDINAL)s'
+        ' Month, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR:
+        (
+        'Recurs on the '
+        '%(WHICHWEEKORDINAL)s'
+        ' '
+        '%(DAYOFWEEKD)s'
+        ' of Every '
+        '%(INTERVALORDINAL)s'
+        ' Month, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_EXCEPTION_VAR:
+        (
+        'Recurs on the '
+        '%(WHICHWEEKORDINAL)s'
+        ' '
+        '%(DAYOFWEEKD)s'
+        ' of Every '
+        '%(INTERVALORDINAL)s'
+        ' Month, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ', Until '
+        '%(UNTILMONTH)s'
+        '/'
+        '%(UNTILDAY)s'
+        '/'
+        '%(UNTILYEAR)s'
+        ),
     CASE_REC_YEARLY_VAR:
-        'Recurs Yearly, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_YEARLY_EXCEPTION_VAR: 'Recurs Yearly, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
+        (
+        'Recurs Yearly, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_YEARLY_EXCEPTION_VAR:
+        (
+        'Recurs Yearly, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
     CASE_REC_YEARLY_A_B_B_R_B_VAR: _RECURS_YEARLY_TEMPLATE_STRING,
     CASE_REC_YEARLY_MODERN_VAR: _RECURS_YEARLY_TEMPLATE_STRING,
-    CASE_REC_YEARLY_INTERVAL_VAR: 'Recurs Every %(INTERVAL)s Years, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s',
-    CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR: 'Recurs Every %(INTERVAL)s Years, With Exceptions, Beginning %(STMONTH)s/%(STDAY)s/%(STYEAR)s', }
+    CASE_REC_YEARLY_INTERVAL_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Years, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ),
+    CASE_REC_YEARLY_INTERVAL_EXCEPTION_VAR:
+        (
+        'Recurs Every '
+        '%(INTERVAL)s'
+        ' Years, With Exceptions, Beginning '
+        '%(STMONTH)s'
+        '/'
+        '%(STDAY)s'
+        '/'
+        '%(STYEAR)s'
+        ), }
 
 # The match regular expressions associated with the recurrence event
 # description templates.
@@ -1242,25 +1808,347 @@ recurrence_event_descriptions_template_mtch = _gen_match_templates({
 # entry can be formatted in a google calendar feed.
 # Templates for gcases template
 gcases_template_raw = {
-    CASE_REC_DAILY_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=DAILY;WKST=SU%(newline)s',
-    CASE_REC_DAILY_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=DAILY;UNTIL=%(UNTILDATETIME)s;WKST=SU%(newline)s',
-    CASE_REC_DAILY_INTERVAL_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=DAILY;INTERVAL=%(INTERVAL)s;WKST=SU%(newline)s',
-    CASE_REC_DAILY_INTERVAL_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=DAILY;INTERVAL=%(INTERVAL)s;UNTIL=%(UNTILDATETIME)s;WKST=SU%(newline)s',
-    CASE_REC_MONTHLY_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=MONTHLY;WKST=SU;BYMONTHDAY=%(STDAY)s%(newline)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=MONTHLY;BYDAY=%(WHICHWEEKG)s;WKST=SU%(newline)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=MONTHLY;BYDAY=%(WHICHWEEKG)s;UNTIL=%(UNTILDATETIME)s;WKST=SU%(newline)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=MONTHLY;INTERVAL=%(INTERVAL)s;BYDAY=%(WHICHWEEKG)s;WKST=SU%(newline)s',
-    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=MONTHLY;INTERVAL=%(INTERVAL)s;BYDAY=%(WHICHWEEKG)s;UNTIL=%(UNTILDATETIME)s;WKST=SU%(newline)s',
-    CASE_REC_MONTHLY_INTERVAL_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=MONTHLY;INTERVAL=%(INTERVAL)s;WKST=SU;BYMONTHDAY=%(STDAY)s%(newline)s',
-    CASE_REC_MONTHLY_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=MONTHLY;UNTIL=%(UNTILDATETIME)s;WKST=SU;BYMONTHDAY=%(STDAY)s%(newline)s',
-    CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=MONTHLY;INTERVAL=%(INTERVAL)s;WKST=SU;BYMONTHDAY=%(STDAY)s;UNTIL=%(UNTILDATETIME)s%(newline)s',
-    CASE_REC_WEEKLY_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=WEEKLY;BYDAY=%(BYDAYG)s;WKST=SU%(newline)s',
-    CASE_REC_WEEKLY_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=WEEKLY;WKST=SU;UNTIL=%(UNTILDATETIME)s;BYDAY=%(BYDAYG)s%(newline)s',
-    CASE_REC_WEEKLY_INTERVAL_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=WEEKLY;INTERVAL=%(INTERVAL)s;BYDAY=%(BYDAYG)s;WKST=SU%(newline)s',
-    CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=WEEKLY;INTERVAL=%(INTERVAL)s;BYDAY=%(BYDAYG)s;UNTIL=%(UNTILDATETIME)s;WKST=SU%(newline)s',
-    CASE_REC_YEARLY_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=YEARLY;WKST=SU%(newline)s',
-    CASE_REC_YEARLY_BLOCK_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=YEARLY;UNTIL=%(UNTILDATETIME)s;WKST=SU%(newline)s',
-    CASE_REC_YEARLY_INTERVAL_VAR: 'DTSTART;TZID=%(TZID)s:%(STDATETIME)s%(newline)sDTEND;TZID=%(TZID2)s:%(ENDDATETIME)s%(newline)sRRULE:FREQ=YEARLY;INTERVAL=%(INTERVAL)s;WKST=SU%(newline)s', }
+    CASE_REC_DAILY_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=DAILY;WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_DAILY_BLOCK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=DAILY;UNTIL='
+        '%(UNTILDATETIME)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_DAILY_INTERVAL_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=DAILY;INTERVAL='
+        '%(INTERVAL)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_DAILY_INTERVAL_BLOCK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=DAILY;INTERVAL='
+        '%(INTERVAL)s'
+        ';UNTIL='
+        '%(UNTILDATETIME)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_MONTHLY_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=MONTHLY'
+        ';WKST=SU;BYMONTHDAY='
+        '%(STDAY)s'
+        '%(newline)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=MONTHLY;BYDAY='
+        '%(WHICHWEEKG)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_BLOCK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=MONTHLY;BYDAY='
+        '%(WHICHWEEKG)s'
+        ';UNTIL='
+        '%(UNTILDATETIME)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=MONTHLY;INTERVAL='
+        '%(INTERVAL)s'
+        ';BYDAY='
+        '%(WHICHWEEKG)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_MONTHLYBYDAYOFWEEK_INTERVAL_BLOCK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=MONTHLY;INTERVAL='
+        '%(INTERVAL)s'
+        ';BYDAY='
+        '%(WHICHWEEKG)s'
+        ';UNTIL='
+        '%(UNTILDATETIME)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_MONTHLY_INTERVAL_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=MONTHLY;INTERVAL='
+        '%(INTERVAL)s'
+        ';WKST=SU;BYMONTHDAY='
+        '%(STDAY)s'
+        '%(newline)s'
+        ),
+    CASE_REC_MONTHLY_BLOCK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=MONTHLY;UNTIL='
+        '%(UNTILDATETIME)s'
+        ';WKST=SU;BYMONTHDAY='
+        '%(STDAY)s'
+        '%(newline)s'
+        ),
+    CASE_REC_MONTHLY_INTERVAL_BLOCK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=MONTHLY;INTERVAL='
+        '%(INTERVAL)s'
+        ';WKST=SU;BYMONTHDAY='
+        '%(STDAY)s'
+        ';UNTIL='
+        '%(UNTILDATETIME)s'
+        '%(newline)s'
+        ),
+    CASE_REC_WEEKLY_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=WEEKLY;BYDAY='
+        '%(BYDAYG)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_WEEKLY_BLOCK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=WEEKLY;WKST=SU;UNTIL='
+        '%(UNTILDATETIME)s'
+        ';BYDAY='
+        '%(BYDAYG)s'
+        '%(newline)s'
+        ),
+    CASE_REC_WEEKLY_INTERVAL_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=WEEKLY;INTERVAL='
+        '%(INTERVAL)s'
+        ';BYDAY='
+        '%(BYDAYG)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_WEEKLY_INTERVAL_BLOCK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=WEEKLY;INTERVAL='
+        '%(INTERVAL)s'
+        ';BYDAY='
+        '%(BYDAYG)s'
+        ';UNTIL='
+        '%(UNTILDATETIME)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_YEARLY_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)'
+        'sDTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=YEARLY;WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_YEARLY_BLOCK_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=YEARLY;UNTIL='
+        '%(UNTILDATETIME)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ),
+    CASE_REC_YEARLY_INTERVAL_VAR:
+        (
+        'DTSTART;TZID='
+        '%(TZID)s'
+        ':'
+        '%(STDATETIME)s'
+        '%(newline)s'
+        'DTEND;TZID='
+        '%(TZID2)s'
+        ':'
+        '%(ENDDATETIME)s'
+        '%(newline)s'
+        'RRULE:FREQ=YEARLY;INTERVAL='
+        '%(INTERVAL)s'
+        ';WKST=SU'
+        '%(newline)s'
+        ), }
 
 # The regular expression match patterns associated with the gcases
 # template.
@@ -1283,13 +2171,58 @@ gcases_template_mtch = _gen_match_templates({
 # the diary file.
 # Templates for times template
 times_template_raw = {
-    CASE_TIME_A_RANGE_VAR: '%(STHOUR)s:%(STMINUTE)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s:%(ENDMINUTE)s%(ENDAMPM)s',
-    CASE_TIME_B_RANGEWITH_STARTTIME_MINUTES_ONLY_VAR: '%(STHOUR)s:%(STMINUTE)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s%(ENDAMPM)s',
-    CASE_TIME_C_RANGEWITH_ENDTIME_MINUTES_ONLY_VAR: '%(STHOUR)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s:%(ENDMINUTE)s%(ENDAMPM)s',
+    CASE_TIME_A_RANGE_VAR:
+        (
+        '%(STHOUR)s'
+        ':'
+        '%(STMINUTE)s'
+        '%(STAMPM)s'
+        '%(HYPHEN)s'
+        '%(ENDHOUR)s'
+        ':'
+        '%(ENDMINUTE)s'
+        '%(ENDAMPM)s'
+        ),
+    CASE_TIME_B_RANGEWITH_STARTTIME_MINUTES_ONLY_VAR:
+        (
+        '%(STHOUR)s'
+        ':'
+        '%(STMINUTE)s'
+        '%(STAMPM)s'
+        '%(HYPHEN)s'
+        '%(ENDHOUR)s'
+        '%(ENDAMPM)s'
+        ),
+    CASE_TIME_C_RANGEWITH_ENDTIME_MINUTES_ONLY_VAR:
+        (
+        '%(STHOUR)s'
+        '%(STAMPM)s'
+        '%(HYPHEN)s'
+        '%(ENDHOUR)s'
+        ':'
+        '%(ENDMINUTE)s'
+        '%(ENDAMPM)s'
+        ),
     CASE_TIME_D_RANGEWITHOUT_MINUTES_VAR:
-        '%(STHOUR)s%(STAMPM)s%(HYPHEN)s%(ENDHOUR)s%(ENDAMPM)s',
-    CASE_TIME_E_STARTTIME_ONLY_VAR: '%(STHOUR)s:%(STMINUTE)s%(STAMPM)s',
-    CASE_TIME_F_STARTTIME_ONLYWITHOUT_MINUTES_VAR: '%(STHOUR)s%(STAMPM)s', }
+        (
+        '%(STHOUR)s'
+        '%(STAMPM)s'
+        '%(HYPHEN)s'
+        '%(ENDHOUR)s'
+        '%(ENDAMPM)s'
+        ),
+    CASE_TIME_E_STARTTIME_ONLY_VAR:
+        (
+        '%(STHOUR)s'
+        ':'
+        '%(STMINUTE)s'
+        '%(STAMPM)s'
+        ),
+    CASE_TIME_F_STARTTIME_ONLYWITHOUT_MINUTES_VAR:
+        (
+        '%(STHOUR)s'
+        '%(STAMPM)s'
+        ), }
 
 # The match templates associated with the times template
 times_template_mtch = _gen_match_templates({
